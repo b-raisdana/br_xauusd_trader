@@ -22,6 +22,6 @@ jobs:
           ruff check .
           ruff format --check .
       - name: Type check
-        run: mypy scripts tests
+        run: mypy src scripts tests
       - name: Tests
         run: pytest

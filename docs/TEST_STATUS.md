@@ -7,11 +7,12 @@
 | Gate | Scope | وضعیت فعلی | Evidence / Blocker |
 |---|---|---|---|
 | Migration integrity | Rule/Decision/Experiment separation | PASS | Template/Handoff Merge شد؛ Legacy از Active Rules جدا و تصمیم‌های نهایی Leader ثبت شد. |
-| Package structure smoke | Required root, Source-of-Truth files and canonical ranges | PASS | `pytest`: 3 passed on Python 3.11.15; 444 Zone rows across 23 dates and canonical SHA-256 verified. |
-| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\quality_gate.ps1` on 2026-09-06. |
+| Package structure smoke | Required root, Source-of-Truth files and canonical ranges | PASS | Canonical SHA-256 and required structure remain covered by pytest. |
+| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\quality_gate.ps1` on 2026-09-06; 22 tests PASS. |
 | Legacy static integrity | Historical sources/manifests without promotion | PASS | Python AST 9/9; PowerShell parser 12/12; MQL5 strict + balanced braces 3/3; core manifest 16/16. Not compile/runtime evidence. |
-| Rule traceability | Rule name → code → test → journal | NOT_RUN | Current strategy code does not yet exist; `src/` contains only `.gitkeep`. |
-| Contract tests | همه موارد بخش 3 `TODO.md` | NOT_RUN | Current EA/research harness does not yet exist. |
+| Zone/Trend contract slice | Rule → Python domain → deterministic tests | PASS | 19 focused tests; 23 canonical days → 421 merged Zones; 444/444 source rows retained. |
+| Rule traceability | Rule name → code → test → journal | NOT_RUN | Zone/Trend code and tests exist; Signal through Audit/Journal traceability remains incomplete. |
+| Contract tests | همه موارد بخش 3 `TODO.md` | NOT_RUN | Zone/Trend subset PASS; remaining Signal/Risk/Safety contracts do not yet exist. |
 | Targeted regression | Trend/Normal/FreeSpace/Strict/TP/Safety | NOT_RUN | Zone/result artifacts exist; historical tick cache, reproducible environment and current engines are missing. |
 | Python ↔ MT5 equivalence | Frozen vectors | NOT_RUN | Engineهای جاری بررسی نشده‌اند. |
 | MT5 compile | `#property strict`, zero errors | BLOCKED | MT5/MetaEditor build 6151 is installed, but current MQL5 source and compile log do not exist. |
@@ -28,9 +29,9 @@
 
 | گروه Rule | تست‌های اجباری | وضعیت |
 |---|---|---|
-| Zone | Load/Normalize/Sort، line Zone، chain merge `<1.5`، Priority، no hard cap | NOT_RUN |
-| Trend | Day bootstrap، live threshold، sticky state، Tick event order | NOT_RUN |
-| Breakout | Engage، Trend at Close، strict ±1 buffer، lineage، close opposite Reversal | NOT_RUN |
+| Zone | Load/Normalize/Sort، line Zone، chain merge `<1.5`، Priority، no hard cap | PASS |
+| Trend | Day bootstrap، live threshold، sticky state، Tick event order | NOT_RUN — Bootstrap/live/sticky PASS; Reversal same-tick consumption remains. |
+| Breakout | Engage، Trend at Close، strict ±1 buffer، lineage، close opposite Reversal | NOT_RUN — Engagement subset PASS; validation/lineage/close remain. |
 | Reversal | directional Market touch، wick validity، Normal1/High2، duplicate guard | NOT_RUN |
 | Pullback | penetration 0.20، broken-edge entry/retry، t+1..t+5، multi-PB، Normal1/High∞ | NOT_RUN |
 | Strict/Conflict/TP | closed/current candle، Same-Bar، Doji، crossing/gap، touch block، extend/restore/close | NOT_RUN |

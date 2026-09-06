@@ -4,9 +4,9 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: First execution audit complete / Ready for Zone and Trend implementation
+- Current activity: Zone/Trend contract slice complete / Ready for Signal implementation
 - Strategy target: MVP v2 Consolidated Rulebook
-- Rule status: Active behavior consolidated; strategy-level executable validation not yet performed
+- Rule status: Zone/Trend rules implemented and contract-tested in Python; remaining rules pending
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
 - Last verified Git commit before this audit: `b4e00aa` — migration checkpoint
 - Last verified date: 2026-09-06
@@ -42,6 +42,9 @@
 
 ## موارد تکمیل‌شده
 
+- Current Python domain package `src/xauusd/` now implements deterministic Zone load/normalize/sort/chain-merge/Priority, per-M15 engagement, daily Trend bootstrap and fixed Tick ordering.
+- Zone/Trend contract evidence: 19 focused tests PASS; canonical `ranges.csv` loads as 23 Broker Days, 421 merged Zones and all 444 source rows retained.
+- Price boundaries use finite `Decimal` values and merged Zone IDs use `{BrokerDay ISO}:R{sorted ordinal}`; future MQL5 parity must test conversion/tolerance explicitly.
 - First-run repository audit completed on 2026-09-06: all current and legacy source/test files were inventoried; `_migration_inbox` is absent.
 - Current executable baseline established with project-local Python 3.11.15, `uv`, deterministic migration tests, Ruff, mypy and pytest.
 - Windows runtime discovery confirmed Git 2.54.0, GitHub CLI 2.100.0 and MT5 Terminal/MetaEditor build 6151. PowerShell entry points require `-ExecutionPolicy Bypass` on this host.
@@ -63,7 +66,7 @@
 
 ## موارد تأییدنشده اجرایی
 
-- وجود/اعتبار کد ماژولار جدید، Contract Testهای Strategy، `.set` جاری و Compile Log جاری؛ `src/` هنوز فقط placeholder است.
+- Signal/Risk/Safety/Audit modules, remaining Strategy Contract Tests, current `.set` and current MQL5 Compile Log.
 - اتصال Evidenceهای تاریخی به Dataset/Config/Artifact/Commit.
 - رفتار دقیق Broker Symbol/Session و Cost model در محیط هدف.
 - نتیجه Regression Ruleهای جدید در برابر Finalist قدیمی.
@@ -135,6 +138,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید مدل دامنه و Contract Testهای Zone/Trend را از Rulebook فعال در `src/` تولید کند، سپس Signal/Risk/Safety و در پایان MQL5 Equivalence و MT5 Acceptance را پیش ببرد.
+Codex باید Signal contractها را پیاده کند: ابتدا Breakout validation/lineage و Reversal directional touch/usage/duplicate guard، سپس Pullback lifecycle. بعد از آن Risk/Safety و MQL5 Equivalence ادامه می‌یابد.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

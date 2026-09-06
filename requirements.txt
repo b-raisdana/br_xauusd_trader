@@ -1,1 +1,1 @@
-# Runtime dependencies are added by Codex when the project actually needs them.
+MetaTrader5==5.0.6180

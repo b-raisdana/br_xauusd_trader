@@ -25,6 +25,7 @@ class TradeDirection(StrEnum):
 
 class OrderType(StrEnum):
     MARKET = "market"
+    PENDING_STOP = "pending_stop"
 
 
 @dataclass(frozen=True, slots=True)

@@ -35,7 +35,7 @@
 
 - [ ] ساخت EA جدید ماژولار — کد Legacy Patch نمی‌شود و EA بر اساس Rulebook فعال از نو به بخش‌های کوچک و قابل Trace تقسیم می‌شود.
 - [x] ماژول Zone/Trend — Load/Merge/Priority، Engagement و Trend bootstrap روزانه مستقل پیاده و Contract-tested شد.
-- [ ] ماژول Signalها — Breakout، Reversal و Pullback با Rule IDهای واضح و بدون منطق تکراری پیاده شوند.
+- [x] ماژول Signalها — Breakout، Reversal و Pullback با State مشترک Order Slot و Lineage روشن پیاده و Contract-tested شدند.
 - [ ] ماژول Strict Trend/Conflict/TP — سه Rule مشترک با State واحد و Triggerهای دقیق پیاده شوند.
 - [ ] ماژول Risk/Execution — Initial SL/TP، Base R، RF، Profit Protection، Native Costs و Margin Gate پیاده شوند.
 - [ ] ماژول Safety — Daily loss، Portfolio risk، Session flatten و Restart fail-closed پیاده شوند.
@@ -55,10 +55,10 @@
 - [x] Reversal usage commit — Signal صرف مصرف نمی‌کند؛ Market Order موفق یا ناموفق سهمیه را مصرف می‌کند.
 - [x] Duplicate reversal — چند Recross یک Zone/Direction در یک M15 فقط یک Signal می‌سازد و Directionها مستقل‌اند.
 - [x] One new order per candle — اولین تلاش Order Slot مشترک کندل را حتی در شکست Broker مصرف می‌کند؛ Signal دوم فقط قابل Audit است.
-- [ ] Pullback window — فقط `t+1..t+5` و بدون Carry به روز بعد تست شود.
-- [ ] Multiple PB per BO — اولین Fill نباید Parent Breakout را قبل از پایان Window ببندد.
-- [ ] Pullback usage — Normal1/High∞ و استقلال Consumption از Reversal تست شود.
-- [ ] Conservative penetration — نفوذ 0.20، Entry روی Broken Edge و Retry دقیق تست شود.
+- [x] Pullback window — فقط `t+1..t+5`، Cancel pending در t+6 و بدون Carry به روز بعد تست شد.
+- [x] Multiple PB per BO — اولین Fill Parent Breakout را نمی‌بندد و Lineage در Fill بعدی حفظ می‌شود.
+- [x] Pullback usage — Normal1/High∞، اشتراک Buy/Sell در Zone و استقلال Consumption از Reversal تست شد.
+- [x] Conservative penetration — نفوذ inclusive 0.20 در هر دو جهت، نبود Maximum، Entry روی Broken Edge و Retry دقیق تست شد.
 - [ ] Strict Trend closed candles — همه Candleهای بسته‌شده بعد از PB باید در جهت لازم باشند و Doji شکست محسوب شود.
 - [ ] Strict Trend current candle — Buy با `Bid>Open` و Sell با `Ask<Open` در لحظه تصمیم تست شود.
 - [ ] Same-Bar PB→Trigger — همان کندل PB با Current Price نسبت به M15 Open ارزیابی شود.

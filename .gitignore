@@ -1,0 +1,52 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs / reports / generated
+logs/
+reports/
+artifacts/*
+!artifacts/.gitkeep
+output/*
+!output/.gitkeep
+tmp/
+
+# Large/local market data
+data/raw/
+data/cache/
+data/vendor/
+*.parquet
+*.feather
+*.h5
+*.hdf5
+
+# MT5 local/generated
+*.ex5
+*.log
+tester/cache/
+tester/logs/
+
+# Build
+build/
+dist/
+*.egg-info/

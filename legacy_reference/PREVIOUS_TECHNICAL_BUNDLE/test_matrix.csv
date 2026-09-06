@@ -1,0 +1,7 @@
+﻿enabled,phase,run_id,high_max,high_sl,deposit,lot,qa_discovery,qa_capital_basis,dl_override,dl_pct,date_scope,from_date,to_date,fast_validation,session_mode,session_preclose_minutes,run_role,mvp_profile,max_live_positions,risk_mode,risk_pct,capital_basis,restart_time,notes
+1,AR_OPS_01,OPSFAST200_CONTROL,4,1.5,200,0.01,false,100,false,20,ALL_RANGES,,,false,2,5,CONTROL,4,3,2,15,200,,Full-range GROSS15 equivalence control at $200.
+1,AR_OPS_01,OPSFAST300_CONTROL,4,1.5,300,0.01,false,100,false,20,ALL_RANGES,,,false,2,5,CONTROL,4,5,2,15,300,,Full-range GROSS15 equivalence control at $300.
+1,AR_OPS_01,OPSFAST200_OPEN_A,4,1.5,200,0.01,false,100,false,20,CUSTOM,2026.07.29,2026.07.31,false,2,5,RESTART,4,3,2,15,200,2026.07.29 14:30:00,Targeted: restart while PB exposure exists; includes next active zone day 2026.07.30.
+1,AR_OPS_01,OPSFAST300_MULTI_B,4,1.5,300,0.01,false,100,false,20,CUSTOM,2026.08.07,2026.08.12,false,2,5,RESTART,4,5,2,15,300,2026.08.07 04:46:00,Targeted: restart while multiple Reversal exposure exists; includes 08.11 where trading resumes.
+1,AR_OPS_01,OPSFAST200_FLAT_RISK_C,4,1.5,200,0.01,false,100,false,20,CUSTOM,2026.08.07,2026.08.12,false,2,5,RESTART,4,3,2,15,200,2026.08.07 10:30:00,Targeted: restart while flat after intraday loss/risk activity; includes later active zone day.
+1,AR_OPS_01,OPSFAST300_FORWARD_D,4,1.5,300,0.01,false,100,false,20,CUSTOM,2026.08.20,2026.08.22,false,2,5,RESTART,4,5,2,15,300,2026.08.20 02:24:00,Targeted Forward-period restart; includes next active zone day 2026.08.21.

@@ -1,0 +1,7 @@
+﻿"run_id","phase","b31_duplicate_evaluations","duplicate_breakout_ids","pullback_parent_missing","pullback_parent_unknown","unclosed_positions","sl_loosen_violations","post_daily_stop_new_entries","daily_net_mismatches","high_ordinal_over_limit","missing_zone_days","status"
+"OPSFAST200_CONTROL","AR_OPS_01","0","0","0","0","0","0","0","0","0","0","PASS"
+"OPSFAST300_CONTROL","AR_OPS_01","0","0","0","0","0","0","0","0","0","0","PASS"
+"OPSFAST200_OPEN_A","AR_OPS_01","0","0","0","0","0","0","0","0","0","0","PASS"
+"OPSFAST300_MULTI_B","AR_OPS_01","0","0","0","0","0","0","0","1","0","0","FAIL"
+"OPSFAST200_FLAT_RISK_C","AR_OPS_01","0","0","0","0","0","0","0","0","0","0","PASS"
+"OPSFAST300_FORWARD_D","AR_OPS_01","0","0","0","0","0","0","0","0","0","0","PASS"

@@ -73,7 +73,7 @@
 - [x] Native RF — Break-even با cash-per-price و هزینه Native ورودی Adapter و عدم استفاده از Entry خام تست شد.
 - [x] Profit Protection — Xهای متعدد بدون سقف و عدم SL loosening برای Buy/Sell تست شد.
 - [x] Capital limits — 0.01 lot و فقط Profileهای max3/max5 برای 200/300 تست شد.
-- [ ] Daily/Portfolio Risk — Realized guard و GROSS15 reservation مستقل و ترکیبی تست شوند.
+- [x] Daily/Portfolio Risk — Net Realized guard و GROSS15 native-cash reservation مستقل، مرزی و ترکیبی تست شدند.
 - [ ] Session safety — پنج دقیقه قبل Session پایان، Entry/Pending/Cycle/Position رفتار صحیح داشته باشند.
 - [ ] Restart fail-closed — Restart همان روز باید Flatten/Cancel/Lock و روز بعد Resume کند.
 

@@ -36,7 +36,7 @@
 - [ ] ساخت EA جدید ماژولار — کد Legacy Patch نمی‌شود و EA بر اساس Rulebook فعال از نو به بخش‌های کوچک و قابل Trace تقسیم می‌شود.
 - [x] ماژول Zone/Trend — Load/Merge/Priority، Engagement و Trend bootstrap روزانه مستقل پیاده و Contract-tested شد.
 - [x] ماژول Signalها — Breakout، Reversal و Pullback با State مشترک Order Slot و Lineage روشن پیاده و Contract-tested شدند.
-- [ ] ماژول Strict Trend/Conflict/TP — سه Rule مشترک با State واحد و Triggerهای دقیق پیاده شوند.
+- [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.
 - [ ] ماژول Risk/Execution — Initial SL/TP، Base R، RF، Profit Protection، Native Costs و Margin Gate پیاده شوند.
 - [ ] ماژول Safety — Daily loss، Portfolio risk، Session flatten و Restart fail-closed پیاده شوند.
 - [ ] ماژول Audit/Visual — Journal و Chart QA ساده و قابل فهم برای رهبر پروژه ساخته شود.
@@ -59,14 +59,14 @@
 - [x] Multiple PB per BO — اولین Fill Parent Breakout را نمی‌بندد و Lineage در Fill بعدی حفظ می‌شود.
 - [x] Pullback usage — Normal1/High∞، اشتراک Buy/Sell در Zone و استقلال Consumption از Reversal تست شد.
 - [x] Conservative penetration — نفوذ inclusive 0.20 در هر دو جهت، نبود Maximum، Entry روی Broken Edge و Retry دقیق تست شد.
-- [ ] Strict Trend closed candles — همه Candleهای بسته‌شده بعد از PB باید در جهت لازم باشند و Doji شکست محسوب شود.
-- [ ] Strict Trend current candle — Buy با `Bid>Open` و Sell با `Ask<Open` در لحظه تصمیم تست شود.
-- [ ] Same-Bar PB→Trigger — همان کندل PB با Current Price نسبت به M15 Open ارزیابی شود.
-- [ ] Pre-Zone Trigger 1$ — Trigger نسبت به Zone حامل TP جاری، اولین Crossing و Tick Gap بدون Equality تست شود.
-- [ ] Opposite Reversal block — Reversal فقط در Touch واقعی Zone و فقط در صورت Strict Trend معتبر Block شود.
-- [ ] One-step TP extension — انتقال TP فقط یک Zone جلوتر و فقط وقتی Zone فعلی همان TP اولیه است تست شود.
-- [ ] TP restore — شکست Strict Trend قبل از لمس TP اولیه باید TP را به مقدار قبلی برگرداند.
-- [ ] TP market close fallback — شکست Strict Trend بعد از عبور TP اولیه باید Market Close ایجاد کند.
+- [x] Strict Trend closed candles — همه Candleهای بسته‌شده بعد از PB در جهت لازم و Doji/مخالف به‌عنوان شکست تست شدند.
+- [x] Strict Trend current candle — Buy با `Bid>Open` و Sell با `Ask<Open` فقط در نقطه تصمیم تست شد.
+- [x] Same-Bar PB→Trigger — مجموعه closed خالی و Current Price نسبت به M15 Open تست شد.
+- [x] Pre-Zone Trigger 1$ — Trigger نسبت به Zone حامل TP جاری، اولین Crossing و Tick Gap تست شد.
+- [x] Opposite Reversal block — Reversal فقط در Touch واقعی Zone و فقط با Strict Trend معتبر Block می‌شود.
+- [x] One-step TP extension — انتقال یک Zone جلوتر، نبود Recursive extension و حفظ TP در Modify ناموفق تست شد.
+- [x] TP restore — شکست Strict Trend قبل از لمس TP اولیه، Restore و حفظ TP معتبر در Modify ناموفق تست شد.
+- [x] TP market close fallback — شکست Strict Trend بعد از لمس/عبور TP اولیه برای Buy/Sell، Market Close می‌سازد.
 - [ ] Free Space definition — فرمول Buy/Sell و Minimum جدید 3 دلار تست شود.
 - [ ] Initial Stop — Stop Zone و Cap ثابت 6 دلار با Edge Case نبود Stop Zone تست شود.
 - [ ] Initial Target — اولین Zone حداقل 6 دلار دورتر و Reject در نبود Target تست شود.

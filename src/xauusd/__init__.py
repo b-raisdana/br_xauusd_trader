@@ -1,6 +1,16 @@
 """Deterministic domain contracts for the current XAUUSD MVP."""
 
 from xauusd.market_state import MarketState, MarketTickUpdate
+from xauusd.momentum import (
+    PRE_ZONE_TRIGGER_DISTANCE_USD,
+    PreZoneTriggerTracker,
+    PullbackTpState,
+    TpAction,
+    TpActionType,
+    blocks_opposite_reversal,
+    pre_zone_trigger_price,
+    strict_pullback_trend,
+)
 from xauusd.pullback import (
     PULLBACK_PENETRATION_USD,
     PULLBACK_WINDOW_BARS,
@@ -38,6 +48,7 @@ __all__ = [
     "BREAKOUT_BUFFER_USD",
     "PULLBACK_PENETRATION_USD",
     "PULLBACK_WINDOW_BARS",
+    "PRE_ZONE_TRIGGER_DISTANCE_USD",
     "BreakoutSide",
     "BreakoutSignal",
     "BreakoutTracker",
@@ -50,18 +61,25 @@ __all__ = [
     "OrderAttemptLedger",
     "OrderAttemptResult",
     "OrderType",
+    "PreZoneTriggerTracker",
     "PullbackExpiry",
     "PullbackOrderCandidate",
     "PullbackTracker",
+    "PullbackTpState",
     "RawZone",
     "ReversalCandidate",
     "ReversalTracker",
     "TradeDirection",
+    "TpAction",
+    "TpActionType",
     "TrendState",
     "Zone",
     "ZoneEngagementTracker",
     "ZonePriority",
     "build_daily_zones",
+    "blocks_opposite_reversal",
     "load_zone_csv",
+    "pre_zone_trigger_price",
     "price",
+    "strict_pullback_trend",
 ]

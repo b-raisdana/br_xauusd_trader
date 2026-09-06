@@ -8,7 +8,7 @@
 |---|---|---|---|
 | Migration integrity | Rule/Decision/Experiment separation | PASS | Template/Handoff Merge شد؛ Legacy از Active Rules جدا و تصمیم‌های نهایی Leader ثبت شد. |
 | Package structure smoke | Required root, Source-of-Truth files and canonical ranges | PASS | Canonical SHA-256 and required structure remain covered by pytest. |
-| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | Local gate on 2026-09-06; 74 tests PASS, including causal Breakout/Pullback orchestration, durable signal projection and inert MQL Native/Visual boundaries. |
+| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | Local gate on 2026-09-06; 76 tests PASS, including normalized causal replay, durable signal projection and inert MQL Native/Visual boundaries. |
 | Legacy static integrity | Historical sources/manifests without promotion | PASS | Python AST 9/9; PowerShell parser 12/12; MQL5 strict + balanced braces 3/3; Git-staged core manifest 16/16 across byte-preserved attributes. Not compile/runtime evidence. |
 | Zone/Trend/orchestration slice | Rule → causal ticks → bar close → deterministic tests | PASS | 21 focused tests; strict tick-chain/final-close validation and Breakout-before-Trend-roll PASS; 23 canonical days → 421 merged Zones; 444/444 source rows retained. |
 | Breakout/Reversal signal slice | Strict qualification, touch and accounting contracts | PASS | 9 focused/integration tests; strict buffer/lineage, same-Tick Trend, directional Market touch, gap/wick, duplicate, daily usage and shared bar slot PASS. |
@@ -21,7 +21,7 @@
 | Equivalence-vector scaffold | Shared versioned Decimal-string inputs/outputs | PASS for Python + MQL runtime | 16 vectors execute in Python; generated-header drift and explicit `1e-9` MQL tolerance PASS; isolated Strategy Tester emitted the exact core success marker. |
 | Rule traceability | Rule name → code → test → journal | NOT_RUN | Reversal/Breakout/Pullback signal outputs persist with semantic Rule IDs and lineage; order/fill/close/reject plus full replay traceability remain. |
 | Contract tests | همه موارد بخش 3 `TODO.md` | PASS at Python domain boundary | All listed fast contracts PASS; external Native/MT5 parity and durable side effects remain separate gates. |
-| Targeted regression | Trend/Normal/FreeSpace/Strict/TP/Safety | NOT_RUN | Zone/result artifacts exist; historical tick cache, reproducible environment and current engines are missing. |
+| Targeted regression | Trend/Normal/FreeSpace/Strict/TP/Safety | NOT_RUN | Current normalized replay engine exists; reproducible historical tick input plus execution/exit orchestration remain missing. |
 | Python ↔ MT5 equivalence | Frozen core vectors | PASS for frozen core; lifecycle NOT_RUN | 16 shared vectors PASS in Python and isolated MQL runtime at `1e-9`; real-tick order lifecycle comparison remains. |
 | MT5 compile/runtime smoke | `#property strict`, zero errors, inert startup | PASS for current inert core + Native/Visual boundaries | Build 6151: 0 errors/0 warnings; isolated Strategy Tester validated 16 vectors, Symbol/Session/Profit/Margin adapters and the audit label/tooltip payload. This is not full EA acceptance or visual inspection. |
 | MT5 real-tick acceptance | 200/300 USD scenarios | NOT_RUN | Broker profile و `.set` جاری موجود نیست. |

@@ -31,6 +31,7 @@ from xauusd.pullback import (
     pullback_usage_allowed,
     pullback_window_active,
 )
+from xauusd.replay import ReplayBar, ReplayDay, ReplayResult, ReplayRunner, ReplayTick
 from xauusd.risk import (
     BASE_R_USD,
     FIXED_VOLUME_LOTS,
@@ -131,6 +132,11 @@ __all__ = [
     "PullbackExpiry",
     "PullbackOrderCandidate",
     "PullbackTracker",
+    "ReplayBar",
+    "ReplayDay",
+    "ReplayResult",
+    "ReplayRunner",
+    "ReplayTick",
     "pullback_usage_allowed",
     "pullback_window_active",
     "PullbackTpState",

@@ -4,7 +4,14 @@ from decimal import Decimal
 
 import pytest
 
-from xauusd.audit import AuditEventKind, AuditJournal, SignalFamily, chart_marker
+from xauusd.audit import (
+    AuditEventKind,
+    AuditJournal,
+    AuditPersistenceError,
+    JsonlAuditStore,
+    SignalFamily,
+    chart_marker,
+)
 from xauusd.signals import OrderType, TradeDirection
 from xauusd.zones import ZonePriority
 
@@ -110,3 +117,72 @@ def test_chart_marker_has_rule_labels_priority_style_and_leader_tooltip() -> Non
     assert marker.color_key == "zone_high"
     for expected in ("Time=", "Zone=z1", "Entry=100.5", "SL=106", "TP=90", "Event="):
         assert expected in marker.tooltip
+
+
+def test_jsonl_journal_is_durable_and_resumes_daily_sequence(tmp_path) -> None:
+    path = tmp_path / "audit" / "events.jsonl"
+    first = AuditJournal(JsonlAuditStore(path))
+    first.begin_day(DAY)
+    first.record(
+        rule_ids=("BREAKOUT_VALIDATION",),
+        kind=AuditEventKind.SIGNAL,
+        broker_time=NOW,
+        zone_id="2026-09-06:R1",
+        signal_family=SignalFamily.BREAKOUT,
+        direction=TradeDirection.BUY,
+        entry="3400.10",
+    )
+
+    resumed = AuditJournal(JsonlAuditStore(path))
+    resumed.begin_day(DAY)
+    event = resumed.record(
+        rule_ids=("REVERSAL_DIRECTIONAL_TOUCH",),
+        kind=AuditEventKind.SIGNAL,
+        broker_time=datetime(2026, 9, 6, 10, 16),
+        zone_id="2026-09-06:R2",
+        signal_family=SignalFamily.REVERSAL,
+        direction=TradeDirection.SELL,
+        entry="3401.20",
+    )
+
+    assert event.event_id == "2026-09-06:E000002"
+    records = path.read_text(encoding="utf-8").splitlines()
+    assert len(records) == 2
+    assert '"entry":"3400.10"' in records[0]
+
+
+def test_jsonl_journal_fails_closed_on_corrupt_or_gapped_history(tmp_path) -> None:
+    corrupt = tmp_path / "corrupt.jsonl"
+    corrupt.write_text('{"event_id":"2026-09-06:E000001"}\nnot-json\n', encoding="utf-8")
+    with pytest.raises(AuditPersistenceError, match="Cannot recover"):
+        AuditJournal(JsonlAuditStore(corrupt)).begin_day(DAY)
+
+    gapped = tmp_path / "gapped.jsonl"
+    gapped.write_text(
+        '{"event_id":"2026-09-06:E000001"}\n{"event_id":"2026-09-06:E000003"}\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(AuditPersistenceError, match="Non-contiguous"):
+        AuditJournal(JsonlAuditStore(gapped)).begin_day(DAY)
+
+
+def test_failed_durable_append_does_not_publish_or_consume_event_id() -> None:
+    class FailingStore:
+        def last_sequence(self, broker_day: date) -> int:
+            return 0
+
+        def append(self, event: object) -> None:
+            raise AuditPersistenceError("disk unavailable")
+
+    journal = AuditJournal(FailingStore())
+    journal.begin_day(DAY)
+    with pytest.raises(AuditPersistenceError, match="disk unavailable"):
+        journal.record(
+            rule_ids=("BREAKOUT_VALIDATION",),
+            kind=AuditEventKind.SIGNAL,
+            broker_time=NOW,
+            zone_id="z1",
+            signal_family=SignalFamily.BREAKOUT,
+            direction=TradeDirection.BUY,
+        )
+    assert journal.events == ()

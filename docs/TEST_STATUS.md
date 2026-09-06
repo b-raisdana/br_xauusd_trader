@@ -8,7 +8,7 @@
 |---|---|---|---|
 | Migration integrity | Rule/Decision/Experiment separation | PASS | Template/Handoff Merge شد؛ Legacy از Active Rules جدا و تصمیم‌های نهایی Leader ثبت شد. |
 | Package structure smoke | Required root, Source-of-Truth files and canonical ranges | PASS | Canonical SHA-256 and required structure remain covered by pytest. |
-| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | Local gate on 2026-09-06; 66 tests PASS, including the read-only MQL Native boundary and inert tester configuration. |
+| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | Local gate on 2026-09-06; 69 tests PASS, including durable audit persistence, the read-only MQL Native boundary and inert tester configuration. |
 | Legacy static integrity | Historical sources/manifests without promotion | PASS | Python AST 9/9; PowerShell parser 12/12; MQL5 strict + balanced braces 3/3; Git-staged core manifest 16/16 across byte-preserved attributes. Not compile/runtime evidence. |
 | Zone/Trend contract slice | Rule → Python domain → deterministic tests | PASS | 19 focused tests; 23 canonical days → 421 merged Zones; 444/444 source rows retained. |
 | Breakout/Reversal signal slice | Strict qualification, touch and accounting contracts | PASS | 9 focused/integration tests; strict buffer/lineage, same-Tick Trend, directional Market touch, gap/wick, duplicate, daily usage and shared bar slot PASS. |
@@ -17,13 +17,13 @@
 | Initial Risk/Execution slice | Geometry, native RF, protection and fixed capital profiles | PASS | 7 focused tests; Free Space, Stop/Target, RF, monotonic steps, protected order, 0.01 lot, max3/max5 and margin boundary PASS. |
 | Financial Safety slice | Daily net-realized and GROSS15 entry gates | PASS | 6 focused tests; daily latch/reset/actions, inclusive gross budget, all four native risk components, combined rejection and invalid-input failure PASS. |
 | Operational Safety slice | Broker session boundary and restart lock | PASS | 4 focused tests; inclusive pre-close action set, time-basis validation, persisted same-day detection and next-day release PASS. |
-| Audit payload slice | Immutable trace records and leader marker DTOs | PASS | 3 focused tests; required fields/reasons/lineage/order kind, daily IDs, exact serialization, labels/styles/tooltips PASS. Durable I/O/rendering remains. |
-| Equivalence-vector scaffold | Shared versioned Decimal-string inputs/outputs | PASS for Python + generated MQL source | 16 vectors execute in Python; generated-header drift and explicit `1e-9` MQL tolerance PASS; compiled startup consumer covers state/lifecycle. Runtime evidence remains. |
+| Audit payload slice | Immutable trace records, durable JSONL and leader marker DTOs | PASS | 6 focused tests; required fields, daily IDs, exact serialization, fsync append, same-day recovery, corrupt/gap fail-closed behavior and marker payloads PASS. MT5 rendering remains. |
+| Equivalence-vector scaffold | Shared versioned Decimal-string inputs/outputs | PASS for Python + MQL runtime | 16 vectors execute in Python; generated-header drift and explicit `1e-9` MQL tolerance PASS; isolated Strategy Tester emitted the exact core success marker. |
 | Rule traceability | Rule name → code → test → journal | NOT_RUN | Zone/Trend code and tests exist; Signal through Audit/Journal traceability remains incomplete. |
 | Contract tests | همه موارد بخش 3 `TODO.md` | PASS at Python domain boundary | All listed fast contracts PASS; external Native/MT5 parity and durable side effects remain separate gates. |
 | Targeted regression | Trend/Normal/FreeSpace/Strict/TP/Safety | NOT_RUN | Zone/result artifacts exist; historical tick cache, reproducible environment and current engines are missing. |
-| Python ↔ MT5 equivalence | Frozen vectors | BLOCKED | 16 shared vectors PASS in Python and compile in MQL source at `1e-9`; isolated runtime capture is fail-closed while an unrelated MetaTrader process is active. |
-| MT5 compile | `#property strict`, zero errors | PASS for current inert core + Native boundary | `scripts/compile_mt5.ps1` on build 6151: 0 errors, 0 warnings after adding Symbol/Session/Profit/Margin adapters. This is not full EA/runtime acceptance. |
+| Python ↔ MT5 equivalence | Frozen core vectors | PASS for frozen core; lifecycle NOT_RUN | 16 shared vectors PASS in Python and isolated MQL runtime at `1e-9`; real-tick order lifecycle comparison remains. |
+| MT5 compile/runtime smoke | `#property strict`, zero errors, inert startup | PASS for current inert core + Native boundary | Build 6151: 0 errors/0 warnings; isolated Strategy Tester validated 16 vectors plus Symbol/Session/Profit/Margin adapters. This is not full EA acceptance. |
 | MT5 real-tick acceptance | 200/300 USD scenarios | NOT_RUN | Broker profile و `.set` جاری موجود نیست. |
 | Visual QA | Chart + Journal + Rule IDs | NOT_RUN | بعد از Technical PASS. |
 | MVP Freeze | Rulebook/Code/Evidence immutable version | NOT_RUN | همه Gateهای قبلی لازم‌اند. |
@@ -49,7 +49,7 @@
 | Execution | SL/TP at creation، native costs، one order/bar، 0.01 lot، max3/max5 | PASS at Python contract boundary — read-only MT5 Native adapter compiles; runtime validation/equivalence remains. |
 | Risk budgets | Daily realized 20% و GROSS15 reservation | PASS |
 | Safety | Session-5min flatten و restart fail-closed | PASS at Python contract boundary — Broker session adapter compiles; runtime validation and persistence remain. |
-| Audit/Visual | Event/Rule/Zone/BO lineage، reject reasons، chart markers/tooltips | NOT_RUN — Python event and marker payload contracts PASS; durable journal and MT5 chart rendering remain. |
+| Audit/Visual | Event/Rule/Zone/BO lineage، reject reasons، chart markers/tooltips | NOT_RUN — Python event, durable journal and marker payload contracts PASS; MT5 chart rendering remains. |
 
 ## Evidence تاریخی در انتظار بازیابی
 

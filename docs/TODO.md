@@ -39,7 +39,7 @@
 - [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.
 - [x] ماژول Risk/Execution — Initial SL/TP، Base R، RF، Profit Protection، Native input boundary، fixed volume/concurrency و Margin Gate پیاده و تست شدند.
 - [x] ماژول Safety — Daily loss، Portfolio risk، Broker session flatten و Restart fail-closed پیاده و Contract-tested شدند.
-- [ ] ماژول Audit/Visual — Event/validation/serialization و marker payload تست شد؛ durable Journal I/O و MT5 Chart rendering باقی است.
+- [ ] ماژول Audit/Visual — Event/validation/serialization، durable fail-closed JSONL Journal و marker payload تست شد؛ MT5 Chart rendering باقی است.
 - [x] Compile Gate — current inert baseline با `#property strict` روی MetaEditor build 6151، صفر Error و صفر Warning compile شد؛ پس از هر توسعه باید تکرار شود.
 
 ---
@@ -97,7 +97,7 @@ Gate: اختلاف اجرایی بدون توضیح = صفر.
 
 ## 5) Python ↔ MT5 Equivalence
 
-- [ ] Freeze test vectors — schema و 16 vector در Python اجرا و به generated MQL header با tolerance صریح قفل شد؛ runner/config ایزوله آماده است اما runtime evidence به‌علت Terminal فعال و remaining execution lifecycle پیش از Freeze باقی است.
+- [x] Freeze test vectors — schema و 16 vector در Python و isolated MQL Strategy Tester با tolerance صریح و generated-header drift gate PASS شد.
 - [ ] Python replay — نتایج سریع برای Signal/State/Exit تولید شود.
 - [ ] MT5 Real Tick comparison — Finalist روی همان روزها با Every Tick Based on Real Ticks اجرا شود.
 - [ ] اختلاف‌ها طبقه‌بندی شوند — فقط `RULE / CODE / DATA / TEST_CONFIG`؛ مشکل فنی بدون نیاز Business Logic به رهبر برنگردد.

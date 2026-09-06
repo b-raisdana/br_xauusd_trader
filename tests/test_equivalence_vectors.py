@@ -4,13 +4,24 @@ from pathlib import Path
 from typing import Any
 
 from scripts.generate_mql_vectors import render_header
-from xauusd.momentum import PreZoneTriggerTracker, pre_zone_trigger_price, strict_pullback_trend
-from xauusd.pullback import PullbackTracker
+from xauusd.momentum import (
+    PreZoneTriggerTracker,
+    PullbackTpState,
+    TpActionType,
+    pre_zone_trigger_price,
+    strict_pullback_trend,
+)
+from xauusd.pullback import PullbackTracker, pullback_usage_allowed, pullback_window_active
 from xauusd.risk import build_initial_risk, profit_protection_stop
-from xauusd.safety import DailyRealizedLossGuard, evaluate_portfolio_risk, session_end_actions
+from xauusd.safety import (
+    DailyRealizedLossGuard,
+    RestartFailClosedGuard,
+    evaluate_portfolio_risk,
+    session_end_actions,
+)
 from xauusd.signals import BreakoutSignal, BreakoutTracker, ReversalTracker, TradeDirection
 from xauusd.trend import Candle, DailyTrendTracker, TrendState
-from xauusd.zones import RawZone, Zone, build_daily_zones
+from xauusd.zones import RawZone, Zone, ZoneEngagementTracker, ZonePriority, build_daily_zones
 
 VECTOR_PATH = Path(__file__).parent / "vectors" / "core_contracts.json"
 
@@ -49,6 +60,11 @@ def test_frozen_core_vectors_match_python_contracts() -> None:
         "profit-protection-buy-step-four",
         "daily-loss-inclusive-boundary",
         "session-five-minute-boundary",
+        "zone-chain-merge-strict-boundary",
+        "multi-zone-gap-count",
+        "pullback-high-window-t5",
+        "tp-strict-failure-before-initial",
+        "restart-same-day-lock",
     ]
 
     breakout_vector = vectors[0]
@@ -243,6 +259,65 @@ def test_frozen_core_vectors_match_python_contracts() -> None:
         broker_session_end=datetime.fromisoformat(session_input["broker_session_end"]),
     )
     assert {"active": session.locked} == session_vector["expected"]
+
+    merge_vector = vectors[11]
+    merged = make_zones(day, merge_vector["input"]["zones"])
+    assert {
+        "count": len(merged),
+        "first_low": str(merged[0].low),
+        "first_high": str(merged[0].high),
+        "first_priority": merged[0].priority.value,
+        "first_id": merged[0].zone_id,
+        "second_id": merged[1].zone_id,
+    } == merge_vector["expected"]
+
+    gap_vector = vectors[12]
+    gap_input = gap_vector["input"]
+    gap_zones = make_zones(day, gap_input["zones"])
+    engagement = ZoneEngagementTracker(gap_zones)
+    crosses = engagement.count_directional_crosses(gap_input["previous_bid"], gap_input["bid"])
+    assert {"crosses": crosses, "multi_zone_tick_gap": crosses > 1} == gap_vector["expected"]
+
+    pullback_state_vector = vectors[13]
+    pullback_state_input = pullback_state_vector["input"]
+    assert {
+        "window_active": pullback_window_active(pullback_state_input["bar_offset"]),
+        "usage_allowed": pullback_usage_allowed(
+            ZonePriority(pullback_state_input["priority"]),
+            pullback_state_input["daily_fills"],
+        ),
+    } == pullback_state_vector["expected"]
+
+    tp_vector = vectors[14]
+    tp_input = tp_vector["input"]
+    tp_zone = make_zones(
+        day,
+        [{"low": tp_input["initial_tp"], "high": "101", "priority": "normal"}],
+    )[0]
+    tp_state = PullbackTpState.create(
+        position_id="P1",
+        direction=TradeDirection(tp_input["direction"]),
+        initial_target_zone=tp_zone,
+    )
+    tp_state.extended = tp_input["extended"]
+    tp_action = tp_state.evaluate_strict_failure(
+        strict_trend_valid=tp_input["strict_valid"],
+        current_bid=tp_input["current_bid"],
+        current_ask=tp_input["current_ask"],
+    )
+    assert {"action": tp_action.action.value} == tp_vector["expected"]
+    assert tp_action.action is TpActionType.RESTORE
+
+    restart_vector = vectors[15]
+    restart_input = restart_vector["input"]
+    restart = RestartFailClosedGuard()
+    restart_state = restart.attach(
+        broker_day=date.fromisoformat(restart_input["broker_day"]),
+        persisted_last_activation_day=date.fromisoformat(
+            restart_input["persisted_last_activation_day"]
+        ),
+    )
+    assert {"locked": restart_state.locked} == restart_vector["expected"]
 
 
 def test_generated_mql_header_matches_canonical_json() -> None:

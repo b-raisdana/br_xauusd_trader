@@ -73,7 +73,33 @@ bool RunCoreVectorSmoke()
       return false;
    if(!DailyLossLocked(VEC_DAILY_CAPITAL,VEC_DAILY_NET_PNL,false))
       return false;
-   return SessionEndActive(StringToTime(VEC_SESSION_NOW),StringToTime(VEC_SESSION_END));
+   if(!SessionEndActive(StringToTime(VEC_SESSION_NOW),StringToTime(VEC_SESSION_END)))
+      return false;
+
+   XauZone merge_raw[4];
+   merge_raw[0].low=VEC_MERGE_ZONE_1_LOW; merge_raw[0].high=VEC_MERGE_ZONE_1_HIGH; merge_raw[0].priority=VEC_MERGE_ZONE_1_PRIORITY;
+   merge_raw[1].low=VEC_MERGE_ZONE_2_LOW; merge_raw[1].high=VEC_MERGE_ZONE_2_HIGH; merge_raw[1].priority=VEC_MERGE_ZONE_2_PRIORITY;
+   merge_raw[2].low=VEC_MERGE_ZONE_3_LOW; merge_raw[2].high=VEC_MERGE_ZONE_3_HIGH; merge_raw[2].priority=VEC_MERGE_ZONE_3_PRIORITY;
+   merge_raw[3].low=VEC_MERGE_ZONE_4_LOW; merge_raw[3].high=VEC_MERGE_ZONE_4_HIGH; merge_raw[3].priority=VEC_MERGE_ZONE_4_PRIORITY;
+   XauZone merged[];
+   if(BuildMergedZones(merge_raw,"2026-09-06",merged) != VEC_MERGE_EXPECTED_COUNT ||
+      !NearlyEqual(merged[0].low,100.0) || !NearlyEqual(merged[0].high,105.0) ||
+      merged[0].priority != 1 || merged[0].id != "2026-09-06:R1" ||
+      merged[1].id != "2026-09-06:R2")
+      return false;
+
+   XauZone gap_zones[2];
+   gap_zones[0].low=VEC_GAP_ZONE_1_LOW; gap_zones[0].high=VEC_GAP_ZONE_1_HIGH;
+   gap_zones[1].low=VEC_GAP_ZONE_2_LOW; gap_zones[1].high=VEC_GAP_ZONE_2_HIGH;
+   if(CountDirectionalCrosses(gap_zones,VEC_GAP_PREVIOUS,VEC_GAP_CURRENT) != 2)
+      return false;
+   if(!PullbackWindowActive(VEC_PULLBACK_BAR_OFFSET) ||
+      !PullbackUsageAllowed(1,VEC_PULLBACK_DAILY_FILLS))
+      return false;
+   if(PullbackTpFailureAction(XAU_BUY,true,false,VEC_TP_INITIAL,
+                              VEC_TP_CURRENT_BID,VEC_TP_CURRENT_ASK) != XAU_TP_RESTORE)
+      return false;
+   return RestartSameDayLocked(VEC_RESTART_DAY,VEC_RESTART_LAST_DAY);
   }
 
 int OnInit()

@@ -25,6 +25,8 @@ from xauusd.pullback import (
     PullbackExpiry,
     PullbackOrderCandidate,
     PullbackTracker,
+    pullback_usage_allowed,
+    pullback_window_active,
 )
 from xauusd.risk import (
     BASE_R_USD,
@@ -122,6 +124,8 @@ __all__ = [
     "PullbackExpiry",
     "PullbackOrderCandidate",
     "PullbackTracker",
+    "pullback_usage_allowed",
+    "pullback_window_active",
     "PullbackTpState",
     "RawZone",
     "ReversalCandidate",

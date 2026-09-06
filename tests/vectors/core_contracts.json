@@ -97,6 +97,43 @@
       "contract": "SESSION_END_FLATTEN",
       "input": {"broker_now": "2026-09-06T20:55:00", "broker_session_end": "2026-09-06T21:00:00"},
       "expected": {"active": true}
+    },
+    {
+      "id": "zone-chain-merge-strict-boundary",
+      "contract": "ZONE_CHAIN_MERGE",
+      "input": {
+        "zones": [
+          {"low": "100", "high": "101", "priority": "normal"},
+          {"low": "102", "high": "103", "priority": "high"},
+          {"low": "104.4", "high": "105", "priority": "normal"},
+          {"low": "106.5", "high": "107", "priority": "normal"}
+        ]
+      },
+      "expected": {"count": 2, "first_low": "100", "first_high": "105", "first_priority": "high", "first_id": "2026-09-06:R1", "second_id": "2026-09-06:R2"}
+    },
+    {
+      "id": "multi-zone-gap-count",
+      "contract": "ZONE_ENGAGEMENT",
+      "input": {"zones": [{"low": "100", "high": "101", "priority": "normal"}, {"low": "103", "high": "104", "priority": "normal"}], "previous_bid": "99", "bid": "104"},
+      "expected": {"crosses": 2, "multi_zone_tick_gap": true}
+    },
+    {
+      "id": "pullback-high-window-t5",
+      "contract": "PULLBACK_WINDOW_DAILY_USAGE",
+      "input": {"bar_offset": 5, "priority": "high", "daily_fills": 7},
+      "expected": {"window_active": true, "usage_allowed": true}
+    },
+    {
+      "id": "tp-strict-failure-before-initial",
+      "contract": "EXTEND_PULLBACK_TP_FAILURE",
+      "input": {"direction": "buy", "extended": true, "strict_valid": false, "initial_tp": "100", "current_bid": "99", "current_ask": "99.10"},
+      "expected": {"action": "restore"}
+    },
+    {
+      "id": "restart-same-day-lock",
+      "contract": "RESTART_FAIL_CLOSED",
+      "input": {"broker_day": "2026-09-06", "persisted_last_activation_day": "2026-09-06"},
+      "expected": {"locked": true}
     }
   ]
 }

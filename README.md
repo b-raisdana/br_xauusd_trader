@@ -7,8 +7,8 @@ Repository-based scientific design, implementation and validation of an M15 XAUU
 |---|---|
 | Goal | Auditable MVP → Shadow/Demo |
 | Market | XAUUSD / M15 / MT5 Real Ticks |
-| Current milestone | Current MQL5 reconstruction next |
-| Status | Python domain baseline and initial cross-engine vectors verified; MQL5 adapters/compile remain |
+| Current milestone | Expand current MQL5 parity coverage |
+| Status | Python baseline complete; inert current MQL5 core compiles cleanly and consumes generated vectors |
 | Live state | Research only |
 | Next Leader decision | None |
 | GitHub | Private `behrad203-tech/XAAUSD-PAction-projectFolder`; `main` synchronized |

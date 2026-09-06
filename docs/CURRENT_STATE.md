@@ -4,14 +4,14 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: Initial equivalence scaffold complete / Ready for current MQL5 reconstruction
+- Current activity: Inert current MQL5 core baseline compiled / Ready to expand parity coverage
 - Strategy target: MVP v2 Consolidated Rulebook
 - Rule status: Core Python strategy, Risk/Execution, Safety and Audit payload rules implemented and contract-tested; durable adapters/MT5 remain
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
 - Last verified Git commit before this audit: `b4e00aa` — migration checkpoint
 - Last verified date: 2026-09-06
 - Current branch: main
-- GitHub sync: PRIVATE `origin/main` — `behrad203-tech/XAAUSD-PAction-projectFolder`
+- GitHub sync: PRIVATE `origin/main` — local commits pending because repeated GitHub TLS handshakes failed; no auth/history conflict
 - Live state: RESEARCH_ONLY
 
 ## Source-of-Truth files
@@ -52,6 +52,7 @@
 - Operational Safety evidence: 4 focused tests PASS, including Broker-derived inclusive five-minute pre-close actions, timezone-basis validation, first attach, same-day restart flatten/cancel/lock and next-Broker-Day release.
 - Audit/Visual payload evidence: 3 focused tests PASS, including immutable daily Event IDs, required Rule/Zone/Signal/Direction/price/lineage/reason validation, exact serialization and six-label priority-styled Chart marker tooltips. Durable journal I/O and MT5 drawing remain.
 - Equivalence scaffold: versioned `tests/vectors/core_contracts.json` uses Decimal strings and currently executes four Python vectors for Breakout, Reversal, initial risk and GROSS15. This is not Python↔MQL5 parity evidence until a current MQL5 runner consumes the same cases.
+- Current MQL5 baseline: `src/mt5/XAUUSD_MVP.mq5` and modular `XauContracts.mqh` consume a generated header tied byte-for-byte to the canonical JSON. MetaEditor build 6151 compiles with 0 errors/0 warnings; `OnTick` is inert and `InpEnableTrading=true` fails initialization. Four-vector runtime smoke exists but has not yet been executed in Strategy Tester.
 - Price boundaries use finite `Decimal` values and merged Zone IDs use `{BrokerDay ISO}:R{sorted ordinal}`; future MQL5 parity must test conversion/tolerance explicitly.
 - `.gitattributes` now preserves canonical `ranges.csv` and all immutable Legacy evidence byte-for-byte across Windows/Linux; staged Git blobs verify core manifest 16/16 and canonical SHA-256 exactly.
 - First-run repository audit completed on 2026-09-06: all current and legacy source/test files were inventoried; `_migration_inbox` is absent.
@@ -75,7 +76,7 @@
 
 ## موارد تأییدنشده اجرایی
 
-- Durable Audit persistence, MT5 adapters/current EA, Python↔MQL5 vectors, current `.set` and current MQL5 Compile Log.
+- Durable Audit persistence, full MT5 adapters/current EA, full Python↔MQL5 vectors/runtime results and current `.set`.
 - اتصال Evidenceهای تاریخی به Dataset/Config/Artifact/Commit.
 - رفتار دقیق Broker Symbol/Session و Cost model در محیط هدف.
 - نتیجه Regression Ruleهای جدید در برابر Finalist قدیمی.
@@ -147,6 +148,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید Current MQL5 adapter/EA را بدون Promote یا Patch کردن Legacy بسازد، ابتدا با همان vector schema برای Zone/Signal/Risk/Safety و سپس strict compile/equivalence gate.
+Codex باید Current MQL5 parity را از چهار Core contract به Zone/Trend/Pullback/Momentum/Safety گسترش دهد، سپس Strategy Tester smoke و Adapterهای Native را اضافه کند؛ Trading تا Live Gate inert می‌ماند.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

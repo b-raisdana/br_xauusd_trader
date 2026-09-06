@@ -33,14 +33,14 @@
 
 ## 2) بازسازی مهندسی کد
 
-- [ ] ساخت EA جدید ماژولار — کد Legacy Patch نمی‌شود و EA بر اساس Rulebook فعال از نو به بخش‌های کوچک و قابل Trace تقسیم می‌شود.
+- [ ] ساخت EA جدید ماژولار — inert current core و Contract include بدون Legacy ساخته و compile شد؛ State/Adapter کامل باقی است.
 - [x] ماژول Zone/Trend — Load/Merge/Priority، Engagement و Trend bootstrap روزانه مستقل پیاده و Contract-tested شد.
 - [x] ماژول Signalها — Breakout، Reversal و Pullback با State مشترک Order Slot و Lineage روشن پیاده و Contract-tested شدند.
 - [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.
 - [x] ماژول Risk/Execution — Initial SL/TP، Base R، RF، Profit Protection، Native input boundary، fixed volume/concurrency و Margin Gate پیاده و تست شدند.
 - [x] ماژول Safety — Daily loss، Portfolio risk، Broker session flatten و Restart fail-closed پیاده و Contract-tested شدند.
 - [ ] ماژول Audit/Visual — Event/validation/serialization و marker payload تست شد؛ durable Journal I/O و MT5 Chart rendering باقی است.
-- [ ] Compile Gate — کد با `#property strict` و بدون Error آماده شود.
+- [x] Compile Gate — current inert baseline با `#property strict` روی MetaEditor build 6151، صفر Error و صفر Warning compile شد؛ پس از هر توسعه باید تکرار شود.
 
 ---
 
@@ -97,7 +97,7 @@ Gate: اختلاف اجرایی بدون توضیح = صفر.
 
 ## 5) Python ↔ MT5 Equivalence
 
-- [ ] Freeze test vectors — schema و چهار Core vector ایجاد و در Python اجرا شد؛ coverage کامل و MQL5 consumer پیش از Freeze باقی است.
+- [ ] Freeze test vectors — schema و چهار Core vector در Python اجرا و به generated MQL header قفل شد؛ coverage کامل و MQL runtime evidence پیش از Freeze باقی است.
 - [ ] Python replay — نتایج سریع برای Signal/State/Exit تولید شود.
 - [ ] MT5 Real Tick comparison — Finalist روی همان روزها با Every Tick Based on Real Ticks اجرا شود.
 - [ ] اختلاف‌ها طبقه‌بندی شوند — فقط `RULE / CODE / DATA / TEST_CONFIG`؛ مشکل فنی بدون نیاز Business Logic به رهبر برنگردد.

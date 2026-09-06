@@ -47,14 +47,14 @@
 ## 3) Contract Testهای سریع در Python
 
 - [x] Trend bootstrap — رفتار `NONE → N1 → N2 → N3` روی شروع روز و عدم Carry روز قبل تست شد.
-- [ ] Tick event order — Coordinator اکنون Trend را قبل از Engagement به‌روزرسانی می‌کند؛ اثبات اینکه Reversal Signal همان Tick State جدید را مصرف می‌کند همراه ماژول Signal تکمیل شود.
-- [ ] Breakout strict buffer — شرط دقیق `Close > High+1` و `Close < Low-1` تست شود.
+- [x] Tick event order — Coordinator Trend و Touch را به‌ترتیب به‌روزرسانی می‌کند و Reversal Signal همان Tick از Trend جدید استفاده می‌کند.
+- [x] Breakout strict buffer — شرط دقیق `Close > High+1` و `Close < Low-1` تست شد.
 - [x] Breakout engagement — Open داخل Zone، Touch جهت‌دار Buy/Sell، Reset هر M15 و Tick Gap مطابق Legacy تست شد.
-- [ ] Reversal Market Touch — Touch جهت‌دار و عدم استفاده از Pending از قبل تست شود.
-- [ ] Reversal daily usage — Normal max1 و High max2 با مجموع Buy/Sell تست شوند.
-- [ ] Reversal usage commit — Signal صرف مصرف نکند؛ Market Order موفق یا ناموفق سهمیه را مصرف کند.
-- [ ] Duplicate reversal — چند Recross یک Zone/Direction در یک M15 فقط یک Signal بسازد.
-- [ ] One new order per candle — اولین تلاش Order Slot کندل را مصرف کند؛ Entry دوم ایجاد نشود و Signalهای اضافی فقط Audit شوند.
+- [x] Reversal Market Touch — Touch جهت‌دار Tick-real، Market-only، Wick penetration و Multi-Zone gap تست شد.
+- [x] Reversal daily usage — Normal max1 و High max2 با مجموع Buy/Sell تست شدند.
+- [x] Reversal usage commit — Signal صرف مصرف نمی‌کند؛ Market Order موفق یا ناموفق سهمیه را مصرف می‌کند.
+- [x] Duplicate reversal — چند Recross یک Zone/Direction در یک M15 فقط یک Signal می‌سازد و Directionها مستقل‌اند.
+- [x] One new order per candle — اولین تلاش Order Slot مشترک کندل را حتی در شکست Broker مصرف می‌کند؛ Signal دوم فقط قابل Audit است.
 - [ ] Pullback window — فقط `t+1..t+5` و بدون Carry به روز بعد تست شود.
 - [ ] Multiple PB per BO — اولین Fill نباید Parent Breakout را قبل از پایان Window ببندد.
 - [ ] Pullback usage — Normal1/High∞ و استقلال Consumption از Reversal تست شود.

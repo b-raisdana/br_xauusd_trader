@@ -1,6 +1,7 @@
 from datetime import date
 
 from xauusd.market_state import MarketState
+from xauusd.signals import TradeDirection
 from xauusd.trend import Candle, TrendState
 from xauusd.zones import BreakoutSide, RawZone, build_daily_zones
 
@@ -29,7 +30,7 @@ def test_tick_snapshot_contains_new_trend_before_directional_touch_state() -> No
             close="99",
         )
     )
-    state.begin_bar("99")
+    state.begin_bar("99", bar_id="2026-09-06T10:00")
 
     update = state.process_tick(previous_bid="99", bid="101")
 
@@ -38,3 +39,5 @@ def test_tick_snapshot_contains_new_trend_before_directional_touch_state() -> No
     assert [(event.zone_id, event.side) for event in update.engagement.events] == [
         (zone.zone_id, BreakoutSide.BUY)
     ]
+    assert len(update.reversal_candidates) == 1
+    assert update.reversal_candidates[0].direction is TradeDirection.SELL

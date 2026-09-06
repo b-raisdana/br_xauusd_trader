@@ -1,5 +1,13 @@
 """Deterministic domain contracts for the current XAUUSD MVP."""
 
+from xauusd.audit import (
+    AuditEvent,
+    AuditEventKind,
+    AuditJournal,
+    ChartMarker,
+    SignalFamily,
+    chart_marker,
+)
 from xauusd.market_state import MarketState, MarketTickUpdate
 from xauusd.momentum import (
     PRE_ZONE_TRIGGER_DISTANCE_USD,
@@ -75,6 +83,9 @@ from xauusd.zones import (
 )
 
 __all__ = [
+    "AuditEvent",
+    "AuditEventKind",
+    "AuditJournal",
     "MERGE_GAP_USD",
     "BREAKOUT_BUFFER_USD",
     "BASE_R_USD",
@@ -91,6 +102,7 @@ __all__ = [
     "BreakoutTracker",
     "Candle",
     "CandleDirection",
+    "ChartMarker",
     "DailyTrendTracker",
     "DailyGuardState",
     "DailyRealizedLossGuard",
@@ -114,6 +126,7 @@ __all__ = [
     "RawZone",
     "ReversalCandidate",
     "ReversalTracker",
+    "SignalFamily",
     "TradeDirection",
     "TpAction",
     "TpActionType",
@@ -124,6 +137,7 @@ __all__ = [
     "build_daily_zones",
     "blocks_opposite_reversal",
     "build_initial_risk",
+    "chart_marker",
     "concurrency_allows_entry",
     "directional_free_space",
     "evaluate_entry_safety",

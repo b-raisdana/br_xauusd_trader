@@ -39,7 +39,7 @@
 - [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.
 - [x] ماژول Risk/Execution — Initial SL/TP، Base R، RF، Profit Protection، Native input boundary، fixed volume/concurrency و Margin Gate پیاده و تست شدند.
 - [x] ماژول Safety — Daily loss، Portfolio risk، Broker session flatten و Restart fail-closed پیاده و Contract-tested شدند.
-- [ ] ماژول Audit/Visual — Journal و Chart QA ساده و قابل فهم برای رهبر پروژه ساخته شود.
+- [ ] ماژول Audit/Visual — Event/validation/serialization و marker payload تست شد؛ durable Journal I/O و MT5 Chart rendering باقی است.
 - [ ] Compile Gate — کد با `#property strict` و بدون Error آماده شود.
 
 ---

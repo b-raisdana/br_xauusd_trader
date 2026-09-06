@@ -4,7 +4,7 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: Inert MQL5 core/native/visual payload runtime-verified / EA event orchestration next
+- Current activity: Inert MQL5 core/native/visual payload runtime-verified / Causal tick-to-bar-close orchestration implemented
 - Strategy target: MVP v2 Consolidated Rulebook
 - Rule status: Core Python strategy, Risk/Execution, Safety and Audit rules implemented and contract-tested; full MT5 orchestration/rendering remain
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
@@ -42,8 +42,8 @@
 
 ## موارد تکمیل‌شده
 
-- Current Python domain package `src/xauusd/` now implements deterministic Zone/Trend state, strict-buffer Breakout qualification and daily lineage, tick-real Reversal candidates, daily usage/duplicate guards and a shared one-entry-attempt-per-M15 ledger.
-- Zone/Trend contract evidence: 19 focused tests PASS; canonical `ranges.csv` loads as 23 Broker Days, 421 merged Zones and all 444 source rows retained.
+- Current Python domain package `src/xauusd/` now implements deterministic Zone/Trend state, causal tick-chain validation, bar-close Breakout orchestration and daily lineage, tick-real Reversal candidates, daily usage/duplicate guards and a shared one-entry-attempt-per-M15 ledger.
+- Zone/Trend/orchestration contract evidence: 21 focused tests PASS; bar close consumes the final processed tick state before rolling its candle into Trend history, duplicate close is rejected, and canonical `ranges.csv` loads as 23 Broker Days, 421 merged Zones with all 444 source rows retained.
 - Breakout/Reversal contract evidence: 9 focused/integration tests PASS, including strict equality rejection, daily `BO#` reset, Market-only directional touch, wick penetration, multi-Zone gap suppression, Normal1/High2 shared-direction usage, audit-only non-consumption, failed-request consumption and same-Tick new-Trend consumption.
 - Pullback contract evidence: 6 focused tests PASS, including inclusive 0.20 penetration in both directions, exact broken-edge retry, `t+1..t+5`, pending cancellation at expiry/day change, Multiple PB lineage, Normal1/High unlimited fills, Counter independence and one active Zone+Direction window.
 - Momentum/TP contract evidence: 5 focused tests PASS, including Same-Bar/current and closed-candle strictness, Doji failure, target-relative first crossing with tick gap, actual-touch-only Reversal blocking, one-step extension, safe modify retry, restore and Market Close symmetry.
@@ -59,7 +59,7 @@
 - Current executable baseline established with project-local Python 3.11.15, `uv`, deterministic migration tests, Ruff, mypy and pytest.
 - Windows runtime discovery confirmed Git 2.54.0, GitHub CLI 2.100.0 and MT5 Terminal/MetaEditor build 6151. PowerShell entry points require `-ExecutionPolicy Bypass` on this host.
 - Quality gate now fails closed on external command failures and excludes immutable `legacy_reference/` from current-code lint/type enforcement.
-- Current test baseline: 70 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by the repository checks; all three historical MQL5 files have `#property strict` and balanced braces. The isolated MQL core/native/visual-payload runtime smoke passed; this is not strategy acceptance.
+- Current test baseline: 72 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by the repository checks; all three historical MQL5 files have `#property strict` and balanced braces. The isolated MQL core/native/visual-payload runtime smoke passed; this is not strategy acceptance.
 - Template و Handoff به‌صورت محتوایی Merge شدند و Workflow محلی CI حفظ شد.
 - Repository روی Branch `main` ایجاد و Baseline در Git ثبت شد.
 - `FINAL_PROJECT_HANDOFF_2026-09-06.md` طبق تصمیم Project Leader وارد Repository نشد.
@@ -148,6 +148,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید orchestration رویدادهای جاری را بدون Order-send path بسازد و Python replay/journal را برای Regression هدفمند آماده کند. Trading تا Live Gate inert می‌ماند.
+Codex باید orchestration را از bar-close Breakout به Pullback lifecycle و audit event stream گسترش دهد، سپس Python replay را برای Regression هدفمند آماده کند. Trading تا Live Gate inert می‌ماند.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

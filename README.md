@@ -7,8 +7,8 @@ Repository-based scientific design, implementation and validation of an M15 XAUU
 |---|---|
 | Goal | Auditable MVP → Shadow/Demo |
 | Market | XAUUSD / M15 / MT5 Real Ticks |
-| Current milestone | Engineering reconstruction: Risk/Execution contracts next |
-| Status | Zone/Trend, Signal, and momentum/TP contracts implemented and tested; remaining strategy pending |
+| Current milestone | Engineering reconstruction: Daily/Portfolio safety next |
+| Status | Core strategy and initial Risk/Execution contracts implemented and tested; safety/audit/MT5 remain |
 | Live state | Research only |
 | Next Leader decision | None |
 | GitHub | Private `behrad203-tech/XAAUSD-PAction-projectFolder`; `main` synchronized |

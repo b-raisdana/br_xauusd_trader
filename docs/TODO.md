@@ -37,7 +37,7 @@
 - [x] ماژول Zone/Trend — Load/Merge/Priority، Engagement و Trend bootstrap روزانه مستقل پیاده و Contract-tested شد.
 - [x] ماژول Signalها — Breakout، Reversal و Pullback با State مشترک Order Slot و Lineage روشن پیاده و Contract-tested شدند.
 - [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.
-- [ ] ماژول Risk/Execution — Initial SL/TP، Base R، RF، Profit Protection، Native Costs و Margin Gate پیاده شوند.
+- [x] ماژول Risk/Execution — Initial SL/TP، Base R، RF، Profit Protection، Native input boundary، fixed volume/concurrency و Margin Gate پیاده و تست شدند.
 - [ ] ماژول Safety — Daily loss، Portfolio risk، Session flatten و Restart fail-closed پیاده شوند.
 - [ ] ماژول Audit/Visual — Journal و Chart QA ساده و قابل فهم برای رهبر پروژه ساخته شود.
 - [ ] Compile Gate — کد با `#property strict` و بدون Error آماده شود.
@@ -67,12 +67,12 @@
 - [x] One-step TP extension — انتقال یک Zone جلوتر، نبود Recursive extension و حفظ TP در Modify ناموفق تست شد.
 - [x] TP restore — شکست Strict Trend قبل از لمس TP اولیه، Restore و حفظ TP معتبر در Modify ناموفق تست شد.
 - [x] TP market close fallback — شکست Strict Trend بعد از لمس/عبور TP اولیه برای Buy/Sell، Market Close می‌سازد.
-- [ ] Free Space definition — فرمول Buy/Sell و Minimum جدید 3 دلار تست شود.
-- [ ] Initial Stop — Stop Zone و Cap ثابت 6 دلار با Edge Case نبود Stop Zone تست شود.
-- [ ] Initial Target — اولین Zone حداقل 6 دلار دورتر و Reject در نبود Target تست شود.
-- [ ] Native RF — Break-even خالص با هزینه‌های Native و عدم اشتباه با Entry خام تست شود.
-- [ ] Profit Protection — برای Xهای متعدد و عدم SL loosening تست شود.
-- [ ] Capital limits — 0.01 lot و max3/max5 تست شود.
+- [x] Free Space definition — فرمول Buy/Sell، Zone مجاور، نبود Zone و Minimum inclusive سه دلار تست شد.
+- [x] Initial Stop — نزدیک‌ترین Stop Zone، Cap ثابت شش دلار و نبود Stop Zone تست شد.
+- [x] Initial Target — اولین Zone حداقل شش دلار دورتر، skip Zone نزدیک و Reject نبود Target تست شد.
+- [x] Native RF — Break-even با cash-per-price و هزینه Native ورودی Adapter و عدم استفاده از Entry خام تست شد.
+- [x] Profit Protection — Xهای متعدد بدون سقف و عدم SL loosening برای Buy/Sell تست شد.
+- [x] Capital limits — 0.01 lot و فقط Profileهای max3/max5 برای 200/300 تست شد.
 - [ ] Daily/Portfolio Risk — Realized guard و GROSS15 reservation مستقل و ترکیبی تست شوند.
 - [ ] Session safety — پنج دقیقه قبل Session پایان، Entry/Pending/Cycle/Position رفتار صحیح داشته باشند.
 - [ ] Restart fail-closed — Restart همان روز باید Flatten/Cancel/Lock و روز بعد Resume کند.

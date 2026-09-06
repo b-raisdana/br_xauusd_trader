@@ -97,7 +97,7 @@ Gate: اختلاف اجرایی بدون توضیح = صفر.
 
 ## 5) Python ↔ MT5 Equivalence
 
-- [ ] Freeze test vectors — ورودی و خروجی سناریوهای Contract برای هر دو Engine یکسان شود.
+- [ ] Freeze test vectors — schema و چهار Core vector ایجاد و در Python اجرا شد؛ coverage کامل و MQL5 consumer پیش از Freeze باقی است.
 - [ ] Python replay — نتایج سریع برای Signal/State/Exit تولید شود.
 - [ ] MT5 Real Tick comparison — Finalist روی همان روزها با Every Tick Based on Real Ticks اجرا شود.
 - [ ] اختلاف‌ها طبقه‌بندی شوند — فقط `RULE / CODE / DATA / TEST_CONFIG`؛ مشکل فنی بدون نیاز Business Logic به رهبر برنگردد.

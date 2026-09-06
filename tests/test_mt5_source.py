@@ -12,6 +12,7 @@ def test_current_mt5_baseline_is_strict_vector_driven_and_live_inert() -> None:
     assert "NATIVE_ADAPTER_SMOKE_PASS" in source
     assert "RunVisualPayloadSmoke()" in source
     assert "VISUAL_PAYLOAD_SMOKE_PASS" in source
+    assert "TIME_BASIS_PROBE index=" in source
     assert "input bool InpEnableTrading=false" in source
     assert "if(InpEnableTrading)" in source
     assert "trade.Buy" not in source
@@ -63,6 +64,7 @@ def test_contract_smoke_configuration_is_local_and_trading_disabled() -> None:
     assert "UseCloud=0" in config
     assert "Visual=0" in config
     assert "InpEnableTrading=false" in config
+    assert "InpEmitTimeBasisProbe=true" in config
 
 
 def test_visual_adapter_is_audit_derived_and_contains_no_trading_path() -> None:

@@ -4,11 +4,11 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: Raw MT5 tick acquisition and explicit-offset M15 normalization/replay validated / Broker time-basis evidence next
+- Current activity: Canonical Zone-day replay integration validated / execution order-state slice next
 - Strategy target: MVP v2 Consolidated Rulebook
 - Rule status: Core Python strategy, Risk/Execution, Safety and Audit rules implemented and contract-tested; full MT5 orchestration/rendering remain
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
-- Last verified Git commit before this continuation: `fae212a` — MQL5 state parity contracts
+- Last verified Git commit before this checkpoint: `ff8a6dc` — normalize MT5 ticks for replay
 - Last verified date: 2026-09-06
 - Current branch: main
 - GitHub sync: PRIVATE `origin/main` — synchronized; use Git log for the exact head
@@ -52,7 +52,7 @@
 - Operational Safety evidence: 4 focused tests PASS, including Broker-derived inclusive five-minute pre-close actions, timezone-basis validation, first attach, same-day restart flatten/cancel/lock and next-Broker-Day release.
 - Audit/Visual evidence: 7 focused/integration tests PASS. Reversal, Breakout and Pullback orchestration outputs project once per active-day candidate into durable events with Rule IDs, order kind and Parent BO lineage; JSONL append/recovery fails closed on corrupt/gapped history. MQL `XauVisual.mqh` compiles render-only Zone/marker primitives and its label/tooltip payload passed runtime smoke; order/fill/close/reject projection and visual chart inspection remain.
 - Equivalence scaffold: versioned `tests/vectors/core_contracts.json` uses Decimal strings and executes sixteen Python vectors spanning Zone/Engagement/Signal/Trend/Pullback/Momentum/TP/Risk/Safety/Restart; generated MQL constants are byte-drift tested and the MQL startup consumer passed in isolated Strategy Tester. Real-tick lifecycle equivalence remains separate.
-- Current MQL5 baseline: `src/mt5/XAUUSD_MVP.mq5` plus modular Contract, Native and Visual includes compile with sixteen matching startup assertions and explicit `1e-9` double tolerance. `scripts/run_mt5_contract_smoke.ps1` reproduced `CORE_VECTOR_SMOKE_PASS`, `NATIVE_ADAPTER_SMOKE_PASS` and `VISUAL_PAYLOAD_SMOKE_PASS` on 2026-09-06. The Native boundary runtime-validated Broker symbol metadata, current trade session, `OrderCalcProfit` cash risk and `OrderCalcMargin`; the Visual boundary is render-only. No order-send API exists. MetaEditor build 6151 reports 0 errors/0 warnings; `OnTick` remains inert and `InpEnableTrading=true` fails initialization.
+- Current MQL5 baseline: `src/mt5/XAUUSD_MVP.mq5` plus modular Contract, Native and Visual includes compile with sixteen matching startup assertions and explicit `1e-9` double tolerance. `scripts/run_mt5_contract_smoke.ps1` reproduced the core, Native, Visual and five-tick time-probe markers on 2026-09-06. The Native boundary runtime-validated Broker symbol metadata, current trade session, `OrderCalcProfit` cash risk and `OrderCalcMargin`; the Visual boundary is render-only. No order-send API exists. MetaEditor build 6151 reports 0 errors/0 warnings; `OnTick` only emits the bounded opt-in diagnostic probe and `InpEnableTrading=true` fails initialization.
 - Price boundaries use finite `Decimal` values and merged Zone IDs use `{BrokerDay ISO}:R{sorted ordinal}`; future MQL5 parity must test conversion/tolerance explicitly.
 - `.gitattributes` now preserves canonical `ranges.csv` and all immutable Legacy evidence byte-for-byte across Windows/Linux; staged Git blobs verify core manifest 16/16 and canonical SHA-256 exactly.
 - First-run repository audit completed on 2026-09-06: all current and legacy source/test files were inventoried; `_migration_inbox` is absent.
@@ -60,9 +60,11 @@
 - Windows runtime discovery confirmed Git 2.54.0, GitHub CLI 2.100.0 and MT5 Terminal/MetaEditor build 6151. PowerShell entry points require `-ExecutionPolicy Bypass` on this host.
 - Quality gate now fails closed on external command failures and excludes immutable `legacy_reference/` from current-code lint/type enforcement.
 - Normalized Python replay now enforces Broker-Day ownership, unique/non-overlapping bars, chronological in-bar ticks, OHLC consistency and final Bid=Close before routing through the same MarketState and durable audit projector. Historical tick input and exit/execution replay remain.
+- `build_replay_days` deterministically groups normalized bars, attaches only the matching canonical daily Zones and fails closed when a replayed Broker Day has no Zone input. The ignored bounded sample ran through 1 day, 1 bar, 6,487 ticks and 19 merged Zones with zero signals; this is a connectivity smoke, not strategy evidence.
 - `scripts/export_mt5_ticks.py` pins the MT5 Python bridge, accepts only explicit UTC ranges, writes only under ignored `data/cache/`, exports no account identity, and was runtime-validated on a 15-minute window: 6,487 ticks, 290,594 bytes, SHA-256 `498d87fa9c8359207284207537c91e85eee9f6a3c11f070d2e1cfb0a04c03d04`. The cache itself is not committed.
-- `load_mt5_tick_bars` preserves source row order for equal-millisecond ticks, rejects backward time, requires an explicit whole-minute offset, and creates internally consistent M15 Bid candles. The ignored 6,487-tick sample mechanically normalized/replayed as one UTC-basis bar; this does not claim the target Broker offset.
-- Current test baseline: 79 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by the repository checks; all three historical MQL5 files have `#property strict` and balanced braces. The isolated MQL core/native/visual-payload runtime smoke passed; this is not strategy acceptance.
+- `load_mt5_tick_bars` preserves source row order for equal-millisecond ticks, rejects backward time, requires an explicit whole-minute offset, and creates internally consistent M15 Bid candles. The ignored 6,487-tick sample mechanically normalized/replayed as one bar.
+- `scripts/match_mt5_time_basis.py` fail-closes unless an ordered multi-tick probe uniquely matches one whole-30-minute UTC offset in the terminal history. A five-tick local correlation produced one unique match; the probe values, resolved Broker-specific offset and account identity are intentionally not persisted or committed.
+- Current test baseline: 83 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by the repository checks; all three historical MQL5 files have `#property strict` and balanced braces. The isolated MQL core/native/visual/time-probe runtime smoke passed; this is not strategy acceptance.
 - Template و Handoff به‌صورت محتوایی Merge شدند و Workflow محلی CI حفظ شد.
 - Repository روی Branch `main` ایجاد و Baseline در Git ثبت شد.
 - `FINAL_PROJECT_HANDOFF_2026-09-06.md` طبق تصمیم Project Leader وارد Repository نشد.
@@ -79,7 +81,7 @@
 
 ## موارد تأییدنشده اجرایی
 
-- Full MT5 orchestration/current EA, UTC→verified Broker-time normalization, real-tick Python↔MQL5 lifecycle results and acceptance `.set` files.
+- Full MT5 orchestration/current EA, execution/exit replay, real-tick Python↔MQL5 lifecycle results and acceptance `.set` files.
 - اتصال Evidenceهای تاریخی به Dataset/Config/Artifact/Commit.
 - رفتار دقیق Broker Symbol/Session و Cost model در محیط هدف.
 - نتیجه Regression Ruleهای جدید در برابر Finalist قدیمی.
@@ -151,6 +153,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید terminal Broker-time basis را بدون ثبت هویت Broker/Account verify کند، سپس Zone days را به normalized M15 replay متصل و order/exit state را گسترش دهد. Trading تا Live Gate inert می‌ماند.
+Codex باید order/fill/reject state را در کوچک‌ترین Slice قابل تست گسترش دهد، سپس exit state و Audit projection را متصل کند. Trading تا Live Gate inert می‌ماند.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

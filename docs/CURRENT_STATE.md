@@ -4,11 +4,11 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: Migration complete / Ready for code production
+- Current activity: First execution audit complete / Ready for Zone and Trend implementation
 - Strategy target: MVP v2 Consolidated Rulebook
-- Rule status: Active behavior consolidated; executable validation not yet performed in the current Repository
+- Rule status: Active behavior consolidated; strategy-level executable validation not yet performed
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
-- Last verified Git commit: `4cc06b1` — migrated project baseline
+- Last verified Git commit before this audit: `b4e00aa` — migration checkpoint
 - Last verified date: 2026-09-06
 - Current branch: main
 - GitHub sync: NOT_CONFIGURED
@@ -42,6 +42,11 @@
 
 ## موارد تکمیل‌شده
 
+- First-run repository audit completed on 2026-09-06: all current and legacy source/test files were inventoried; `_migration_inbox` is absent.
+- Current executable baseline established with project-local Python 3.11.15, `uv`, deterministic migration tests, Ruff, mypy and pytest.
+- Windows runtime discovery confirmed Git 2.54.0, MT5 Terminal/MetaEditor build 6151 and no GitHub CLI. PowerShell entry points require `-ExecutionPolicy Bypass` on this host.
+- Quality gate now fails closed on external command failures and excludes immutable `legacy_reference/` from current-code lint/type enforcement.
+- Current test baseline: 3 passed; legacy Python AST parse: 9/9; PowerShell parse: 12/12; all three historical MQL5 files have `#property strict` and balanced braces. These static checks are not MT5 compile or strategy acceptance.
 - Template و Handoff به‌صورت محتوایی Merge شدند و Workflow محلی CI حفظ شد.
 - Repository روی Branch `main` ایجاد و Baseline در Git ثبت شد.
 - `FINAL_PROJECT_HANDOFF_2026-09-06.md` طبق تصمیم Project Leader وارد Repository نشد.
@@ -58,11 +63,18 @@
 
 ## موارد تأییدنشده اجرایی
 
-- وضعیت واقعی Repository، Branch و آخرین Commit.
-- وجود/اعتبار کد ماژولار جدید، تست‌ها، `.set` و Compile Log.
+- وجود/اعتبار کد ماژولار جدید، Contract Testهای Strategy، `.set` جاری و Compile Log جاری؛ `src/` هنوز فقط placeholder است.
 - اتصال Evidenceهای تاریخی به Dataset/Config/Artifact/Commit.
 - رفتار دقیق Broker Symbol/Session و Cost model در محیط هدف.
 - نتیجه Regression Ruleهای جدید در برابر Finalist قدیمی.
+
+## Repository audit mismatches
+
+- `docs/RUNBOOK.md` previously said Python still needed verification; Python 3.11.15 is now verified and the exact setup commands are recorded.
+- The original quality gate could print PASS after a failed external command. It now checks every exit code.
+- CI/tooling originally linted immutable legacy Python. Current-code gates now exclude `legacy_reference/`, while separate read-only legacy integrity/static checks remain recorded here and in `TEST_STATUS.md`.
+- Historical result/reference CSVs and the canonical Zone dataset are present, but the historical tick cache, full execution environment, compile logs and source commit provenance required to reproduce strategy PASS claims are not.
+- No current EA exists. The latest MQL5/Python implementations are all under `legacy_reference/` and contain superseded behavior; they must not be promoted or patched into `src/` as current logic.
 
 ## Latest historical implementation
 
@@ -123,6 +135,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید EA ماژولار و Contract Testهای متناظر را از Rulebook فعال تولید کند؛ ابتدا Zone/Trend و Stateهای مشترک، سپس Signal/Risk/Safety و در پایان Equivalence و MT5 Acceptance.
+Codex باید مدل دامنه و Contract Testهای Zone/Trend را از Rulebook فعال در `src/` تولید کند، سپس Signal/Risk/Safety و در پایان MQL5 Equivalence و MT5 Acceptance را پیش ببرد.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

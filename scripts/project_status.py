@@ -5,11 +5,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
 def run(*args: str) -> str:
     try:
         return subprocess.check_output(args, cwd=ROOT, text=True, stderr=subprocess.STDOUT).strip()
     except Exception as exc:
         return f"UNAVAILABLE: {exc}"
+
 
 print("=== Project status ===")
 print(f"Root: {ROOT}")

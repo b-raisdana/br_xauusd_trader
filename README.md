@@ -7,11 +7,11 @@ Repository-based scientific design, implementation and validation of an M15 XAUU
 |---|---|
 | Goal | Auditable MVP → Shadow/Demo |
 | Market | XAUUSD / M15 / MT5 Real Ticks |
-| Current milestone | Repository migration and rule reconciliation |
-| Status | Rulebook consolidated; implementation validation pending |
+| Current milestone | Engineering reconstruction: Zone/Trend contracts first |
+| Status | Repository/runtime baseline audited and executable; strategy implementation pending |
 | Live state | Research only |
 | Next Leader decision | None |
-| GitHub | Verify after opening the actual Repository |
+| GitHub | Not configured; no remote and no GitHub CLI |
 
 ## Roles
 - Project Leader: goals, priorities, confirmed trading/risk rules, high-impact approvals.

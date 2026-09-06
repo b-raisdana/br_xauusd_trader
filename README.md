@@ -11,7 +11,7 @@ Repository-based scientific design, implementation and validation of an M15 XAUU
 | Status | Repository/runtime baseline audited and executable; strategy implementation pending |
 | Live state | Research only |
 | Next Leader decision | None |
-| GitHub | Not configured; no remote and no GitHub CLI |
+| GitHub | Private `behrad203-tech/XAAUSD-PAction-projectFolder`; `main` synchronized |
 
 ## Roles
 - Project Leader: goals, priorities, confirmed trading/risk rules, high-impact approvals.

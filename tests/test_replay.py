@@ -1,10 +1,18 @@
 from datetime import date, datetime
+from decimal import Decimal
 
 import pytest
 
-from xauusd.audit import AuditJournal, SignalFamily
+from xauusd.audit import AuditEventKind, AuditJournal, SignalFamily
 from xauusd.market_state import MarketState
-from xauusd.replay import ReplayBar, ReplayDay, ReplayRunner, ReplayTick, build_replay_days
+from xauusd.replay import (
+    ReplayBar,
+    ReplayDay,
+    ReplayExecutionOutcome,
+    ReplayRunner,
+    ReplayTick,
+    build_replay_days,
+)
 from xauusd.trend import Candle
 from xauusd.zones import RawZone, build_daily_zones
 
@@ -115,3 +123,163 @@ def test_build_replay_days_fails_closed_when_daily_zones_are_missing() -> None:
 
     with pytest.raises(ValueError, match="Missing daily Zone input.*2026-09-06"):
         build_replay_days((bar,), {})
+
+
+def execution_replay(outcome: ReplayExecutionOutcome) -> ReplayDay:
+    day = date(2026, 9, 6)
+    zones = build_daily_zones(
+        [
+            RawZone.from_values(
+                broker_day=day, low="90", high="91", priority="normal", source_row=1
+            ),
+            RawZone.from_values(
+                broker_day=day, low="100", high="101", priority="normal", source_row=2
+            ),
+            RawZone.from_values(
+                broker_day=day, low="110", high="111", priority="normal", source_row=3
+            ),
+        ]
+    )[day]
+    bar = ReplayBar.from_values(
+        bar_id="t",
+        open_time=datetime(2026, 9, 6, 10),
+        close_time=datetime(2026, 9, 6, 10, 15),
+        open_bid="99",
+        candle=Candle.from_values(broker_day=day, open="99", high="103", low="99", close="102.01"),
+        ticks=(
+            ReplayTick.from_values(
+                broker_time=datetime(2026, 9, 6, 10, 1),
+                bid="100",
+                execution_outcomes=(outcome,),
+            ),
+            ReplayTick.from_values(broker_time=datetime(2026, 9, 6, 10, 14), bid="102.01"),
+        ),
+    )
+    seed = Candle.from_values(broker_day=day, open="95", high="99", low="90", close="98")
+    return ReplayDay(day, zones, (seed,), (bar,))
+
+
+def test_replay_applies_explicit_market_fill_without_inferring_broker_behavior() -> None:
+    candidate_id = "t:R:2026-09-06:R2:sell"
+    outcome = ReplayExecutionOutcome.from_values(
+        candidate_id=candidate_id,
+        broker_time=datetime(2026, 9, 6, 10, 1, 1),
+        accepted=True,
+        fill_price="100.1",
+    )
+
+    result = ReplayRunner(MarketState(), AuditJournal()).run_day(execution_replay(outcome))
+
+    assert [event.kind for event in result.events] == [
+        AuditEventKind.SIGNAL,
+        AuditEventKind.ORDER,
+        AuditEventKind.FILL,
+        AuditEventKind.SIGNAL,
+    ]
+    assert result.events[1].execution_request_id == candidate_id
+    assert result.events[2].entry == Decimal("100.1")
+
+
+def test_replay_applies_explicit_broker_reject_and_rejects_unknown_fixture() -> None:
+    candidate_id = "t:R:2026-09-06:R2:sell"
+    rejected = ReplayExecutionOutcome.from_values(
+        candidate_id=candidate_id,
+        broker_time=datetime(2026, 9, 6, 10, 1, 1),
+        accepted=False,
+        rejection_reason="native_reject",
+    )
+    result = ReplayRunner(MarketState(), AuditJournal()).run_day(execution_replay(rejected))
+    assert [event.kind for event in result.events[:3]] == [
+        AuditEventKind.SIGNAL,
+        AuditEventKind.ORDER,
+        AuditEventKind.REJECT,
+    ]
+
+    unknown = ReplayExecutionOutcome.from_values(
+        candidate_id="unknown",
+        broker_time=datetime(2026, 9, 6, 10, 1),
+        accepted=False,
+        rejection_reason="unused",
+    )
+    with pytest.raises(ValueError, match="no candidate"):
+        ReplayRunner(MarketState(), AuditJournal()).run_day(execution_replay(unknown))
+
+
+def test_invalid_market_outcome_fails_before_consuming_signal_capacity() -> None:
+    invalid = ReplayExecutionOutcome.from_values(
+        candidate_id="t:R:2026-09-06:R2:sell",
+        broker_time=datetime(2026, 9, 6, 10, 1),
+        accepted=True,
+    )
+    state = MarketState()
+    with pytest.raises(ValueError, match="requires a fill price"):
+        ReplayRunner(state, AuditJournal()).run_day(execution_replay(invalid))
+    assert state.reversals.daily_usage("2026-09-06:R2") == 0
+
+
+def test_replay_applies_explicit_pullback_pending_fill_and_usage() -> None:
+    day = date(2026, 9, 6)
+    zones = build_daily_zones(
+        [
+            RawZone.from_values(
+                broker_day=day, low="90", high="91", priority="normal", source_row=1
+            ),
+            RawZone.from_values(
+                broker_day=day, low="100", high="101", priority="normal", source_row=2
+            ),
+            RawZone.from_values(
+                broker_day=day, low="110", high="111", priority="normal", source_row=3
+            ),
+        ]
+    )[day]
+    breakout_bar = ReplayBar.from_values(
+        bar_id="t",
+        open_time=datetime(2026, 9, 6, 10),
+        close_time=datetime(2026, 9, 6, 10, 15),
+        open_bid="99",
+        candle=Candle.from_values(broker_day=day, open="99", high="103", low="99", close="102.01"),
+        ticks=(
+            ReplayTick.from_values(broker_time=datetime(2026, 9, 6, 10, 1), bid="100"),
+            ReplayTick.from_values(broker_time=datetime(2026, 9, 6, 10, 14), bid="102.01"),
+        ),
+    )
+    outcome = ReplayExecutionOutcome.from_values(
+        candidate_id="BO1:PB1",
+        broker_time=datetime(2026, 9, 6, 10, 16, 1),
+        accepted=True,
+        fill_price="101",
+    )
+    pullback_bar = ReplayBar.from_values(
+        bar_id="t+1",
+        open_time=datetime(2026, 9, 6, 10, 15),
+        close_time=datetime(2026, 9, 6, 10, 30),
+        open_bid="102.01",
+        candle=Candle.from_values(
+            broker_day=day, open="102.01", high="102.01", low="100.8", close="101"
+        ),
+        ticks=(
+            ReplayTick.from_values(
+                broker_time=datetime(2026, 9, 6, 10, 16),
+                bid="100.8",
+                execution_outcomes=(outcome,),
+            ),
+            ReplayTick.from_values(broker_time=datetime(2026, 9, 6, 10, 29), bid="101"),
+        ),
+    )
+    seed = Candle.from_values(broker_day=day, open="95", high="99", low="90", close="98")
+    state = MarketState()
+    runner = ReplayRunner(state, AuditJournal())
+
+    result = runner.run_day(ReplayDay(day, zones, (seed,), (breakout_bar, pullback_bar)))
+
+    pullback_events = [
+        event for event in result.events if event.signal_family is SignalFamily.PULLBACK
+    ]
+    assert [event.kind for event in pullback_events] == [
+        AuditEventKind.SIGNAL,
+        AuditEventKind.ORDER,
+        AuditEventKind.FILL,
+    ]
+    assert all(event.parent_breakout_id == "BO1" for event in pullback_events)
+    assert state.pullbacks.daily_fills("2026-09-06:R2") == 1
+    assert runner.execution.record("BO1:PB1").status.value == "filled"

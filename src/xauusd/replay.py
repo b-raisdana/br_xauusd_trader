@@ -8,22 +8,65 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 
-from xauusd.audit import AuditEvent, AuditJournal
+from xauusd.audit import AuditEvent, AuditJournal, SignalFamily
+from xauusd.execution import ExecutionLedger, ExecutionRequest
 from xauusd.market_state import MarketState
 from xauusd.orchestration import MarketAuditProjector
-from xauusd.pullback import PullbackExpiry
+from xauusd.pullback import PullbackExpiry, PullbackOrderCandidate
+from xauusd.risk import build_initial_risk
+from xauusd.signals import ReversalCandidate
 from xauusd.trend import Candle
 from xauusd.zones import Zone, price
+
+
+@dataclass(frozen=True, slots=True)
+class ReplayExecutionOutcome:
+    candidate_id: str
+    broker_time: datetime
+    accepted: bool
+    fill_price: Decimal | None = None
+    rejection_reason: str | None = None
+
+    @classmethod
+    def from_values(
+        cls,
+        *,
+        candidate_id: str,
+        broker_time: datetime,
+        accepted: bool,
+        fill_price: Decimal | str | int | float | None = None,
+        rejection_reason: str | None = None,
+    ) -> ReplayExecutionOutcome:
+        if not candidate_id.strip():
+            raise ValueError("Replay outcome Candidate ID is required")
+        if accepted and rejection_reason is not None:
+            raise ValueError("Accepted replay outcome cannot have a rejection reason")
+        if not accepted and (fill_price is not None or not rejection_reason):
+            raise ValueError("Rejected replay outcome requires only a rejection reason")
+        return cls(
+            candidate_id=candidate_id,
+            broker_time=broker_time,
+            accepted=accepted,
+            fill_price=price(fill_price) if fill_price is not None else None,
+            rejection_reason=rejection_reason,
+        )
 
 
 @dataclass(frozen=True, slots=True)
 class ReplayTick:
     broker_time: datetime
     bid: Decimal
+    execution_outcomes: tuple[ReplayExecutionOutcome, ...] = ()
 
     @classmethod
-    def from_values(cls, *, broker_time: datetime, bid: Decimal | str | int | float) -> ReplayTick:
-        return cls(broker_time=broker_time, bid=price(bid))
+    def from_values(
+        cls,
+        *,
+        broker_time: datetime,
+        bid: Decimal | str | int | float,
+        execution_outcomes: tuple[ReplayExecutionOutcome, ...] = (),
+    ) -> ReplayTick:
+        return cls(broker_time=broker_time, bid=price(bid), execution_outcomes=execution_outcomes)
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,12 +142,14 @@ class ReplayRunner:
         self.state = state
         self.journal = journal
         self.projector = MarketAuditProjector(journal)
+        self.execution = ExecutionLedger(journal)
 
     def run_day(self, replay: ReplayDay) -> ReplayResult:
         self._validate_day(replay)
         event_start = len(self.journal.events)
         expiries = list(self.state.begin_day(replay.broker_day, replay.zones))
         self.projector.begin_day(replay.broker_day)
+        self.execution.begin_day(replay.broker_day)
         for candle in replay.seed_candles:
             self.state.record_closed_candle(candle)
 
@@ -113,7 +158,12 @@ class ReplayRunner:
             previous_bid = bar.open_bid
             for tick in bar.ticks:
                 update = self.state.process_tick(previous_bid=previous_bid, bid=tick.bid)
+                matched = self._match_outcomes(
+                    update.reversal_candidates, update.pullback_candidates, tick
+                )
                 self.projector.record_tick(update, broker_time=tick.broker_time)
+                for candidate, outcome in matched:
+                    self._apply_outcome(candidate, outcome, replay.zones, tick.broker_time)
                 previous_bid = tick.bid
             close = self.state.close_bar(bar.candle)
             self.projector.record_bar_close(close, broker_time=bar.close_time)
@@ -121,6 +171,102 @@ class ReplayRunner:
         return ReplayResult(
             events=self.journal.events[event_start:], pullback_expiries=tuple(expiries)
         )
+
+    def _match_outcomes(
+        self,
+        reversals: tuple[ReversalCandidate, ...],
+        pullbacks: tuple[PullbackOrderCandidate, ...],
+        tick: ReplayTick,
+    ) -> tuple[tuple[ReversalCandidate | PullbackOrderCandidate, ReplayExecutionOutcome], ...]:
+        candidates: dict[str, ReversalCandidate | PullbackOrderCandidate] = {}
+        for reversal in reversals:
+            candidates[reversal.candidate_id] = reversal
+        for pullback in pullbacks:
+            candidates[pullback.candidate_id] = pullback
+        outcome_ids = [outcome.candidate_id for outcome in tick.execution_outcomes]
+        if len(outcome_ids) != len(set(outcome_ids)):
+            raise ValueError("Replay Tick contains duplicate execution outcomes")
+        unknown = set(outcome_ids) - set(candidates)
+        if unknown:
+            raise ValueError(f"Replay outcome has no candidate on this Tick: {sorted(unknown)[0]}")
+        return tuple(
+            (candidates[outcome.candidate_id], outcome) for outcome in tick.execution_outcomes
+        )
+
+    def _apply_outcome(
+        self,
+        candidate: ReversalCandidate | PullbackOrderCandidate,
+        outcome: ReplayExecutionOutcome,
+        zones: tuple[Zone, ...],
+        signal_time: datetime,
+    ) -> None:
+        entry = (
+            candidate.touch_price
+            if isinstance(candidate, ReversalCandidate)
+            else candidate.entry_price
+        )
+        initial = build_initial_risk(direction=candidate.direction, entry=entry, zones=zones)
+        if initial is None:
+            raise ValueError(
+                f"Replay execution Candidate has no valid initial risk: {candidate.candidate_id}"
+            )
+        if outcome.broker_time < signal_time:
+            raise ValueError("Replay execution outcome precedes Signal")
+        if (
+            isinstance(candidate, ReversalCandidate)
+            and outcome.accepted
+            and outcome.fill_price is None
+        ):
+            raise ValueError("Accepted Market replay outcome requires a fill price")
+        if isinstance(candidate, ReversalCandidate):
+            attempt = self.state.reversals.record_market_order_attempt(
+                candidate, broker_accepted=outcome.accepted
+            )
+            rule_ids = ("REVERSAL_DIRECTIONAL_TOUCH",)
+            parent = None
+        else:
+            attempt = self.state.pullbacks.record_pending_order_attempt(
+                candidate, broker_accepted=outcome.accepted
+            )
+            rule_ids = ("PULLBACK_CONSERVATIVE_ENTRY",)
+            parent = candidate.parent_breakout_id
+        if not attempt.sent:
+            raise ValueError(f"Replay execution attempt was blocked: {attempt.rejection_reason}")
+
+        request = ExecutionRequest.from_values(
+            request_id=candidate.candidate_id,
+            broker_time=signal_time,
+            zone_id=candidate.zone_id,
+            signal_family=(
+                SignalFamily.REVERSAL
+                if isinstance(candidate, ReversalCandidate)
+                else SignalFamily.PULLBACK
+            ),
+            direction=candidate.direction,
+            order_type=candidate.order_type,
+            entry=initial.entry,
+            stop_loss=initial.stop_loss,
+            take_profit=initial.take_profit,
+            rule_ids=rule_ids,
+            parent_breakout_id=parent,
+        )
+        self.execution.submit(request)
+        if not outcome.accepted:
+            assert outcome.rejection_reason is not None
+            self.execution.reject(
+                request.request_id,
+                broker_time=outcome.broker_time,
+                reason=outcome.rejection_reason,
+            )
+        elif outcome.fill_price is not None:
+            self.execution.fill(
+                request.request_id,
+                broker_time=outcome.broker_time,
+                fill_price=outcome.fill_price,
+            )
+            if isinstance(candidate, PullbackOrderCandidate):
+                if not self.state.pullbacks.record_fill(candidate):
+                    raise RuntimeError("Accepted Pullback fill could not update signal state")
 
     @staticmethod
     def _validate_day(replay: ReplayDay) -> None:

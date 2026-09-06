@@ -10,6 +10,8 @@ def test_current_mt5_baseline_is_strict_vector_driven_and_live_inert() -> None:
     assert "RunCoreVectorSmoke()" in source
     assert "RunNativeAdapterSmoke()" in source
     assert "NATIVE_ADAPTER_SMOKE_PASS" in source
+    assert "RunVisualPayloadSmoke()" in source
+    assert "VISUAL_PAYLOAD_SMOKE_PASS" in source
     assert "input bool InpEnableTrading=false" in source
     assert "if(InpEnableTrading)" in source
     assert "trade.Buy" not in source
@@ -61,3 +63,16 @@ def test_contract_smoke_configuration_is_local_and_trading_disabled() -> None:
     assert "UseCloud=0" in config
     assert "Visual=0" in config
     assert "InpEnableTrading=false" in config
+
+
+def test_visual_adapter_is_audit_derived_and_contains_no_trading_path() -> None:
+    root = Path(__file__).parents[1]
+    source = (root / "src" / "mt5" / "include" / "XauVisual.mqh").read_text(encoding="utf-8")
+
+    for label in ("Time=%s", "Zone=%s", "Entry=%s", "SL=%s", "TP=%s", "Event=%s"):
+        assert label in source
+    assert "OBJ_RECTANGLE" in source
+    assert "OBJ_TEXT" in source
+    assert "zone_priority" in source
+    assert "OrderSend" not in source
+    assert "CTrade" not in source

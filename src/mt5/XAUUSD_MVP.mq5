@@ -5,6 +5,7 @@
 #include "generated/CoreVectors.mqh"
 #include "include/XauContracts.mqh"
 #include "include/XauNative.mqh"
+#include "include/XauVisual.mqh"
 
 input bool InpEnableTrading=false;
 
@@ -143,6 +144,27 @@ bool RunNativeAdapterSmoke()
    return true;
   }
 
+bool RunVisualPayloadSmoke()
+  {
+   XauVisualMarker marker;
+   marker.event_id="2026-09-06:E000001";
+   marker.zone_id="2026-09-06:R1";
+   marker.label="R-B";
+   marker.broker_time=StringToTime("2026.09.06 10:15:00");
+   marker.entry=3400.10;
+   marker.stop_loss=3396.00;
+   marker.take_profit=3408.00;
+   marker.zone_priority=1;
+   string tooltip=XauMarkerTooltip(marker,2);
+   if(StringFind(tooltip,"Time=")<0 || StringFind(tooltip,"Zone=2026-09-06:R1")<0 ||
+      StringFind(tooltip,"Entry=3400.10")<0 || StringFind(tooltip,"SL=3396.00")<0 ||
+      StringFind(tooltip,"TP=3408.00")<0 ||
+      StringFind(tooltip,"Event=2026-09-06:E000001")<0)
+      return false;
+   Print("VISUAL_PAYLOAD_SMOKE_PASS labels/tooltip mode=render-only");
+   return true;
+  }
+
 int OnInit()
   {
    if(InpEnableTrading)
@@ -157,6 +179,8 @@ int OnInit()
      }
    Print("CORE_VECTOR_SMOKE_PASS vectors=16 mode=inert");
    if(!RunNativeAdapterSmoke())
+      return INIT_FAILED;
+   if(!RunVisualPayloadSmoke())
       return INIT_FAILED;
    Print("XAUUSD MVP research-only contract baseline initialized.");
    return INIT_SUCCEEDED;

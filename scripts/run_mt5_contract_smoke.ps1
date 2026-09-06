@@ -54,5 +54,10 @@ $nativePass = @($newLogs | Select-String -SimpleMatch `
 if ($nativePass.Count -eq 0) {
     throw "Native adapter success marker not found after terminal exit code $($process.ExitCode)."
 }
+$visualPass = @($newLogs | Select-String -SimpleMatch `
+        "VISUAL_PAYLOAD_SMOKE_PASS labels/tooltip mode=render-only")
+if ($visualPass.Count -eq 0) {
+    throw "Visual payload success marker not found after terminal exit code $($process.ExitCode)."
+}
 
-"MT5 runtime smoke PASS (16 vectors; symbol/session/risk/margin; inert trading mode)."
+"MT5 runtime smoke PASS (16 vectors; native adapters; visual payload; inert mode)."

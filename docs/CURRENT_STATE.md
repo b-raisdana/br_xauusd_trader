@@ -45,6 +45,7 @@
 - Current Python domain package `src/xauusd/` now implements deterministic Zone load/normalize/sort/chain-merge/Priority, per-M15 engagement, daily Trend bootstrap and fixed Tick ordering.
 - Zone/Trend contract evidence: 19 focused tests PASS; canonical `ranges.csv` loads as 23 Broker Days, 421 merged Zones and all 444 source rows retained.
 - Price boundaries use finite `Decimal` values and merged Zone IDs use `{BrokerDay ISO}:R{sorted ordinal}`; future MQL5 parity must test conversion/tolerance explicitly.
+- `.gitattributes` now preserves canonical `ranges.csv` and all immutable Legacy evidence byte-for-byte across Windows/Linux; staged Git blobs verify core manifest 16/16 and canonical SHA-256 exactly.
 - First-run repository audit completed on 2026-09-06: all current and legacy source/test files were inventoried; `_migration_inbox` is absent.
 - Current executable baseline established with project-local Python 3.11.15, `uv`, deterministic migration tests, Ruff, mypy and pytest.
 - Windows runtime discovery confirmed Git 2.54.0, GitHub CLI 2.100.0 and MT5 Terminal/MetaEditor build 6151. PowerShell entry points require `-ExecutionPolicy Bypass` on this host.

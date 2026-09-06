@@ -1,0 +1,3 @@
+# Preserve checksum-governed inputs and immutable historical evidence byte-for-byte.
+/data/ranges.csv -text
+/legacy_reference/** -text

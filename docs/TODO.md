@@ -38,7 +38,7 @@
 - [x] ماژول Signalها — Breakout، Reversal و Pullback با State مشترک Order Slot و Lineage روشن پیاده و Contract-tested شدند.
 - [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.
 - [x] ماژول Risk/Execution — Initial SL/TP، Base R، RF، Profit Protection، Native input boundary، fixed volume/concurrency و Margin Gate پیاده و تست شدند.
-- [ ] ماژول Safety — Daily loss، Portfolio risk، Session flatten و Restart fail-closed پیاده شوند.
+- [x] ماژول Safety — Daily loss، Portfolio risk، Broker session flatten و Restart fail-closed پیاده و Contract-tested شدند.
 - [ ] ماژول Audit/Visual — Journal و Chart QA ساده و قابل فهم برای رهبر پروژه ساخته شود.
 - [ ] Compile Gate — کد با `#property strict` و بدون Error آماده شود.
 
@@ -74,8 +74,8 @@
 - [x] Profit Protection — Xهای متعدد بدون سقف و عدم SL loosening برای Buy/Sell تست شد.
 - [x] Capital limits — 0.01 lot و فقط Profileهای max3/max5 برای 200/300 تست شد.
 - [x] Daily/Portfolio Risk — Net Realized guard و GROSS15 native-cash reservation مستقل، مرزی و ترکیبی تست شدند.
-- [ ] Session safety — پنج دقیقه قبل Session پایان، Entry/Pending/Cycle/Position رفتار صحیح داشته باشند.
-- [ ] Restart fail-closed — Restart همان روز باید Flatten/Cancel/Lock و روز بعد Resume کند.
+- [x] Session safety — در مرز inclusive پنج دقیقه قبل Broker Session end، Entry/Pending/Cycle/Position Actionها تست شدند.
+- [x] Restart fail-closed — persisted activation day، Restart همان روز Flatten/Cancel/Lock و روز بعد Resume تست شد.
 
 Gate: همه Contract Testهای بالا PASS.
 

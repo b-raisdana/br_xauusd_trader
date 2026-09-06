@@ -1,12 +1,14 @@
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
 
 from xauusd.safety import (
     DailyRealizedLossGuard,
+    RestartFailClosedGuard,
     evaluate_entry_safety,
     evaluate_portfolio_risk,
+    session_end_actions,
 )
 
 DAY = date(2026, 9, 6)
@@ -104,3 +106,53 @@ def test_negative_native_risk_component_fails_closed() -> None:
             pending_order_risk="0",
             proposed_order_risk="0",
         )
+
+
+def test_session_actions_start_exactly_five_minutes_before_broker_end() -> None:
+    session_end = datetime(2026, 9, 6, 21, 0, tzinfo=UTC)
+    before = session_end_actions(
+        broker_now=datetime(2026, 9, 6, 20, 54, 59, tzinfo=UTC),
+        broker_session_end=session_end,
+    )
+    assert not before.locked
+
+    boundary = session_end_actions(
+        broker_now=datetime(2026, 9, 6, 20, 55, tzinfo=UTC),
+        broker_session_end=session_end,
+    )
+    assert boundary.block_new_entries
+    assert boundary.cancel_pending_orders
+    assert boundary.cancel_pullback_cycles
+    assert boundary.close_ea_positions
+
+
+def test_session_time_basis_mismatch_fails_closed() -> None:
+    with pytest.raises(ValueError, match="timezone basis"):
+        session_end_actions(
+            broker_now=datetime(2026, 9, 6, 20, 55),
+            broker_session_end=datetime(2026, 9, 6, 21, 0, tzinfo=UTC),
+        )
+
+
+def test_same_day_restart_flattens_and_locks_until_next_broker_day() -> None:
+    guard = RestartFailClosedGuard()
+    state = guard.attach(broker_day=DAY, persisted_last_activation_day=DAY)
+    assert state.block_new_entries
+    assert state.cancel_pending_orders
+    assert state.cancel_pullback_cycles
+    assert state.close_ea_positions
+    assert guard.activation_day_to_persist == DAY
+    assert guard.begin_day(DAY).locked
+
+    next_day = date(2026, 9, 7)
+    assert not guard.begin_day(next_day).locked
+    assert guard.activation_day_to_persist == next_day
+
+
+def test_first_attach_or_attach_after_prior_day_is_not_restart_locked() -> None:
+    guard = RestartFailClosedGuard()
+    assert not guard.attach(broker_day=DAY, persisted_last_activation_day=None).locked
+    assert not guard.attach(
+        broker_day=DAY,
+        persisted_last_activation_day=date(2026, 9, 5),
+    ).locked

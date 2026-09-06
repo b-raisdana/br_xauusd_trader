@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from xauusd.zones import price
 
 DAILY_REALIZED_LOSS_FRACTION = Decimal("0.20")
 GROSS_DAILY_RISK_FRACTION = Decimal("0.15")
+SESSION_PRE_CLOSE = timedelta(minutes=5)
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,3 +128,72 @@ def evaluate_entry_safety(
     if not portfolio.allows_proposed:
         return EntrySafetyDecision(False, "gross_portfolio_risk_budget", daily_guard, portfolio)
     return EntrySafetyDecision(True, None, daily_guard, portfolio)
+
+
+@dataclass(frozen=True, slots=True)
+class OperationalSafetyActions:
+    locked: bool
+    block_new_entries: bool
+    cancel_pending_orders: bool
+    cancel_pullback_cycles: bool
+    close_ea_positions: bool
+    reason: str | None = None
+
+
+def session_end_actions(
+    *, broker_now: datetime, broker_session_end: datetime
+) -> OperationalSafetyActions:
+    """Evaluate the adapter-supplied Broker session boundary without local hours."""
+    now_is_aware = broker_now.utcoffset() is not None
+    end_is_aware = broker_session_end.utcoffset() is not None
+    if now_is_aware != end_is_aware:
+        raise ValueError("Broker time and session end must use the same timezone basis")
+    active = broker_now >= broker_session_end - SESSION_PRE_CLOSE
+    return OperationalSafetyActions(
+        locked=active,
+        block_new_entries=active,
+        cancel_pending_orders=active,
+        cancel_pullback_cycles=active,
+        close_ea_positions=active,
+        reason="session_end_flatten" if active else None,
+    )
+
+
+class RestartFailClosedGuard:
+    """Lock a same-Broker-Day restart and release only on a later Broker Day."""
+
+    def __init__(self) -> None:
+        self._broker_day: date | None = None
+        self._locked = False
+
+    def attach(
+        self, *, broker_day: date, persisted_last_activation_day: date | None
+    ) -> OperationalSafetyActions:
+        self._broker_day = broker_day
+        self._locked = persisted_last_activation_day == broker_day
+        return self.state
+
+    def begin_day(self, broker_day: date) -> OperationalSafetyActions:
+        if self._broker_day is None:
+            raise RuntimeError("Restart guard has not been attached")
+        if broker_day != self._broker_day:
+            self._broker_day = broker_day
+            self._locked = False
+        return self.state
+
+    @property
+    def state(self) -> OperationalSafetyActions:
+        return OperationalSafetyActions(
+            locked=self._locked,
+            block_new_entries=self._locked,
+            cancel_pending_orders=self._locked,
+            cancel_pullback_cycles=self._locked,
+            close_ea_positions=self._locked,
+            reason="same_day_restart_fail_closed" if self._locked else None,
+        )
+
+    @property
+    def activation_day_to_persist(self) -> date:
+        if self._broker_day is None:
+            raise RuntimeError("Restart guard has not been attached")
+        return self._broker_day

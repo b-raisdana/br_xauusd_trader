@@ -8,7 +8,7 @@
 |---|---|---|---|
 | Migration integrity | Rule/Decision/Experiment separation | PASS | Template/Handoff Merge شد؛ Legacy از Active Rules جدا و تصمیم‌های نهایی Leader ثبت شد. |
 | Package structure smoke | Required root, Source-of-Truth files and canonical ranges | PASS | Canonical SHA-256 and required structure remain covered by pytest. |
-| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\quality_gate.ps1` on 2026-09-06; 54 tests PASS. |
+| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\quality_gate.ps1` on 2026-09-06; 58 tests PASS. |
 | Legacy static integrity | Historical sources/manifests without promotion | PASS | Python AST 9/9; PowerShell parser 12/12; MQL5 strict + balanced braces 3/3; Git-staged core manifest 16/16 across byte-preserved attributes. Not compile/runtime evidence. |
 | Zone/Trend contract slice | Rule → Python domain → deterministic tests | PASS | 19 focused tests; 23 canonical days → 421 merged Zones; 444/444 source rows retained. |
 | Breakout/Reversal signal slice | Strict qualification, touch and accounting contracts | PASS | 9 focused/integration tests; strict buffer/lineage, same-Tick Trend, directional Market touch, gap/wick, duplicate, daily usage and shared bar slot PASS. |
@@ -16,6 +16,7 @@
 | Momentum/TP slice | Strict trend, target trigger, conflict and extension lifecycle | PASS | 5 focused tests; Same-Bar/closed/current checks, crossing/gap, touch block, safe one-step modify, restore and Market Close PASS. |
 | Initial Risk/Execution slice | Geometry, native RF, protection and fixed capital profiles | PASS | 7 focused tests; Free Space, Stop/Target, RF, monotonic steps, protected order, 0.01 lot, max3/max5 and margin boundary PASS. |
 | Financial Safety slice | Daily net-realized and GROSS15 entry gates | PASS | 6 focused tests; daily latch/reset/actions, inclusive gross budget, all four native risk components, combined rejection and invalid-input failure PASS. |
+| Operational Safety slice | Broker session boundary and restart lock | PASS | 4 focused tests; inclusive pre-close action set, time-basis validation, persisted same-day detection and next-day release PASS. |
 | Rule traceability | Rule name → code → test → journal | NOT_RUN | Zone/Trend code and tests exist; Signal through Audit/Journal traceability remains incomplete. |
 | Contract tests | همه موارد بخش 3 `TODO.md` | NOT_RUN | Zone/Trend subset PASS; remaining Signal/Risk/Safety contracts do not yet exist. |
 | Targeted regression | Trend/Normal/FreeSpace/Strict/TP/Safety | NOT_RUN | Zone/result artifacts exist; historical tick cache, reproducible environment and current engines are missing. |
@@ -45,7 +46,7 @@
 | Profit protection | Native RF، X-step، no SL loosening | PASS |
 | Execution | SL/TP at creation، native costs، one order/bar، 0.01 lot، max3/max5 | PASS at Python contract boundary — MT5 native adapter/equivalence remains. |
 | Risk budgets | Daily realized 20% و GROSS15 reservation | PASS |
-| Safety | Session-5min flatten و restart fail-closed | NOT_RUN |
+| Safety | Session-5min flatten و restart fail-closed | PASS at Python contract boundary — Broker session/persistence adapters remain. |
 | Audit/Visual | Event/Rule/Zone/BO lineage، reject reasons، chart markers/tooltips | NOT_RUN |
 
 ## Evidence تاریخی در انتظار بازیابی

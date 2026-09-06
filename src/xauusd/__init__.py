@@ -38,12 +38,16 @@ from xauusd.risk import (
 from xauusd.safety import (
     DAILY_REALIZED_LOSS_FRACTION,
     GROSS_DAILY_RISK_FRACTION,
+    SESSION_PRE_CLOSE,
     DailyGuardState,
     DailyRealizedLossGuard,
     EntrySafetyDecision,
+    OperationalSafetyActions,
     PortfolioRiskSnapshot,
+    RestartFailClosedGuard,
     evaluate_entry_safety,
     evaluate_portfolio_risk,
+    session_end_actions,
 )
 from xauusd.signals import (
     BREAKOUT_BUFFER_USD,
@@ -77,6 +81,7 @@ __all__ = [
     "DAILY_REALIZED_LOSS_FRACTION",
     "FIXED_VOLUME_LOTS",
     "GROSS_DAILY_RISK_FRACTION",
+    "SESSION_PRE_CLOSE",
     "MINIMUM_FREE_SPACE_USD",
     "PULLBACK_PENETRATION_USD",
     "PULLBACK_WINDOW_BARS",
@@ -91,6 +96,7 @@ __all__ = [
     "DailyRealizedLossGuard",
     "EngagementUpdate",
     "EntrySafetyDecision",
+    "OperationalSafetyActions",
     "InitialRisk",
     "MarketState",
     "MarketTickUpdate",
@@ -99,6 +105,7 @@ __all__ = [
     "OrderType",
     "PreZoneTriggerTracker",
     "PortfolioRiskSnapshot",
+    "RestartFailClosedGuard",
     "ProtectedOrder",
     "PullbackExpiry",
     "PullbackOrderCandidate",
@@ -131,5 +138,6 @@ __all__ = [
     "price",
     "profit_protection_stop",
     "risk_free_price",
+    "session_end_actions",
     "strict_pullback_trend",
 ]

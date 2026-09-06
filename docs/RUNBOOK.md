@@ -8,7 +8,6 @@ Codex keeps this file updated with exact repeatable commands.
 - Historical Python packages: MetaTrader5, NumPy 2.5.2, Polars 1.44.1
 - Main platform: MetaTrader 5 / MQL5
 - Installed MT5 Terminal and MetaEditor: build 6151 under `C:\Program Files\MetaTrader 5`
-- Historical broker profile: MetaQuotes-Demo
 - Required external apps: MT5 terminal and compiler; Python environment for research/replay
 - GitHub CLI: 2.100.0; private `origin` is `https://github.com/behrad203-tech/XAAUSD-PAction-projectFolder.git`
 
@@ -48,9 +47,10 @@ Generate compact Signal/Trade/Reject ledgers linked to semantic Rule IDs.
 ```powershell
 .\.venv\Scripts\python.exe .\scripts\generate_mql_vectors.py --check
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\compile_mt5.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_mt5_contract_smoke.ps1
 ```
 
-The current source is research-only and inert. The compile script accepts `-MetaEditorPath` when MT5 is installed elsewhere. A zero-warning compile is not Strategy Tester, broker parity, or live approval. Do not treat the historical EA under `legacy_reference/` as current.
+The current source is research-only and inert. The compile script accepts `-MetaEditorPath` when MT5 is installed elsewhere. The smoke runner requires all other MetaTrader instances to be closed, discovers the matching terminal data root (or accepts `-DataRoot`), copies only the ignored compiled EA, and requires both the 16-vector and read-only Native-adapter markers. Neither a zero-warning compile nor this smoke is strategy acceptance or live approval. Do not treat the historical EA under `legacy_reference/` as current.
 
 ## Recovery after reboot
 1. Open project folder.

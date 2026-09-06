@@ -103,6 +103,46 @@ bool RunCoreVectorSmoke()
    return RestartSameDayLocked(VEC_RESTART_DAY,VEC_RESTART_LAST_DAY);
   }
 
+bool RunNativeAdapterSmoke()
+  {
+   XauNativeSymbol specification;
+   if(!LoadNativeSymbol(_Symbol,specification))
+     {
+      Print("Native adapter smoke failed: symbol metadata.");
+      return false;
+     }
+
+   MqlTick tick;
+   if(!SymbolInfoTick(_Symbol,tick) || tick.ask<=specification.point)
+     {
+      Print("Native adapter smoke failed: current tick.");
+      return false;
+     }
+   double cash_risk=0.0,margin=0.0;
+   if(!NativeCashRisk(ORDER_TYPE_BUY,_Symbol,specification.volume_min,
+                      tick.ask,tick.ask-specification.point,cash_risk))
+     {
+      Print("Native adapter smoke failed: cash risk.");
+      return false;
+     }
+   if(!NativeRequiredMargin(ORDER_TYPE_BUY,_Symbol,specification.volume_min,
+                            tick.ask,margin))
+     {
+      Print("Native adapter smoke failed: margin.");
+      return false;
+     }
+
+   datetime session_from=0,session_to=0;
+   if(!NativeContainingTradeSession(_Symbol,TimeCurrent(),session_from,session_to) ||
+      session_to<=session_from)
+     {
+      Print("Native adapter smoke failed: trade session.");
+      return false;
+     }
+   Print("NATIVE_ADAPTER_SMOKE_PASS symbol/session/risk/margin mode=read-only");
+   return true;
+  }
+
 int OnInit()
   {
    if(InpEnableTrading)
@@ -116,6 +156,8 @@ int OnInit()
       return INIT_FAILED;
      }
    Print("CORE_VECTOR_SMOKE_PASS vectors=16 mode=inert");
+   if(!RunNativeAdapterSmoke())
+      return INIT_FAILED;
    Print("XAUUSD MVP research-only contract baseline initialized.");
    return INIT_SUCCEEDED;
   }

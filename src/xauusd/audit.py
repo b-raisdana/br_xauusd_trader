@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import json
+import os
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
-from typing import Any
+from pathlib import Path
+from typing import Any, Protocol
 
 from xauusd.signals import OrderType, TradeDirection
 from xauusd.zones import ZonePriority, price
@@ -56,13 +59,83 @@ class AuditEvent:
         return payload
 
 
+class AuditPersistenceError(RuntimeError):
+    """Raised when durable audit state cannot be trusted."""
+
+
+class AuditStore(Protocol):
+    def last_sequence(self, broker_day: date) -> int: ...
+
+    def append(self, event: AuditEvent) -> None: ...
+
+
+class JsonlAuditStore:
+    """Durable single-writer JSONL store that fails closed on malformed history."""
+
+    def __init__(self, path: str | Path) -> None:
+        self.path = Path(path)
+
+    def last_sequence(self, broker_day: date) -> int:
+        if not self.path.exists():
+            return 0
+        sequences: set[int] = set()
+        try:
+            with self.path.open(encoding="utf-8") as stream:
+                for line_number, line in enumerate(stream, start=1):
+                    if not line.strip():
+                        raise AuditPersistenceError(f"Blank audit record at line {line_number}")
+                    payload = json.loads(line)
+                    event_id = payload.get("event_id")
+                    if not isinstance(event_id, str):
+                        raise AuditPersistenceError(f"Missing audit Event ID at line {line_number}")
+                    event_parts = event_id.rsplit(":E", maxsplit=1)
+                    if len(event_parts) != 2:
+                        raise AuditPersistenceError(f"Invalid audit Event ID at line {line_number}")
+                    event_day, suffix = event_parts
+                    try:
+                        parsed_day = date.fromisoformat(event_day)
+                    except ValueError as exc:
+                        raise AuditPersistenceError(
+                            f"Invalid audit Event ID at line {line_number}"
+                        ) from exc
+                    if len(suffix) != 6 or not suffix.isdigit() or int(suffix) < 1:
+                        raise AuditPersistenceError(f"Invalid audit Event ID at line {line_number}")
+                    if parsed_day != broker_day:
+                        continue
+                    sequence = int(suffix)
+                    if sequence in sequences:
+                        raise AuditPersistenceError(
+                            f"Duplicate audit Event ID at line {line_number}"
+                        )
+                    sequences.add(sequence)
+        except (OSError, json.JSONDecodeError) as exc:
+            raise AuditPersistenceError(f"Cannot recover audit journal: {self.path}") from exc
+        if sequences and sequences != set(range(1, max(sequences) + 1)):
+            raise AuditPersistenceError(f"Non-contiguous audit sequence: {broker_day.isoformat()}")
+        return max(sequences, default=0)
+
+    def append(self, event: AuditEvent) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        encoded = json.dumps(
+            event.to_dict(), ensure_ascii=False, separators=(",", ":"), sort_keys=True
+        )
+        try:
+            with self.path.open("a", encoding="utf-8", newline="\n") as stream:
+                stream.write(encoded + "\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+        except OSError as exc:
+            raise AuditPersistenceError(f"Cannot append audit journal: {self.path}") from exc
+
+
 class AuditJournal:
     """Append-only in-memory journal with deterministic Broker-Day Event IDs."""
 
-    def __init__(self) -> None:
+    def __init__(self, store: AuditStore | None = None) -> None:
         self._broker_day: date | None = None
         self._sequence = 0
         self._events: list[AuditEvent] = []
+        self._store = store
 
     @property
     def events(self) -> tuple[AuditEvent, ...]:
@@ -70,8 +143,9 @@ class AuditJournal:
 
     def begin_day(self, broker_day: date) -> None:
         if broker_day != self._broker_day:
+            sequence = self._store.last_sequence(broker_day) if self._store else 0
             self._broker_day = broker_day
-            self._sequence = 0
+            self._sequence = sequence
 
     def record(
         self,
@@ -104,9 +178,9 @@ class AuditJournal:
         if kind in {AuditEventKind.REJECT, AuditEventKind.BLOCK} and not reason:
             raise ValueError("Reject/Block events require a reason")
 
-        self._sequence += 1
+        next_sequence = self._sequence + 1
         event = AuditEvent(
-            event_id=f"{self._broker_day.isoformat()}:E{self._sequence:06d}",
+            event_id=f"{self._broker_day.isoformat()}:E{next_sequence:06d}",
             rule_ids=rule_ids,
             kind=kind,
             broker_time=broker_time,
@@ -120,6 +194,9 @@ class AuditJournal:
             parent_breakout_id=parent_breakout_id,
             reason=reason,
         )
+        if self._store:
+            self._store.append(event)
+        self._sequence = next_sequence
         self._events.append(event)
         return event
 

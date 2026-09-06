@@ -8,6 +8,8 @@ def test_current_mt5_baseline_is_strict_vector_driven_and_live_inert() -> None:
     assert "#property strict" in source
     assert '#include "generated/CoreVectors.mqh"' in source
     assert "RunCoreVectorSmoke()" in source
+    assert "RunNativeAdapterSmoke()" in source
+    assert "NATIVE_ADAPTER_SMOKE_PASS" in source
     assert "input bool InpEnableTrading=false" in source
     assert "if(InpEnableTrading)" in source
     assert "trade.Buy" not in source

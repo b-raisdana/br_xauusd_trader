@@ -49,5 +49,10 @@ $pass = @($newLogs | Select-String -SimpleMatch "CORE_VECTOR_SMOKE_PASS vectors=
 if ($pass.Count -eq 0) {
     throw "Runtime success marker not found after terminal exit code $($process.ExitCode)."
 }
+$nativePass = @($newLogs | Select-String -SimpleMatch `
+        "NATIVE_ADAPTER_SMOKE_PASS symbol/session/risk/margin mode=read-only")
+if ($nativePass.Count -eq 0) {
+    throw "Native adapter success marker not found after terminal exit code $($process.ExitCode)."
+}
 
-"MT5 contract runtime smoke PASS (16 vectors, inert trading mode)."
+"MT5 runtime smoke PASS (16 vectors; symbol/session/risk/margin; inert trading mode)."

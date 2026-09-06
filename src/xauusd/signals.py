@@ -105,6 +105,10 @@ class ReversalCandidate:
     touch_price: Decimal
     order_type: OrderType = OrderType.MARKET
 
+    @property
+    def candidate_id(self) -> str:
+        return f"{self.bar_id}:R:{self.zone_id}:{self.direction.value}"
+
 
 @dataclass(frozen=True, slots=True)
 class OrderAttemptResult:

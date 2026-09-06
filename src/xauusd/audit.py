@@ -40,6 +40,7 @@ class AuditEvent:
     signal_family: SignalFamily
     direction: TradeDirection
     entry: Decimal | None
+    close_price: Decimal | None
     stop_loss: Decimal | None
     take_profit: Decimal | None
     order_type: OrderType | None
@@ -50,7 +51,7 @@ class AuditEvent:
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
         payload["broker_time"] = self.broker_time.isoformat()
-        for field in ("entry", "stop_loss", "take_profit"):
+        for field in ("entry", "close_price", "stop_loss", "take_profit"):
             value = payload[field]
             payload[field] = str(value) if value is not None else None
         payload["kind"] = self.kind.value
@@ -158,6 +159,7 @@ class AuditJournal:
         signal_family: SignalFamily,
         direction: TradeDirection,
         entry: Decimal | str | int | float | None = None,
+        close_price: Decimal | str | int | float | None = None,
         stop_loss: Decimal | str | int | float | None = None,
         take_profit: Decimal | str | int | float | None = None,
         order_type: OrderType | None = None,
@@ -190,6 +192,7 @@ class AuditJournal:
             signal_family=signal_family,
             direction=direction,
             entry=price(entry) if entry is not None else None,
+            close_price=price(close_price) if close_price is not None else None,
             stop_loss=price(stop_loss) if stop_loss is not None else None,
             take_profit=price(take_profit) if take_profit is not None else None,
             order_type=order_type,

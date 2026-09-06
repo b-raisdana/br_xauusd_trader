@@ -3,7 +3,13 @@ from decimal import Decimal
 
 import pytest
 
-from xauusd.audit import AuditEventKind, AuditJournal, SignalFamily
+from xauusd.audit import (
+    AuditEvent,
+    AuditEventKind,
+    AuditJournal,
+    AuditPersistenceError,
+    SignalFamily,
+)
 from xauusd.execution import ExecutionLedger, ExecutionRequest, ExecutionStatus
 from xauusd.signals import OrderType, TradeDirection
 
@@ -100,3 +106,82 @@ def test_failed_durable_audit_does_not_advance_execution_state() -> None:
         ledger.submit(request())
     with pytest.raises(ValueError, match="Unknown"):
         ledger.record("REQ1")
+
+
+def test_filled_position_closes_once_with_rule_and_request_lineage() -> None:
+    journal = AuditJournal()
+    ledger = ExecutionLedger(journal)
+    ledger.begin_day(DAY)
+    ledger.submit(request(family=SignalFamily.PULLBACK))
+    ledger.fill("REQ1", broker_time=NOW + timedelta(seconds=1), fill_price="100.1")
+
+    closed = ledger.close(
+        "REQ1",
+        broker_time=NOW + timedelta(seconds=2),
+        close_price="108.2",
+        rule_ids=("EXTEND_PULLBACK_TP",),
+        reason="strict_failed_after_initial_tp",
+    )
+
+    assert closed.kind is AuditEventKind.CLOSE
+    assert closed.entry == Decimal("100")
+    assert closed.close_price == Decimal("108.2")
+    assert closed.execution_request_id == "REQ1"
+    assert closed.parent_breakout_id == "BO1"
+    assert "EXTEND_PULLBACK_TP" in closed.rule_ids
+    assert ledger.record("REQ1").status is ExecutionStatus.CLOSED
+    with pytest.raises(ValueError, match="no open filled position"):
+        ledger.close(
+            "REQ1",
+            broker_time=NOW + timedelta(seconds=3),
+            close_price="108.3",
+            rule_ids=("EXTEND_PULLBACK_TP",),
+            reason="duplicate",
+        )
+
+
+def test_close_requires_fill_and_cannot_precede_fill() -> None:
+    ledger = ExecutionLedger(AuditJournal())
+    ledger.begin_day(DAY)
+    ledger.submit(request())
+    with pytest.raises(ValueError, match="no open filled position"):
+        ledger.close(
+            "REQ1",
+            broker_time=NOW,
+            close_price="101",
+            rule_ids=("BREAKOUT_VALIDATION",),
+            reason="opposite_breakout",
+        )
+    ledger.fill("REQ1", broker_time=NOW + timedelta(seconds=2), fill_price="100")
+    with pytest.raises(ValueError, match="precedes fill"):
+        ledger.close(
+            "REQ1",
+            broker_time=NOW + timedelta(seconds=1),
+            close_price="101",
+            rule_ids=("BREAKOUT_VALIDATION",),
+            reason="opposite_breakout",
+        )
+
+
+def test_failed_close_audit_keeps_filled_position_open() -> None:
+    class FailCloseStore:
+        def last_sequence(self, broker_day: date) -> int:
+            return 0
+
+        def append(self, event: AuditEvent) -> None:
+            if event.kind is AuditEventKind.CLOSE:
+                raise AuditPersistenceError("close audit unavailable")
+
+    ledger = ExecutionLedger(AuditJournal(FailCloseStore()))
+    ledger.begin_day(DAY)
+    ledger.submit(request())
+    ledger.fill("REQ1", broker_time=NOW, fill_price="100")
+    with pytest.raises(AuditPersistenceError, match="close audit unavailable"):
+        ledger.close(
+            "REQ1",
+            broker_time=NOW,
+            close_price="101",
+            rule_ids=("BREAKOUT_VALIDATION",),
+            reason="opposite_breakout",
+        )
+    assert ledger.record("REQ1").status is ExecutionStatus.FILLED

@@ -8,11 +8,12 @@
 |---|---|---|---|
 | Migration integrity | Rule/Decision/Experiment separation | PASS | Template/Handoff Merge شد؛ Legacy از Active Rules جدا و تصمیم‌های نهایی Leader ثبت شد. |
 | Package structure smoke | Required root, Source-of-Truth files and canonical ranges | PASS | Canonical SHA-256 and required structure remain covered by pytest. |
-| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\quality_gate.ps1` on 2026-09-06; 36 tests PASS. |
+| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\quality_gate.ps1` on 2026-09-06; 41 tests PASS. |
 | Legacy static integrity | Historical sources/manifests without promotion | PASS | Python AST 9/9; PowerShell parser 12/12; MQL5 strict + balanced braces 3/3; Git-staged core manifest 16/16 across byte-preserved attributes. Not compile/runtime evidence. |
 | Zone/Trend contract slice | Rule → Python domain → deterministic tests | PASS | 19 focused tests; 23 canonical days → 421 merged Zones; 444/444 source rows retained. |
 | Breakout/Reversal signal slice | Strict qualification, touch and accounting contracts | PASS | 9 focused/integration tests; strict buffer/lineage, same-Tick Trend, directional Market touch, gap/wick, duplicate, daily usage and shared bar slot PASS. |
 | Pullback signal slice | Conservative entry lifecycle and accounting | PASS | 6 focused tests; penetration/edge retry, five-bar window, Multiple PB, Normal1/High∞, independent counters, active-cycle and cancellation contracts PASS. |
+| Momentum/TP slice | Strict trend, target trigger, conflict and extension lifecycle | PASS | 5 focused tests; Same-Bar/closed/current checks, crossing/gap, touch block, safe one-step modify, restore and Market Close PASS. |
 | Rule traceability | Rule name → code → test → journal | NOT_RUN | Zone/Trend code and tests exist; Signal through Audit/Journal traceability remains incomplete. |
 | Contract tests | همه موارد بخش 3 `TODO.md` | NOT_RUN | Zone/Trend subset PASS; remaining Signal/Risk/Safety contracts do not yet exist. |
 | Targeted regression | Trend/Normal/FreeSpace/Strict/TP/Safety | NOT_RUN | Zone/result artifacts exist; historical tick cache, reproducible environment and current engines are missing. |
@@ -36,7 +37,7 @@
 | Breakout | Engage، Trend at Close، strict ±1 buffer، lineage، close opposite Reversal | NOT_RUN — Engage/validation/lineage and opposite-direction closure instruction PASS; position-close execution remains. |
 | Reversal | directional Market touch، wick validity، Normal1/High2، duplicate guard | PASS |
 | Pullback | penetration 0.20، broken-edge entry/retry، t+1..t+5، multi-PB، Normal1/High∞ | PASS |
-| Strict/Conflict/TP | closed/current candle، Same-Bar، Doji، crossing/gap، touch block، extend/restore/close | NOT_RUN |
+| Strict/Conflict/TP | closed/current candle، Same-Bar، Doji، crossing/gap، touch block، extend/restore/close | PASS |
 | Free Space | Buy/Sell formula و minimum 3 USD | NOT_RUN |
 | Initial risk | Stop Zone/cap6، first target ≥6، missing-Zone reject | NOT_RUN |
 | Profit protection | Native RF، X-step، no SL loosening | NOT_RUN |

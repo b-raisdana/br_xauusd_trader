@@ -119,7 +119,7 @@ class ReplayRunner:
             previous_close = bar.close_time
             last_time = bar.open_time
             for tick in bar.ticks:
-                if tick.broker_time <= last_time or tick.broker_time > bar.close_time:
+                if tick.broker_time < last_time or tick.broker_time > bar.close_time:
                     raise ValueError("Replay ticks must be chronological and inside the bar")
                 if not bar.candle.low <= tick.bid <= bar.candle.high:
                     raise ValueError("Replay tick Bid is outside Candle range")

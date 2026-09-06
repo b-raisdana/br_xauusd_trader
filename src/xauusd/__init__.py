@@ -74,6 +74,7 @@ from xauusd.signals import (
     ReversalTracker,
     TradeDirection,
 )
+from xauusd.tick_data import load_mt5_tick_bars
 from xauusd.trend import Candle, CandleDirection, DailyTrendTracker, TrendState
 from xauusd.zones import (
     MERGE_GAP_USD,
@@ -163,6 +164,7 @@ __all__ = [
     "initial_stop",
     "initial_target",
     "load_zone_csv",
+    "load_mt5_tick_bars",
     "maximum_positions",
     "native_margin_allows_entry",
     "pre_zone_trigger_price",

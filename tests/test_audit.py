@@ -35,6 +35,7 @@ def test_journal_assigns_stable_daily_ids_and_serializes_exact_prices() -> None:
     )
     assert event.event_id == "2026-09-06:E000001"
     assert event.to_dict()["entry"] == "3400.10"
+    assert event.to_dict()["close_price"] is None
     assert journal.events == (event,)
     with pytest.raises(FrozenInstanceError):
         event.reason = "changed"  # type: ignore[misc]

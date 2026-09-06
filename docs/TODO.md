@@ -33,7 +33,7 @@
 
 ## 2) بازسازی مهندسی کد
 
-- [ ] ساخت EA جدید ماژولار — inert current core و Native/Visual adapterها compile/runtime smoke شدند؛ Python causal Signal lifecycle، shared attempt state و protected ORDER→FILL/REJECT durable projection پیاده شد؛ اتصال آن به replay، close/exit orchestration و MT5 parity باقی است.
+- [ ] ساخت EA جدید ماژولار — inert current core و Native/Visual adapterها compile/runtime smoke شدند؛ Python causal Signal lifecycle، shared attempt state و protected ORDER→FILL/REJECT→CLOSE durable projection پیاده شد؛ اتصال آن به replay، Native acceptance و MT5 parity باقی است.
 - [x] ماژول Zone/Trend — Load/Merge/Priority، Engagement و Trend bootstrap روزانه مستقل پیاده و Contract-tested شد.
 - [x] ماژول Signalها — Breakout، Reversal و Pullback با State مشترک Order Slot و Lineage روشن پیاده و Contract-tested شدند.
 - [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.
@@ -98,7 +98,7 @@ Gate: اختلاف اجرایی بدون توضیح = صفر.
 ## 5) Python ↔ MT5 Equivalence
 
 - [x] Freeze test vectors — schema و 16 vector در Python و isolated MQL Strategy Tester با tolerance صریح و generated-header drift gate PASS شد.
-- [ ] Python replay — causal runner، read-only UTC export، explicit-offset M15 normalization روی 6,487 tick، unique multi-tick terminal time-basis correlation و canonical Zone-day attachment runtime-validated شد؛ protected execution lifecycle موجود است ولی اتصال execution/Exit به replay و full historical input باقی است.
+- [ ] Python replay — causal runner، read-only UTC export، explicit-offset M15 normalization روی 6,487 tick، unique multi-tick terminal time-basis correlation و canonical Zone-day attachment runtime-validated شد؛ protected execution/close lifecycle موجود است ولی fixture-driven replay wiring، recovery و full historical input باقی است.
 - [ ] MT5 Real Tick comparison — Finalist روی همان روزها با Every Tick Based on Real Ticks اجرا شود.
 - [ ] اختلاف‌ها طبقه‌بندی شوند — فقط `RULE / CODE / DATA / TEST_CONFIG`؛ مشکل فنی بدون نیاز Business Logic به رهبر برنگردد.
 

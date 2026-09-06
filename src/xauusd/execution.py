@@ -17,6 +17,7 @@ class ExecutionStatus(StrEnum):
     SUBMITTED = "submitted"
     FILLED = "filled"
     REJECTED = "rejected"
+    CLOSED = "closed"
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,6 +73,7 @@ class ExecutionRequest:
 class ExecutionRecord:
     request: ExecutionRequest
     status: ExecutionStatus
+    transition_time: datetime
 
 
 class ExecutionLedger:
@@ -99,7 +101,9 @@ class ExecutionLedger:
         if request.request_id in self._records:
             raise ValueError(f"Duplicate Execution Request ID: {request.request_id}")
         event = self._write(request, AuditEventKind.ORDER, request.broker_time)
-        self._records[request.request_id] = ExecutionRecord(request, ExecutionStatus.SUBMITTED)
+        self._records[request.request_id] = ExecutionRecord(
+            request, ExecutionStatus.SUBMITTED, request.broker_time
+        )
         return event
 
     def fill(
@@ -111,7 +115,9 @@ class ExecutionLedger:
     ) -> AuditEvent:
         record = self._pending(request_id, broker_time)
         event = self._write(record.request, AuditEventKind.FILL, broker_time, entry=fill_price)
-        self._records[request_id] = ExecutionRecord(record.request, ExecutionStatus.FILLED)
+        self._records[request_id] = ExecutionRecord(
+            record.request, ExecutionStatus.FILLED, broker_time
+        )
         return event
 
     def reject(self, request_id: str, *, broker_time: datetime, reason: str) -> AuditEvent:
@@ -119,7 +125,41 @@ class ExecutionLedger:
             raise ValueError("Execution rejection reason is required")
         record = self._pending(request_id, broker_time)
         event = self._write(record.request, AuditEventKind.REJECT, broker_time, reason=reason)
-        self._records[request_id] = ExecutionRecord(record.request, ExecutionStatus.REJECTED)
+        self._records[request_id] = ExecutionRecord(
+            record.request, ExecutionStatus.REJECTED, broker_time
+        )
+        return event
+
+    def close(
+        self,
+        request_id: str,
+        *,
+        broker_time: datetime,
+        close_price: Decimal | str | int | float,
+        rule_ids: tuple[str, ...],
+        reason: str,
+    ) -> AuditEvent:
+        self._validate_time(broker_time)
+        record = self.record(request_id)
+        if record.status is not ExecutionStatus.FILLED:
+            raise ValueError(f"Execution Request has no open filled position: {request_id}")
+        if broker_time < record.transition_time:
+            raise ValueError("Position close precedes fill")
+        if not rule_ids or any(not rule_id.strip() for rule_id in rule_ids):
+            raise ValueError("Position close requires Rule IDs")
+        if not reason.strip():
+            raise ValueError("Position close reason is required")
+        event = self._write(
+            record.request,
+            AuditEventKind.CLOSE,
+            broker_time,
+            close_price=close_price,
+            reason=reason,
+            extra_rule_ids=rule_ids,
+        )
+        self._records[request_id] = ExecutionRecord(
+            record.request, ExecutionStatus.CLOSED, broker_time
+        )
         return event
 
     def _pending(self, request_id: str, broker_time: datetime) -> ExecutionRecord:
@@ -127,7 +167,7 @@ class ExecutionLedger:
         record = self.record(request_id)
         if record.status is not ExecutionStatus.SUBMITTED:
             raise ValueError(f"Execution Request already resolved: {request_id}")
-        if broker_time < record.request.broker_time:
+        if broker_time < record.transition_time:
             raise ValueError("Execution outcome precedes request")
         return record
 
@@ -144,10 +184,14 @@ class ExecutionLedger:
         broker_time: datetime,
         *,
         entry: Decimal | str | int | float | None = None,
+        close_price: Decimal | str | int | float | None = None,
         reason: str | None = None,
+        extra_rule_ids: tuple[str, ...] = (),
     ) -> AuditEvent:
         order = request.order
-        rule_ids = tuple(dict.fromkeys((*request.rule_ids, "ORDER_PROTECTED_FROM_CREATION")))
+        rule_ids = tuple(
+            dict.fromkeys((*request.rule_ids, "ORDER_PROTECTED_FROM_CREATION", *extra_rule_ids))
+        )
         return self.journal.record(
             rule_ids=rule_ids,
             kind=kind,
@@ -156,6 +200,7 @@ class ExecutionLedger:
             signal_family=request.signal_family,
             direction=request.direction,
             entry=order.entry if entry is None else entry,
+            close_price=close_price,
             stop_loss=order.stop_loss,
             take_profit=order.take_profit,
             order_type=order.order_type,

@@ -18,11 +18,11 @@
 | Financial Safety slice | Daily net-realized and GROSS15 entry gates | PASS | 6 focused tests; daily latch/reset/actions, inclusive gross budget, all four native risk components, combined rejection and invalid-input failure PASS. |
 | Operational Safety slice | Broker session boundary and restart lock | PASS | 4 focused tests; inclusive pre-close action set, time-basis validation, persisted same-day detection and next-day release PASS. |
 | Audit payload slice | Immutable trace records and leader marker DTOs | PASS | 3 focused tests; required fields/reasons/lineage/order kind, daily IDs, exact serialization, labels/styles/tooltips PASS. Durable I/O/rendering remains. |
-| Equivalence-vector scaffold | Shared versioned Decimal-string inputs/outputs | PASS for Python + generated MQL source | 11 vectors execute in Python; generated-header drift and explicit `1e-9` MQL tolerance PASS; compiled startup consumer exists. Runtime/state coverage remain. |
+| Equivalence-vector scaffold | Shared versioned Decimal-string inputs/outputs | PASS for Python + generated MQL source | 16 vectors execute in Python; generated-header drift and explicit `1e-9` MQL tolerance PASS; compiled startup consumer covers state/lifecycle. Runtime evidence remains. |
 | Rule traceability | Rule name → code → test → journal | NOT_RUN | Zone/Trend code and tests exist; Signal through Audit/Journal traceability remains incomplete. |
 | Contract tests | همه موارد بخش 3 `TODO.md` | PASS at Python domain boundary | All listed fast contracts PASS; external Native/MT5 parity and durable side effects remain separate gates. |
 | Targeted regression | Trend/Normal/FreeSpace/Strict/TP/Safety | NOT_RUN | Zone/result artifacts exist; historical tick cache, reproducible environment and current engines are missing. |
-| Python ↔ MT5 equivalence | Frozen vectors | NOT_RUN | 11 shared vectors PASS in Python and compile in MQL source at `1e-9`; MQL runtime output/state lifecycle comparison remains. |
+| Python ↔ MT5 equivalence | Frozen vectors | NOT_RUN | 16 shared vectors PASS in Python and compile in MQL source at `1e-9`; MQL runtime output capture remains. |
 | MT5 compile | `#property strict`, zero errors | PASS for current inert core | `scripts/compile_mt5.ps1` on build 6151: 0 errors, 0 warnings. This is not full EA/runtime acceptance. |
 | MT5 real-tick acceptance | 200/300 USD scenarios | NOT_RUN | Broker profile و `.set` جاری موجود نیست. |
 | Visual QA | Chart + Journal + Rule IDs | NOT_RUN | بعد از Technical PASS. |

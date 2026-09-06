@@ -19,6 +19,16 @@ PULLBACK_PENETRATION_USD = Decimal("0.20")
 PULLBACK_WINDOW_BARS = 5
 
 
+def pullback_window_active(bar_offset: int) -> bool:
+    return 1 <= bar_offset <= PULLBACK_WINDOW_BARS
+
+
+def pullback_usage_allowed(priority: ZonePriority, daily_fills: int) -> bool:
+    if daily_fills < 0:
+        raise ValueError("Daily Pullback fills cannot be negative")
+    return priority is ZonePriority.HIGH or daily_fills < 1
+
+
 @dataclass(frozen=True, slots=True)
 class PullbackOrderCandidate:
     candidate_id: str
@@ -139,12 +149,12 @@ class PullbackTracker:
         current = price(bid)
         candidates: list[PullbackOrderCandidate] = []
         for window in self._windows.values():
-            if not window.active or not 1 <= window.bar_offset <= PULLBACK_WINDOW_BARS:
+            if not window.active or not pullback_window_active(window.bar_offset):
                 continue
             if window.pending_candidate is not None:
                 continue
-            if window.zone.priority is ZonePriority.NORMAL and self.daily_fills(
-                window.zone.zone_id
+            if not pullback_usage_allowed(
+                window.zone.priority, self.daily_fills(window.zone.zone_id)
             ):
                 continue
 
@@ -195,7 +205,7 @@ class PullbackTracker:
             return OrderAttemptResult(False, None, "candidate_from_different_bar")
         if window.pending_candidate is not None:
             return OrderAttemptResult(False, None, "pending_already_active")
-        if window.zone.priority is ZonePriority.NORMAL and self.daily_fills(window.zone.zone_id):
+        if not pullback_usage_allowed(window.zone.priority, self.daily_fills(window.zone.zone_id)):
             return OrderAttemptResult(False, None, "daily_pullback_fill_limit")
         if not self.order_attempts.record_attempt(candidate.broker_day, candidate.bar_id):
             return OrderAttemptResult(False, None, "entry_attempt_already_used")

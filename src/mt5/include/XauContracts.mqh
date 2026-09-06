@@ -27,7 +27,77 @@ struct XauZone
    string id;
    double low;
    double high;
+   int priority; // 0=Normal, 1=High
   };
+
+enum XauTpFailureAction
+  {
+   XAU_TP_NONE = 0,
+   XAU_TP_RESTORE = 1,
+   XAU_TP_MARKET_CLOSE = 2
+  };
+
+int BuildMergedZones(const XauZone &raw_zones[],const string broker_day,XauZone &merged[])
+  {
+   const int count=ArraySize(raw_zones);
+   XauZone sorted[];
+   ArrayResize(sorted,count);
+   for(int i=0;i<count;i++)
+     {
+      sorted[i]=raw_zones[i];
+      if(sorted[i].low > sorted[i].high)
+        {
+         const double swap=sorted[i].low;
+         sorted[i].low=sorted[i].high;
+         sorted[i].high=swap;
+        }
+     }
+   for(int i=1;i<count;i++)
+     {
+      XauZone value=sorted[i];
+      int position=i-1;
+      while(position >= 0 &&
+            (sorted[position].low > value.low ||
+             (sorted[position].low == value.low && sorted[position].high > value.high)))
+        {
+         sorted[position+1]=sorted[position];
+         position--;
+        }
+      sorted[position+1]=value;
+     }
+
+   ArrayResize(merged,0);
+   int merged_count=0;
+   for(int i=0;i<count;i++)
+     {
+      if(merged_count == 0 || sorted[i].low-merged[merged_count-1].high >= 1.5)
+        {
+         ArrayResize(merged,merged_count+1);
+         merged[merged_count]=sorted[i];
+         merged[merged_count].id=broker_day+":R"+IntegerToString(merged_count+1);
+         merged_count++;
+        }
+      else
+        {
+         merged[merged_count-1].low=MathMin(merged[merged_count-1].low,sorted[i].low);
+         merged[merged_count-1].high=MathMax(merged[merged_count-1].high,sorted[i].high);
+         merged[merged_count-1].priority=MathMax(merged[merged_count-1].priority,
+                                                  sorted[i].priority);
+        }
+     }
+   return merged_count;
+  }
+
+int CountDirectionalCrosses(const XauZone &zones[],const double previous_bid,
+                            const double current_bid)
+  {
+   int crosses=0;
+   for(int i=0;i<ArraySize(zones);i++)
+      if((previous_bid < zones[i].low && current_bid >= zones[i].low) ||
+         (previous_bid > zones[i].high && current_bid <= zones[i].high))
+         crosses++;
+   return crosses;
+  }
 
 bool BreakoutValid(const XauZone &zone,const XauDirection direction,const XauTrend trend,
                    const double close_price,const bool engaged)
@@ -69,6 +139,18 @@ bool PullbackPenetrated(const XauZone &zone,const XauDirection direction,const d
    if(direction == XAU_BUY)
       return bid <= zone.high-PULLBACK_PENETRATION_USD;
    return bid >= zone.low+PULLBACK_PENETRATION_USD;
+  }
+
+bool PullbackWindowActive(const int bar_offset)
+  {
+   return bar_offset >= 1 && bar_offset <= 5;
+  }
+
+bool PullbackUsageAllowed(const int zone_priority,const int daily_fills)
+  {
+   if(daily_fills < 0)
+      return false;
+   return zone_priority == 1 || daily_fills < 1;
   }
 
 bool StrictPullbackTrend(const XauDirection direction,const int &closed_directions[],
@@ -190,6 +272,23 @@ bool DailyLossLocked(const double strategy_capital,const double net_realized_pnl
 bool SessionEndActive(const datetime broker_now,const datetime broker_session_end)
   {
    return broker_now >= broker_session_end-5*60;
+  }
+
+XauTpFailureAction PullbackTpFailureAction(const XauDirection direction,
+                                           const bool extended,const bool strict_valid,
+                                           const double initial_tp,const double current_bid,
+                                           const double current_ask)
+  {
+   if(!extended || strict_valid)
+      return XAU_TP_NONE;
+   const bool crossed=(direction == XAU_BUY ? current_bid >= initial_tp
+                                            : current_ask <= initial_tp);
+   return (crossed ? XAU_TP_MARKET_CLOSE : XAU_TP_RESTORE);
+  }
+
+bool RestartSameDayLocked(const string broker_day,const string persisted_last_activation_day)
+  {
+   return broker_day != "" && broker_day == persisted_last_activation_day;
   }
 
 #endif

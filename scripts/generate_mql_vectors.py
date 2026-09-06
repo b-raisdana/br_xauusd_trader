@@ -25,6 +25,11 @@ def render_header(payload: dict[str, Any]) -> str:
     protection = vectors["profit-protection-buy-step-four"]["input"]
     daily = vectors["daily-loss-inclusive-boundary"]["input"]
     session = vectors["session-five-minute-boundary"]["input"]
+    merge = vectors["zone-chain-merge-strict-boundary"]
+    gap = vectors["multi-zone-gap-count"]["input"]
+    pullback_state = vectors["pullback-high-window-t5"]["input"]
+    tp_failure = vectors["tp-strict-failure-before-initial"]["input"]
+    restart = vectors["restart-same-day-lock"]["input"]
     risk_zones = risk["input"]["zones"]
     lines = [
         "// Generated from tests/vectors/core_contracts.json. Do not edit manually.",
@@ -76,6 +81,38 @@ def render_header(payload: dict[str, Any]) -> str:
             + '"',
             '#define VEC_SESSION_END "'
             + session["broker_session_end"].replace("-", ".").replace("T", " ")
+            + '"',
+            f"#define VEC_MERGE_EXPECTED_COUNT {merge['expected']['count']}",
+        )
+    )
+    for index, zone in enumerate(merge["input"]["zones"], start=1):
+        lines.extend(
+            (
+                f"#define VEC_MERGE_ZONE_{index}_LOW {zone['low']}",
+                f"#define VEC_MERGE_ZONE_{index}_HIGH {zone['high']}",
+                f"#define VEC_MERGE_ZONE_{index}_PRIORITY "
+                + ("1" if zone["priority"] == "high" else "0"),
+            )
+        )
+    for index, zone in enumerate(gap["zones"], start=1):
+        lines.extend(
+            (
+                f"#define VEC_GAP_ZONE_{index}_LOW {zone['low']}",
+                f"#define VEC_GAP_ZONE_{index}_HIGH {zone['high']}",
+            )
+        )
+    lines.extend(
+        (
+            f"#define VEC_GAP_PREVIOUS {gap['previous_bid']}",
+            f"#define VEC_GAP_CURRENT {gap['bid']}",
+            f"#define VEC_PULLBACK_BAR_OFFSET {pullback_state['bar_offset']}",
+            f"#define VEC_PULLBACK_DAILY_FILLS {pullback_state['daily_fills']}",
+            f"#define VEC_TP_INITIAL {tp_failure['initial_tp']}",
+            f"#define VEC_TP_CURRENT_BID {tp_failure['current_bid']}",
+            f"#define VEC_TP_CURRENT_ASK {tp_failure['current_ask']}",
+            '#define VEC_RESTART_DAY "' + restart["broker_day"].replace("-", ".") + '"',
+            '#define VEC_RESTART_LAST_DAY "'
+            + restart["persisted_last_activation_day"].replace("-", ".")
             + '"',
         )
     )

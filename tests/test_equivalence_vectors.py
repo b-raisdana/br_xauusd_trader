@@ -1,13 +1,15 @@
 import json
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
 from scripts.generate_mql_vectors import render_header
-from xauusd.risk import build_initial_risk
-from xauusd.safety import evaluate_portfolio_risk
-from xauusd.signals import BreakoutTracker, ReversalTracker, TradeDirection
-from xauusd.trend import TrendState
+from xauusd.momentum import PreZoneTriggerTracker, pre_zone_trigger_price, strict_pullback_trend
+from xauusd.pullback import PullbackTracker
+from xauusd.risk import build_initial_risk, profit_protection_stop
+from xauusd.safety import DailyRealizedLossGuard, evaluate_portfolio_risk, session_end_actions
+from xauusd.signals import BreakoutSignal, BreakoutTracker, ReversalTracker, TradeDirection
+from xauusd.trend import Candle, DailyTrendTracker, TrendState
 from xauusd.zones import RawZone, Zone, build_daily_zones
 
 VECTOR_PATH = Path(__file__).parent / "vectors" / "core_contracts.json"
@@ -40,6 +42,13 @@ def test_frozen_core_vectors_match_python_contracts() -> None:
         "reversal-sell-directional-touch",
         "initial-risk-buy-skips-near-target",
         "gross15-inclusive-boundary",
+        "trend-live-break-up",
+        "pullback-buy-penetration-boundary",
+        "strict-buy-momentum",
+        "pre-zone-buy-gap-cross",
+        "profit-protection-buy-step-four",
+        "daily-loss-inclusive-boundary",
+        "session-five-minute-boundary",
     ]
 
     breakout_vector = vectors[0]
@@ -104,6 +113,136 @@ def test_frozen_core_vectors_match_python_contracts() -> None:
         "used_with_proposed": str(portfolio.used_with_proposed),
         "allowed": portfolio.allows_proposed,
     } == portfolio_vector["expected"]
+
+    trend_vector = vectors[4]
+    trend_input = trend_vector["input"]
+    trends = DailyTrendTracker()
+    trends.begin_day(day)
+    trends.record_closed_candle(
+        Candle.from_values(
+            broker_day=day,
+            open="95",
+            high=trend_input["reference_high"],
+            low=trend_input["reference_low"],
+            close="99",
+        )
+    )
+    assert {"state": trends.update(trend_input["bid"]).current.value} == trend_vector["expected"]
+
+    pullback_vector = vectors[5]
+    pullback_input = pullback_vector["input"]
+    pullback_zone = make_zones(
+        day,
+        [
+            {
+                "low": pullback_input["zone_low"],
+                "high": pullback_input["zone_high"],
+                "priority": "normal",
+            }
+        ],
+    )[0]
+    breakout = BreakoutSignal(
+        breakout_id="BO1",
+        broker_day=day,
+        bar_id="t",
+        zone_id=pullback_zone.zone_id,
+        direction=TradeDirection(pullback_input["direction"]),
+        close=pullback_zone.high + 2,
+    )
+    pullbacks = PullbackTracker()
+    pullbacks.begin_day(day)
+    pullbacks.begin_bar("t")
+    pullbacks.create_window(breakout, pullback_zone)
+    pullbacks.begin_bar("t+1")
+    pullback_candidates = pullbacks.evaluate_price(pullback_input["bid"])
+    assert {
+        "penetrated": bool(pullback_candidates),
+        "entry": str(pullback_candidates[0].entry_price),
+    } == pullback_vector["expected"]
+
+    strict_vector = vectors[6]
+    strict_input = strict_vector["input"]
+    closed: list[Candle] = []
+    for index, candle_direction in enumerate(strict_input["closed_directions"]):
+        open_value = 100 + index
+        close_value = {
+            "bullish": open_value + 1,
+            "bearish": open_value - 1,
+            "doji": open_value,
+        }[candle_direction]
+        closed.append(
+            Candle.from_values(
+                broker_day=day,
+                open=str(open_value),
+                high=str(max(open_value, close_value) + 1),
+                low=str(min(open_value, close_value) - 1),
+                close=str(close_value),
+            )
+        )
+    strict_valid = strict_pullback_trend(
+        direction=TradeDirection(strict_input["direction"]),
+        closed_after_pullback=closed,
+        current_open=strict_input["current_open"],
+        current_bid=strict_input["current_bid"],
+        current_ask=strict_input["current_ask"],
+    )
+    assert {"valid": strict_valid} == strict_vector["expected"]
+
+    trigger_vector = vectors[7]
+    trigger_input = trigger_vector["input"]
+    target_zone = make_zones(
+        day,
+        [
+            {
+                "low": trigger_input["target_low"],
+                "high": trigger_input["target_high"],
+                "priority": "normal",
+            }
+        ],
+    )[0]
+    trigger_direction = TradeDirection(trigger_input["direction"])
+    triggers = PreZoneTriggerTracker()
+    crossed = triggers.crossed(
+        position_id="P1",
+        direction=trigger_direction,
+        target_zone=target_zone,
+        previous_price=trigger_input["previous_price"],
+        current_price=trigger_input["current_price"],
+    )
+    assert {
+        "trigger": str(pre_zone_trigger_price(trigger_direction, target_zone)),
+        "crossed": crossed,
+    } == trigger_vector["expected"]
+
+    protection_vector = vectors[8]
+    protection_input = protection_vector["input"]
+    protected_stop = profit_protection_stop(
+        direction=TradeDirection(protection_input["direction"]),
+        entry=protection_input["entry"],
+        risk_free=protection_input["risk_free"],
+        current_bid=protection_input["current_bid"],
+        current_ask=protection_input["current_ask"],
+        current_stop=protection_input["current_stop"],
+    )
+    assert {"modify": protected_stop is not None, "stop": str(protected_stop)} == protection_vector[
+        "expected"
+    ]
+
+    daily_vector = vectors[9]
+    daily_input = daily_vector["input"]
+    daily = DailyRealizedLossGuard(daily_input["strategy_capital"])
+    daily.begin_day(day)
+    assert {"locked": daily.update(daily_input["net_realized_pnl"]).locked} == daily_vector[
+        "expected"
+    ]
+
+    session_vector = vectors[10]
+    session_input = session_vector["input"]
+    session = session_end_actions(
+        broker_now=datetime.fromisoformat(session_input["broker_now"]),
+        broker_session_end=datetime.fromisoformat(session_input["broker_session_end"]),
+    )
+    assert {"active": session.locked} == session_vector["expected"]
 
 
 def test_generated_mql_header_matches_canonical_json() -> None:

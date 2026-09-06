@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -7,6 +8,7 @@ from xauusd.audit import AuditEventKind, AuditJournal, SignalFamily
 from xauusd.market_state import MarketState
 from xauusd.replay import (
     ReplayBar,
+    ReplayCloseOutcome,
     ReplayDay,
     ReplayExecutionOutcome,
     ReplayRunner,
@@ -283,3 +285,55 @@ def test_replay_applies_explicit_pullback_pending_fill_and_usage() -> None:
     assert all(event.parent_breakout_id == "BO1" for event in pullback_events)
     assert state.pullbacks.daily_fills("2026-09-06:R2") == 1
     assert runner.execution.record("BO1:PB1").status.value == "filled"
+
+
+def test_replay_applies_only_explicit_close_to_an_existing_fill() -> None:
+    candidate_id = "t:R:2026-09-06:R2:sell"
+    fill = ReplayExecutionOutcome.from_values(
+        candidate_id=candidate_id,
+        broker_time=datetime(2026, 9, 6, 10, 1, 1),
+        accepted=True,
+        fill_price="100.1",
+    )
+    replay = execution_replay(fill)
+    close = ReplayCloseOutcome.from_values(
+        request_id=candidate_id,
+        broker_time=datetime(2026, 9, 6, 10, 14, 1),
+        close_price="102",
+        rule_ids=("SESSION_END_FLATTEN",),
+        reason="fixture_session_flatten",
+    )
+    second_tick = replace(replay.bars[0].ticks[1], close_outcomes=(close,))
+    bar = replace(replay.bars[0], ticks=(replay.bars[0].ticks[0], second_tick))
+
+    runner = ReplayRunner(MarketState(), AuditJournal())
+    result = runner.run_day(replace(replay, bars=(bar,)))
+
+    close_events = [event for event in result.events if event.kind is AuditEventKind.CLOSE]
+    assert len(close_events) == 1
+    assert close_events[0].execution_request_id == candidate_id
+    assert close_events[0].close_price == Decimal("102")
+    assert runner.execution.record(candidate_id).status.value == "closed"
+
+
+def test_replay_rejects_close_without_an_existing_fill_before_audit() -> None:
+    candidate_id = "t:R:2026-09-06:R2:sell"
+    rejected = ReplayExecutionOutcome.from_values(
+        candidate_id=candidate_id,
+        broker_time=datetime(2026, 9, 6, 10, 1, 1),
+        accepted=False,
+        rejection_reason="native_reject",
+    )
+    replay = execution_replay(rejected)
+    close = ReplayCloseOutcome.from_values(
+        request_id=candidate_id,
+        broker_time=datetime(2026, 9, 6, 10, 14),
+        close_price="102",
+        rule_ids=("SESSION_END_FLATTEN",),
+        reason="invalid_close",
+    )
+    second_tick = replace(replay.bars[0].ticks[1], close_outcomes=(close,))
+    bar = replace(replay.bars[0], ticks=(replay.bars[0].ticks[0], second_tick))
+
+    with pytest.raises(ValueError, match="no open filled position"):
+        ReplayRunner(MarketState(), AuditJournal()).run_day(replace(replay, bars=(bar,)))

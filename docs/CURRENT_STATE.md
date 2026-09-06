@@ -4,7 +4,7 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: Fixture-driven Market/Pending replay outcomes validated / fixture-driven close replay next
+- Current activity: Fixture-driven Market/Pending/Close replay outcomes validated / modify and pending-cancel outcomes next
 - Strategy target: MVP v2 Consolidated Rulebook
 - Rule status: Core Python strategy, Risk/Execution, Safety and Audit rules implemented and contract-tested; full MT5 orchestration/rendering remain
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
@@ -62,10 +62,11 @@
 - Normalized Python replay now enforces Broker-Day ownership, unique/non-overlapping bars, chronological in-bar ticks, OHLC consistency and final Bid=Close before routing through the same MarketState and durable audit projector. Historical tick input and exit/execution replay remain.
 - `build_replay_days` deterministically groups normalized bars, attaches only the matching canonical daily Zones and fails closed when a replayed Broker Day has no Zone input. The ignored bounded sample ran through 1 day, 1 bar, 6,487 ticks and 19 merged Zones with zero signals; this is a connectivity smoke, not strategy evidence.
 - Replay ticks can now carry explicit Candidate-bound execution outcomes. Market fill, Pending fill and Broker reject flow through the shared attempt/daily-usage State and durable Execution ledger; missing fixtures remain audit-only, while duplicate/unknown/early fixtures and accepted Market outcomes without fill price fail closed. Four deterministic replay tests cover these boundaries without inferring Broker behavior from price.
+- Replay ticks can also carry explicit Close outcomes linked to an already FILLED request, with separate close time/price, Rule IDs and reason. Close on a rejected, unknown or already resolved request fails closed; price touching SL/TP never invents a Native exit.
 - `scripts/export_mt5_ticks.py` pins the MT5 Python bridge, accepts only explicit UTC ranges, writes only under ignored `data/cache/`, exports no account identity, and was runtime-validated on a 15-minute window: 6,487 ticks, 290,594 bytes, SHA-256 `498d87fa9c8359207284207537c91e85eee9f6a3c11f070d2e1cfb0a04c03d04`. The cache itself is not committed.
 - `load_mt5_tick_bars` preserves source row order for equal-millisecond ticks, rejects backward time, requires an explicit whole-minute offset, and creates internally consistent M15 Bid candles. The ignored 6,487-tick sample mechanically normalized/replayed as one bar.
 - `scripts/match_mt5_time_basis.py` fail-closes unless an ordered multi-tick probe uniquely matches one whole-30-minute UTC offset in the terminal history. A five-tick local correlation produced one unique match; the probe values, resolved Broker-specific offset and account identity are intentionally not persisted or committed.
-- Current test baseline: 98 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by the repository checks; all three historical MQL5 files have `#property strict` and balanced braces. The isolated MQL core/native/visual/time-probe runtime smoke passed; this is not strategy acceptance.
+- Current test baseline: 100 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by the repository checks; all three historical MQL5 files have `#property strict` and balanced braces. The isolated MQL core/native/visual/time-probe runtime smoke passed; this is not strategy acceptance.
 - Template و Handoff به‌صورت محتوایی Merge شدند و Workflow محلی CI حفظ شد.
 - Repository روی Branch `main` ایجاد و Baseline در Git ثبت شد.
 - `FINAL_PROJECT_HANDOFF_2026-09-06.md` طبق تصمیم Project Leader وارد Repository نشد.
@@ -82,7 +83,7 @@
 
 ## موارد تأییدنشده اجرایی
 
-- Full MT5 orchestration/current EA, close/modify/cancel replay fixtures, Native outcomes/acceptance, real-tick Python↔MQL5 lifecycle results and acceptance `.set` files.
+- Full MT5 orchestration/current EA, modify/pending-cancel replay fixtures, Native outcomes/acceptance, real-tick Python↔MQL5 lifecycle results and acceptance `.set` files.
 - اتصال Evidenceهای تاریخی به Dataset/Config/Artifact/Commit.
 - رفتار دقیق Broker Symbol/Session و Cost model در محیط هدف.
 - نتیجه Regression Ruleهای جدید در برابر Finalist قدیمی.
@@ -154,6 +155,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید fixture-driven close replay را به Position lifecycle متصل کند، سپس modify/cancel actionها را بدون حدس Broker behavior مدل کند. Trading تا Live Gate inert می‌ماند.
+Codex باید fixture-driven TP/SL modify و Pending cancel outcomeها را بدون حدس Broker behavior مدل کند، سپس lifecycle parity را به MQL گسترش دهد. Trading تا Live Gate inert می‌ماند.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

@@ -4,9 +4,9 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: Python Safety slice complete / Ready for Audit/Traceability
+- Current activity: Python domain-contract reconstruction complete / Ready for equivalence scaffolding
 - Strategy target: MVP v2 Consolidated Rulebook
-- Rule status: Core strategy, Risk/Execution and Safety rules implemented and contract-tested in Python; Audit/MT5 remain
+- Rule status: Core Python strategy, Risk/Execution, Safety and Audit payload rules implemented and contract-tested; durable adapters/MT5 remain
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
 - Last verified Git commit before this audit: `b4e00aa` — migration checkpoint
 - Last verified date: 2026-09-06
@@ -50,6 +50,7 @@
 - Initial Risk/Execution evidence: 7 focused tests PASS, including adjacent Free Space 3.00, structural Stop with six-dollar cap, first qualifying Target, native-cost RF, unlimited monotonic protection steps, protected orders, fixed 0.01 lot, 200/300 concurrency and native margin boundary.
 - Financial Safety evidence: 6 focused tests PASS, including sub-300 net-realized 20% latch/reset/actions, GROSS15 inclusive aggregation of realized/open/pending/new native cash risk, gross-loss non-netting, combined rejection precedence and fail-closed invalid inputs.
 - Operational Safety evidence: 4 focused tests PASS, including Broker-derived inclusive five-minute pre-close actions, timezone-basis validation, first attach, same-day restart flatten/cancel/lock and next-Broker-Day release.
+- Audit/Visual payload evidence: 3 focused tests PASS, including immutable daily Event IDs, required Rule/Zone/Signal/Direction/price/lineage/reason validation, exact serialization and six-label priority-styled Chart marker tooltips. Durable journal I/O and MT5 drawing remain.
 - Price boundaries use finite `Decimal` values and merged Zone IDs use `{BrokerDay ISO}:R{sorted ordinal}`; future MQL5 parity must test conversion/tolerance explicitly.
 - `.gitattributes` now preserves canonical `ranges.csv` and all immutable Legacy evidence byte-for-byte across Windows/Linux; staged Git blobs verify core manifest 16/16 and canonical SHA-256 exactly.
 - First-run repository audit completed on 2026-09-06: all current and legacy source/test files were inventoried; `_migration_inbox` is absent.
@@ -73,7 +74,7 @@
 
 ## موارد تأییدنشده اجرایی
 
-- Signal/Risk/Safety/Audit modules, remaining Strategy Contract Tests, current `.set` and current MQL5 Compile Log.
+- Durable Audit persistence, MT5 adapters/current EA, Python↔MQL5 vectors, current `.set` and current MQL5 Compile Log.
 - اتصال Evidenceهای تاریخی به Dataset/Config/Artifact/Commit.
 - رفتار دقیق Broker Symbol/Session و Cost model در محیط هدف.
 - نتیجه Regression Ruleهای جدید در برابر Finalist قدیمی.
@@ -145,6 +146,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید Audit/Traceability را پیاده کند: immutable Event ID، Rule ID، Broker time، Zone/Signal/Direction، Entry/SL/TP، Parent BO و Reject reason، سپس test-vector/equivalence scaffolding را آماده کند.
+Codex باید test-vector/equivalence scaffolding را آماده کند تا Python و MQL5 روی ورودی/خروجی‌های ثابت Rule-by-Rule مقایسه شوند؛ سپس Current MQL5 adapter/EA بدون Promote کردن Legacy ساخته شود.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

@@ -38,6 +38,19 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\check_environm
 Use Python replay for causally valid screening; use MT5 Every Tick Based on Real Ticks for finalist acceptance.
 ```
 
+Read-only raw tick acquisition uses explicit UTC boundaries and writes only to ignored local cache:
+
+```powershell
+.\.venv\Scripts\python.exe .\scripts\export_mt5_ticks.py `
+  --terminal "C:\Program Files\MetaTrader 5\terminal64.exe" `
+  --symbol XAUUSD `
+  --from-utc 2026-08-28T10:00:00+00:00 `
+  --to-utc 2026-08-28T10:15:00+00:00 `
+  --output data/cache/xauusd_20260828_1000_1015_utc.csv
+```
+
+Do not assign Broker Days from UTC until the terminal time basis for that run is explicitly verified. Tick cache is generated evidence and must not be committed.
+
 ## Generate report
 ```text
 Generate compact Signal/Trade/Reject ledgers linked to semantic Rule IDs.

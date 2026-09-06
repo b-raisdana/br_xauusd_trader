@@ -34,7 +34,7 @@
 ## 2) بازسازی مهندسی کد
 
 - [ ] ساخت EA جدید ماژولار — کد Legacy Patch نمی‌شود و EA بر اساس Rulebook فعال از نو به بخش‌های کوچک و قابل Trace تقسیم می‌شود.
-- [ ] ماژول Zone/Trend — Load/Merge/Priority و Trend bootstrap روزانه مستقل پیاده شود.
+- [x] ماژول Zone/Trend — Load/Merge/Priority، Engagement و Trend bootstrap روزانه مستقل پیاده و Contract-tested شد.
 - [ ] ماژول Signalها — Breakout، Reversal و Pullback با Rule IDهای واضح و بدون منطق تکراری پیاده شوند.
 - [ ] ماژول Strict Trend/Conflict/TP — سه Rule مشترک با State واحد و Triggerهای دقیق پیاده شوند.
 - [ ] ماژول Risk/Execution — Initial SL/TP، Base R، RF، Profit Protection، Native Costs و Margin Gate پیاده شوند.
@@ -46,10 +46,10 @@
 
 ## 3) Contract Testهای سریع در Python
 
-- [ ] Trend bootstrap — رفتار `NONE → N1 → N2 → N3` روی شروع روز و عدم Carry روز قبل تست شود.
-- [ ] Tick event order — تغییر Trend و Touch روی یک Tick باید Signal را با State جدید بسازد.
+- [x] Trend bootstrap — رفتار `NONE → N1 → N2 → N3` روی شروع روز و عدم Carry روز قبل تست شد.
+- [ ] Tick event order — Coordinator اکنون Trend را قبل از Engagement به‌روزرسانی می‌کند؛ اثبات اینکه Reversal Signal همان Tick State جدید را مصرف می‌کند همراه ماژول Signal تکمیل شود.
 - [ ] Breakout strict buffer — شرط دقیق `Close > High+1` و `Close < Low-1` تست شود.
-- [ ] Breakout engagement — Open داخل Zone، Touch جهت‌دار، Reset هر M15 و Tick Gap مطابق Legacy تست شود.
+- [x] Breakout engagement — Open داخل Zone، Touch جهت‌دار Buy/Sell، Reset هر M15 و Tick Gap مطابق Legacy تست شد.
 - [ ] Reversal Market Touch — Touch جهت‌دار و عدم استفاده از Pending از قبل تست شود.
 - [ ] Reversal daily usage — Normal max1 و High max2 با مجموع Buy/Sell تست شوند.
 - [ ] Reversal usage commit — Signal صرف مصرف نکند؛ Market Order موفق یا ناموفق سهمیه را مصرف کند.

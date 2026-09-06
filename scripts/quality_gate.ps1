@@ -9,7 +9,7 @@ if (-not (Test-Path $python)) {
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $python -m ruff format --check .
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-& $python -m mypy scripts tests
+& $python -m mypy src scripts tests
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $python -m pytest
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

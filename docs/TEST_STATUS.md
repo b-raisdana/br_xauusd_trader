@@ -8,7 +8,7 @@
 |---|---|---|---|
 | Migration integrity | Rule/Decision/Experiment separation | PASS | Template/Handoff Merge شد؛ Legacy از Active Rules جدا و تصمیم‌های نهایی Leader ثبت شد. |
 | Package structure smoke | Required root, Source-of-Truth files and canonical ranges | PASS | Canonical SHA-256 and required structure remain covered by pytest. |
-| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\quality_gate.ps1` on 2026-09-06; 62 tests PASS. |
+| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\quality_gate.ps1` on 2026-09-06; 64 tests PASS. |
 | Legacy static integrity | Historical sources/manifests without promotion | PASS | Python AST 9/9; PowerShell parser 12/12; MQL5 strict + balanced braces 3/3; Git-staged core manifest 16/16 across byte-preserved attributes. Not compile/runtime evidence. |
 | Zone/Trend contract slice | Rule → Python domain → deterministic tests | PASS | 19 focused tests; 23 canonical days → 421 merged Zones; 444/444 source rows retained. |
 | Breakout/Reversal signal slice | Strict qualification, touch and accounting contracts | PASS | 9 focused/integration tests; strict buffer/lineage, same-Tick Trend, directional Market touch, gap/wick, duplicate, daily usage and shared bar slot PASS. |
@@ -18,12 +18,12 @@
 | Financial Safety slice | Daily net-realized and GROSS15 entry gates | PASS | 6 focused tests; daily latch/reset/actions, inclusive gross budget, all four native risk components, combined rejection and invalid-input failure PASS. |
 | Operational Safety slice | Broker session boundary and restart lock | PASS | 4 focused tests; inclusive pre-close action set, time-basis validation, persisted same-day detection and next-day release PASS. |
 | Audit payload slice | Immutable trace records and leader marker DTOs | PASS | 3 focused tests; required fields/reasons/lineage/order kind, daily IDs, exact serialization, labels/styles/tooltips PASS. Durable I/O/rendering remains. |
-| Equivalence-vector scaffold | Shared versioned Decimal-string inputs/outputs | PASS for Python runner | 4 core vectors execute Breakout/Reversal/Initial Risk/GROSS15; current MQL5 consumer and full Rule coverage remain. |
+| Equivalence-vector scaffold | Shared versioned Decimal-string inputs/outputs | PASS for Python + generated MQL source | 4 core vectors execute in Python; generated header drift test PASS; compiled MQL startup consumer exists. Runtime/full coverage remain. |
 | Rule traceability | Rule name → code → test → journal | NOT_RUN | Zone/Trend code and tests exist; Signal through Audit/Journal traceability remains incomplete. |
 | Contract tests | همه موارد بخش 3 `TODO.md` | NOT_RUN | Zone/Trend subset PASS; remaining Signal/Risk/Safety contracts do not yet exist. |
 | Targeted regression | Trend/Normal/FreeSpace/Strict/TP/Safety | NOT_RUN | Zone/result artifacts exist; historical tick cache, reproducible environment and current engines are missing. |
 | Python ↔ MT5 equivalence | Frozen vectors | NOT_RUN | Initial shared schema/core vectors PASS in Python only; current MQL5 consumer does not exist. |
-| MT5 compile | `#property strict`, zero errors | BLOCKED | MT5/MetaEditor build 6151 is installed, but current MQL5 source and compile log do not exist. |
+| MT5 compile | `#property strict`, zero errors | PASS for current inert core | `scripts/compile_mt5.ps1` on build 6151: 0 errors, 0 warnings. This is not full EA/runtime acceptance. |
 | MT5 real-tick acceptance | 200/300 USD scenarios | NOT_RUN | Broker profile و `.set` جاری موجود نیست. |
 | Visual QA | Chart + Journal + Rule IDs | NOT_RUN | بعد از Technical PASS. |
 | MVP Freeze | Rulebook/Code/Evidence immutable version | NOT_RUN | همه Gateهای قبلی لازم‌اند. |

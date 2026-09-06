@@ -25,7 +25,7 @@ The explicit execution-policy flag is required on the currently verified Windows
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\quality_gate.ps1
 ```
 
-This currently proves repository/migration integrity only. Strategy Contract Tests remain to be implemented from `docs/TODO.md`; historical runners remain isolated under `legacy_reference/PREVIOUS_TECHNICAL_BUNDLE/`.
+This proves current Python domain contracts plus repository/migration integrity; historical runners remain isolated under `legacy_reference/PREVIOUS_TECHNICAL_BUNDLE/`.
 
 ## Inspect environment and repository status
 
@@ -45,9 +45,12 @@ Generate compact Signal/Trade/Reject ledgers linked to semantic Rule IDs.
 ```
 
 ## MT5 compile/test
-```text
-Create the current `.mq5` and `.set` from confirmed Rules, compile with `#property strict`, then run the Contract and acceptance matrix in `docs/TODO.md`. Do not treat the historical EA under `legacy_reference/` as current.
+```powershell
+.\.venv\Scripts\python.exe .\scripts\generate_mql_vectors.py --check
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\compile_mt5.ps1
 ```
+
+The current source is research-only and inert. The compile script accepts `-MetaEditorPath` when MT5 is installed elsewhere. A zero-warning compile is not Strategy Tester, broker parity, or live approval. Do not treat the historical EA under `legacy_reference/` as current.
 
 ## Recovery after reboot
 1. Open project folder.

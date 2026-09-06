@@ -3,6 +3,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from scripts.generate_mql_vectors import render_header
 from xauusd.risk import build_initial_risk
 from xauusd.safety import evaluate_portfolio_risk
 from xauusd.signals import BreakoutTracker, ReversalTracker, TradeDirection
@@ -103,3 +104,10 @@ def test_frozen_core_vectors_match_python_contracts() -> None:
         "used_with_proposed": str(portfolio.used_with_proposed),
         "allowed": portfolio.allows_proposed,
     } == portfolio_vector["expected"]
+
+
+def test_generated_mql_header_matches_canonical_json() -> None:
+    root = Path(__file__).parents[1]
+    payload = json.loads(VECTOR_PATH.read_text(encoding="utf-8"))
+    generated = (root / "src" / "mt5" / "generated" / "CoreVectors.mqh").read_text(encoding="utf-8")
+    assert generated == render_header(payload)

@@ -4,7 +4,7 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: Python domain-contract reconstruction complete / Ready for equivalence scaffolding
+- Current activity: Initial equivalence scaffold complete / Ready for current MQL5 reconstruction
 - Strategy target: MVP v2 Consolidated Rulebook
 - Rule status: Core Python strategy, Risk/Execution, Safety and Audit payload rules implemented and contract-tested; durable adapters/MT5 remain
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
@@ -51,6 +51,7 @@
 - Financial Safety evidence: 6 focused tests PASS, including sub-300 net-realized 20% latch/reset/actions, GROSS15 inclusive aggregation of realized/open/pending/new native cash risk, gross-loss non-netting, combined rejection precedence and fail-closed invalid inputs.
 - Operational Safety evidence: 4 focused tests PASS, including Broker-derived inclusive five-minute pre-close actions, timezone-basis validation, first attach, same-day restart flatten/cancel/lock and next-Broker-Day release.
 - Audit/Visual payload evidence: 3 focused tests PASS, including immutable daily Event IDs, required Rule/Zone/Signal/Direction/price/lineage/reason validation, exact serialization and six-label priority-styled Chart marker tooltips. Durable journal I/O and MT5 drawing remain.
+- Equivalence scaffold: versioned `tests/vectors/core_contracts.json` uses Decimal strings and currently executes four Python vectors for Breakout, Reversal, initial risk and GROSS15. This is not Python↔MQL5 parity evidence until a current MQL5 runner consumes the same cases.
 - Price boundaries use finite `Decimal` values and merged Zone IDs use `{BrokerDay ISO}:R{sorted ordinal}`; future MQL5 parity must test conversion/tolerance explicitly.
 - `.gitattributes` now preserves canonical `ranges.csv` and all immutable Legacy evidence byte-for-byte across Windows/Linux; staged Git blobs verify core manifest 16/16 and canonical SHA-256 exactly.
 - First-run repository audit completed on 2026-09-06: all current and legacy source/test files were inventoried; `_migration_inbox` is absent.
@@ -146,6 +147,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید test-vector/equivalence scaffolding را آماده کند تا Python و MQL5 روی ورودی/خروجی‌های ثابت Rule-by-Rule مقایسه شوند؛ سپس Current MQL5 adapter/EA بدون Promote کردن Legacy ساخته شود.
+Codex باید Current MQL5 adapter/EA را بدون Promote یا Patch کردن Legacy بسازد، ابتدا با همان vector schema برای Zone/Signal/Risk/Safety و سپس strict compile/equivalence gate.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

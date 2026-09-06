@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "price_encoding": "decimal_string",
+  "broker_day": "2026-09-06",
+  "vectors": [
+    {
+      "id": "breakout-buy-strict",
+      "contract": "BREAKOUT_VALIDATION",
+      "input": {
+        "zone": {"low": "100", "high": "101", "priority": "normal"},
+        "bar_id": "t1",
+        "close": "102.01",
+        "trend": "up",
+        "buy_engaged": true,
+        "sell_engaged": false
+      },
+      "expected": {"breakout_id": "BO1", "direction": "buy", "close": "102.01"}
+    },
+    {
+      "id": "reversal-sell-directional-touch",
+      "contract": "REVERSAL_DIRECTIONAL_TOUCH",
+      "input": {
+        "zone": {"low": "100", "high": "101", "priority": "high"},
+        "bar_id": "t1",
+        "previous_bid": "99.90",
+        "bid": "100.20",
+        "trend": "up",
+        "multi_zone_tick_gap": false
+      },
+      "expected": {"count": 1, "direction": "sell", "order_type": "market"}
+    },
+    {
+      "id": "initial-risk-buy-skips-near-target",
+      "contract": "INITIAL_STOP_INITIAL_TARGET",
+      "input": {
+        "zones": [
+          {"low": "90", "high": "91", "priority": "normal"},
+          {"low": "96", "high": "97", "priority": "normal"},
+          {"low": "104", "high": "105", "priority": "normal"},
+          {"low": "108", "high": "109", "priority": "normal"}
+        ],
+        "entry": "100",
+        "direction": "buy"
+      },
+      "expected": {"stop_loss": "97", "take_profit": "108", "stop_zone": "R2", "target_zone": "R4"}
+    },
+    {
+      "id": "gross15-inclusive-boundary",
+      "contract": "PORTFOLIO_RISK_BUDGET",
+      "input": {
+        "strategy_capital": "200",
+        "realized_gross_loss": "5",
+        "open_position_risk": "10",
+        "pending_order_risk": "7",
+        "proposed_order_risk": "8"
+      },
+      "expected": {"budget_cash": "30.00", "used_with_proposed": "30", "allowed": true}
+    }
+  ]
+}

@@ -96,6 +96,82 @@ class ExecutionLedger:
         except KeyError as exc:
             raise ValueError(f"Unknown Execution Request ID: {request_id}") from exc
 
+    def recover(self, events: tuple[AuditEvent, ...]) -> None:
+        """Atomically rebuild request state from ordered durable audit events."""
+        if self._broker_day is None:
+            raise RuntimeError("Execution Broker Day has not been initialized")
+        recovered: dict[str, ExecutionRecord] = {}
+        for event in events:
+            if event.broker_time.date() != self._broker_day:
+                raise ValueError("Recovered Execution event belongs to a different Broker Day")
+            request_id = event.execution_request_id
+            if request_id is None:
+                continue
+            if event.kind is AuditEventKind.ORDER:
+                if request_id in recovered:
+                    raise ValueError(f"Duplicate recovered Execution Request ID: {request_id}")
+                if (
+                    event.entry is None
+                    or event.stop_loss is None
+                    or event.take_profit is None
+                    or event.order_type is None
+                ):
+                    raise ValueError("Recovered Order is missing protected order fields")
+                request = ExecutionRequest.from_values(
+                    request_id=request_id,
+                    broker_time=event.broker_time,
+                    zone_id=event.zone_id,
+                    signal_family=event.signal_family,
+                    direction=event.direction,
+                    order_type=event.order_type,
+                    entry=event.entry,
+                    stop_loss=event.stop_loss,
+                    take_profit=event.take_profit,
+                    rule_ids=event.rule_ids,
+                    parent_breakout_id=event.parent_breakout_id,
+                )
+                recovered[request_id] = ExecutionRecord(
+                    request, ExecutionStatus.SUBMITTED, event.broker_time
+                )
+                continue
+            try:
+                record = recovered[request_id]
+            except KeyError as exc:
+                raise ValueError(f"Recovered outcome has no Order: {request_id}") from exc
+            request = record.request
+            if (
+                event.zone_id != request.zone_id
+                or event.signal_family is not request.signal_family
+                or event.direction is not request.direction
+                or event.parent_breakout_id != request.parent_breakout_id
+            ):
+                raise ValueError(f"Recovered outcome identity mismatch: {request_id}")
+            if event.broker_time < record.transition_time:
+                raise ValueError("Recovered Execution events are not chronological")
+            if (
+                event.kind is AuditEventKind.FILL
+                and record.status is ExecutionStatus.SUBMITTED
+                and event.entry is not None
+            ):
+                status = ExecutionStatus.FILLED
+            elif (
+                event.kind is AuditEventKind.REJECT
+                and record.status is ExecutionStatus.SUBMITTED
+                and event.reason is not None
+            ):
+                status = ExecutionStatus.REJECTED
+            elif (
+                event.kind is AuditEventKind.CLOSE
+                and record.status is ExecutionStatus.FILLED
+                and event.close_price is not None
+                and event.reason is not None
+            ):
+                status = ExecutionStatus.CLOSED
+            else:
+                raise ValueError(f"Invalid recovered Execution transition: {request_id}")
+            recovered[request_id] = ExecutionRecord(record.request, status, event.broker_time)
+        self._records = recovered
+
     def submit(self, request: ExecutionRequest) -> AuditEvent:
         self._validate_time(request.broker_time)
         if request.request_id in self._records:

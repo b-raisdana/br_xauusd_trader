@@ -33,7 +33,7 @@
 
 ## 2) بازسازی مهندسی کد
 
-- [ ] ساخت EA جدید ماژولار — inert current core و Native/Visual adapterها compile/runtime smoke شدند؛ Python causal tick→bar-close Breakout→Pullback lifecycle و shared order-attempt state پیاده شد؛ audit/execution orchestration باقی است.
+- [ ] ساخت EA جدید ماژولار — inert current core و Native/Visual adapterها compile/runtime smoke شدند؛ Python causal Breakout→Pullback lifecycle، shared attempt state و durable signal audit projection پیاده شد؛ order/fill/close/reject execution orchestration باقی است.
 - [x] ماژول Zone/Trend — Load/Merge/Priority، Engagement و Trend bootstrap روزانه مستقل پیاده و Contract-tested شد.
 - [x] ماژول Signalها — Breakout، Reversal و Pullback با State مشترک Order Slot و Lineage روشن پیاده و Contract-tested شدند.
 - [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.

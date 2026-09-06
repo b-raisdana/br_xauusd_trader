@@ -3,22 +3,35 @@
 Codex keeps this file updated with exact repeatable commands.
 
 ## Environment
-- OS: Windows for MT5 execution; current migration assembly ran in a Linux workspace
-- Python version: Verify in the target Repository environment
+- OS: Windows host verified on 2026-09-06
+- Python version: project-local CPython 3.11.15 (created through uv 0.11.25)
 - Historical Python packages: MetaTrader5, NumPy 2.5.2, Polars 1.44.1
 - Main platform: MetaTrader 5 / MQL5
+- Installed MT5 Terminal and MetaEditor: build 6151 under `C:\Program Files\MetaTrader 5`
 - Historical broker profile: MetaQuotes-Demo
 - Required external apps: MT5 terminal and compiler; Python environment for research/replay
+- GitHub CLI: not installed; no Git remote is configured
 
 ## Setup
-```text
-Use scripts/bootstrap_python.ps1 only after Codex verifies it against the migrated historical v4 bootstrap.
+```powershell
+$env:UV_CACHE_DIR = Join-Path (Resolve-Path '.') '.uv-cache'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap_python.ps1
 ```
 
+The explicit execution-policy flag is required on the currently verified Windows host. The cache override keeps agent/sandbox runs project-local; normal interactive use may omit it.
+
 ## Run unit tests
-```text
-Current tests must be reconstructed from docs/TODO.md before claiming PASS.
-Historical runners are under legacy_reference/PREVIOUS_TECHNICAL_BUNDLE/.
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\quality_gate.ps1
+```
+
+This currently proves repository/migration integrity only. Strategy Contract Tests remain to be implemented from `docs/TODO.md`; historical runners remain isolated under `legacy_reference/PREVIOUS_TECHNICAL_BUNDLE/`.
+
+## Inspect environment and repository status
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\check_environment.ps1
+.\.venv\Scripts\python.exe .\scripts\project_status.py
 ```
 
 ## Run backtest
@@ -33,7 +46,7 @@ Generate compact Signal/Trade/Reject ledgers linked to semantic Rule IDs.
 
 ## MT5 compile/test
 ```text
-Recover the current .mq5/.set and broker profile, compile with #property strict, then run the Contract and acceptance matrix in docs/TODO.md.
+Create the current `.mq5` and `.set` from confirmed Rules, compile with `#property strict`, then run the Contract and acceptance matrix in `docs/TODO.md`. Do not treat the historical EA under `legacy_reference/` as current.
 ```
 
 ## Recovery after reboot

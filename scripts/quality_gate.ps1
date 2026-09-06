@@ -6,6 +6,13 @@ if (-not (Test-Path $python)) {
 }
 
 & $python -m ruff check .
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $python -m ruff format --check .
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+& $python -m mypy scripts tests
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $python -m pytest
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+& git diff --check
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Write-Host "Quality gate PASS"

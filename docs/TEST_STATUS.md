@@ -7,12 +7,14 @@
 | Gate | Scope | وضعیت فعلی | Evidence / Blocker |
 |---|---|---|---|
 | Migration integrity | Rule/Decision/Experiment separation | PASS | Template/Handoff Merge شد؛ Legacy از Active Rules جدا و تصمیم‌های نهایی Leader ثبت شد. |
-| Package structure smoke | Required root and Source-of-Truth files | PASS | فایل‌های الزامی در Repository نهایی بررسی شدند؛ Handoff اضافی و پوشه‌های غیرضروری وجود ندارند. |
-| Rule traceability | Rule name → code → test → journal | NOT_RUN | کد جاری بررسی نشده است. |
-| Contract tests | همه موارد بخش 3 `TODO.md` | NOT_RUN | EA/Research harness جاری در دسترس نیست. |
-| Targeted regression | Trend/Normal/FreeSpace/Strict/TP/Safety | NOT_RUN | Dataset و baseline artifacts باید بازیابی شوند. |
+| Package structure smoke | Required root, Source-of-Truth files and canonical ranges | PASS | `pytest`: 3 passed on Python 3.11.15; 444 Zone rows across 23 dates and canonical SHA-256 verified. |
+| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\quality_gate.ps1` on 2026-09-06. |
+| Legacy static integrity | Historical sources/manifests without promotion | PASS | Python AST 9/9; PowerShell parser 12/12; MQL5 strict + balanced braces 3/3; core manifest 16/16. Not compile/runtime evidence. |
+| Rule traceability | Rule name → code → test → journal | NOT_RUN | Current strategy code does not yet exist; `src/` contains only `.gitkeep`. |
+| Contract tests | همه موارد بخش 3 `TODO.md` | NOT_RUN | Current EA/research harness does not yet exist. |
+| Targeted regression | Trend/Normal/FreeSpace/Strict/TP/Safety | NOT_RUN | Zone/result artifacts exist; historical tick cache, reproducible environment and current engines are missing. |
 | Python ↔ MT5 equivalence | Frozen vectors | NOT_RUN | Engineهای جاری بررسی نشده‌اند. |
-| MT5 compile | `#property strict`, zero errors | BLOCKED | سورس و Compile Log جاری موجود نیست. |
+| MT5 compile | `#property strict`, zero errors | BLOCKED | MT5/MetaEditor build 6151 is installed, but current MQL5 source and compile log do not exist. |
 | MT5 real-tick acceptance | 200/300 USD scenarios | NOT_RUN | Broker profile و `.set` جاری موجود نیست. |
 | Visual QA | Chart + Journal + Rule IDs | NOT_RUN | بعد از Technical PASS. |
 | MVP Freeze | Rulebook/Code/Evidence immutable version | NOT_RUN | همه Gateهای قبلی لازم‌اند. |

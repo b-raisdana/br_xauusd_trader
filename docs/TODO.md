@@ -16,6 +16,9 @@
 - [x] پس از Merge، Git checkpoint منسجم `4cc06b1` ساخته شد؛ GitHub هنوز پیکربندی نشده است.
 - [x] ناسازگاری `SHA256_PATCH.txt` بدون تغییر Evidence بررسی و به‌عنوان مشکل Manifest/Path تاریخی ثبت شد.
 - [x] Merge و کنترل انسجام Rulebook پیش از شروع کدنویسی انجام شد.
+- [x] First-run audit: همه Source/Testهای جاری و Legacy inventory و static-inspect شدند؛ `_migration_inbox` وجود ندارد.
+- [x] Runtime baseline: Python 3.11 محلی، MT5/MetaEditor discovery و فرمان‌های قابل تکرار Windows تأیید شدند.
+- [x] Baseline quality gate: Ruff، format، mypy، pytest و `git diff --check` به‌صورت fail-closed اجرا شدند.
 
 ## 1) Baseline و مستندات
 

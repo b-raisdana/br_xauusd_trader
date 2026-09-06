@@ -4,6 +4,7 @@
 
 #include "generated/CoreVectors.mqh"
 #include "include/XauContracts.mqh"
+#include "include/XauNative.mqh"
 
 input bool InpEnableTrading=false;
 
@@ -114,6 +115,7 @@ int OnInit()
       Print("Core contract vector smoke failed.");
       return INIT_FAILED;
      }
+   Print("CORE_VECTOR_SMOKE_PASS vectors=16 mode=inert");
    Print("XAUUSD MVP research-only contract baseline initialized.");
    return INIT_SUCCEEDED;
   }

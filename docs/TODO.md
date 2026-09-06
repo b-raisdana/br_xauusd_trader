@@ -33,7 +33,7 @@
 
 ## 2) بازسازی مهندسی کد
 
-- [ ] ساخت EA جدید ماژولار — inert current core و Contract include بدون Legacy ساخته و compile شد؛ State/Adapter کامل باقی است.
+- [ ] ساخت EA جدید ماژولار — inert current core، Contract include و Native read-only Symbol/Session/Risk/Margin adapter بدون Legacy ساخته و compile شد؛ orchestration و execution lifecycle باقی است.
 - [x] ماژول Zone/Trend — Load/Merge/Priority، Engagement و Trend bootstrap روزانه مستقل پیاده و Contract-tested شد.
 - [x] ماژول Signalها — Breakout، Reversal و Pullback با State مشترک Order Slot و Lineage روشن پیاده و Contract-tested شدند.
 - [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.
@@ -97,7 +97,7 @@ Gate: اختلاف اجرایی بدون توضیح = صفر.
 
 ## 5) Python ↔ MT5 Equivalence
 
-- [ ] Freeze test vectors — schema و 16 vector در Python اجرا و به generated MQL header با tolerance صریح قفل شد؛ MQL runtime evidence و remaining execution lifecycle پیش از Freeze باقی است.
+- [ ] Freeze test vectors — schema و 16 vector در Python اجرا و به generated MQL header با tolerance صریح قفل شد؛ runner/config ایزوله آماده است اما runtime evidence به‌علت Terminal فعال و remaining execution lifecycle پیش از Freeze باقی است.
 - [ ] Python replay — نتایج سریع برای Signal/State/Exit تولید شود.
 - [ ] MT5 Real Tick comparison — Finalist روی همان روزها با Every Tick Based on Real Ticks اجرا شود.
 - [ ] اختلاف‌ها طبقه‌بندی شوند — فقط `RULE / CODE / DATA / TEST_CONFIG`؛ مشکل فنی بدون نیاز Business Logic به رهبر برنگردد.

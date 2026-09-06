@@ -51,6 +51,18 @@ Read-only raw tick acquisition uses explicit UTC boundaries and writes only to i
 
 Do not assign Broker Days from UTC until the terminal time basis for that run is explicitly verified. Tick cache is generated evidence and must not be committed.
 
+The inert contract smoke emits five time/Bid probe markers when its local smoke configuration enables `InpEmitTimeBasisProbe`. Correlate that ordered sequence against UTC terminal history with local values only:
+
+```powershell
+.\.venv\Scripts\python.exe .\scripts\match_mt5_time_basis.py `
+  --terminal "C:\Program Files\MetaTrader 5\terminal64.exe" `
+  --symbol XAUUSD `
+  --server-time <YYYY-MM-DDTHH:MM:SS> `
+  --bids <bid1,bid2,bid3,bid4,bid5>
+```
+
+The matcher checks 30-minute offsets from UTC-14 through UTC+14 and fails unless exactly one offset contains the full contiguous sequence. Keep probe values and the resolved Broker-specific offset in ignored/local runtime configuration; do not commit them.
+
 ## Generate report
 ```text
 Generate compact Signal/Trade/Reject ledgers linked to semantic Rule IDs.
@@ -63,7 +75,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\compile_mt5.ps
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_mt5_contract_smoke.ps1
 ```
 
-The current source is research-only and inert. The compile script accepts `-MetaEditorPath` when MT5 is installed elsewhere. The smoke runner requires all other MetaTrader instances to be closed, discovers the matching terminal data root (or accepts `-DataRoot`), copies only the ignored compiled EA, and requires both the 16-vector and read-only Native-adapter markers. Neither a zero-warning compile nor this smoke is strategy acceptance or live approval. Do not treat the historical EA under `legacy_reference/` as current.
+The current source is research-only and inert. The compile script accepts `-MetaEditorPath` when MT5 is installed elsewhere. The smoke runner requires all other MetaTrader instances to be closed, discovers the matching terminal data root (or accepts `-DataRoot`), copies only the ignored compiled EA, and requires the 16-vector, read-only Native/Visual and five time-probe markers. Neither a zero-warning compile nor this smoke is strategy acceptance or live approval. Do not treat the historical EA under `legacy_reference/` as current.
 
 ## Recovery after reboot
 1. Open project folder.

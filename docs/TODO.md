@@ -98,7 +98,7 @@ Gate: اختلاف اجرایی بدون توضیح = صفر.
 ## 5) Python ↔ MT5 Equivalence
 
 - [x] Freeze test vectors — schema و 16 vector در Python و isolated MQL Strategy Tester با tolerance صریح و generated-header drift gate PASS شد.
-- [ ] Python replay — causal runner، read-only UTC export و explicit-offset M15 normalization روی 6,487 tick runtime-validated شد؛ Broker offset evidence، execution/Exit replay و full historical input باقی است.
+- [ ] Python replay — causal runner، read-only UTC export، explicit-offset M15 normalization روی 6,487 tick، unique multi-tick terminal time-basis correlation و canonical Zone-day attachment runtime-validated شد؛ execution/Exit replay و full historical input باقی است.
 - [ ] MT5 Real Tick comparison — Finalist روی همان روزها با Every Tick Based on Real Ticks اجرا شود.
 - [ ] اختلاف‌ها طبقه‌بندی شوند — فقط `RULE / CODE / DATA / TEST_CONFIG`؛ مشکل فنی بدون نیاز Business Logic به رهبر برنگردد.
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
@@ -59,6 +61,37 @@ class ReplayDay:
 class ReplayResult:
     events: tuple[AuditEvent, ...]
     pullback_expiries: tuple[PullbackExpiry, ...]
+
+
+def build_replay_days(
+    bars: Iterable[ReplayBar],
+    zones_by_day: Mapping[date, tuple[Zone, ...]],
+    *,
+    seed_candles_by_day: Mapping[date, tuple[Candle, ...]] | None = None,
+) -> tuple[ReplayDay, ...]:
+    """Attach normalized bars to required daily Zone inputs without inventing days."""
+    grouped: dict[date, list[ReplayBar]] = defaultdict(list)
+    for bar in bars:
+        broker_day = bar.candle.broker_day
+        if bar.open_time.date() != broker_day or bar.close_time.date() != broker_day:
+            raise ValueError("Replay bar time and Candle must share one Broker Day")
+        grouped[broker_day].append(bar)
+
+    seeds = seed_candles_by_day or {}
+    missing = sorted(set(grouped) - set(zones_by_day))
+    if missing:
+        rendered = ", ".join(day.isoformat() for day in missing)
+        raise ValueError(f"Missing daily Zone input for Broker Day: {rendered}")
+
+    return tuple(
+        ReplayDay(
+            broker_day=broker_day,
+            zones=zones_by_day[broker_day],
+            seed_candles=seeds.get(broker_day, ()),
+            bars=tuple(sorted(grouped[broker_day], key=lambda bar: bar.open_time)),
+        )
+        for broker_day in sorted(grouped)
+    )
 
 
 class ReplayRunner:

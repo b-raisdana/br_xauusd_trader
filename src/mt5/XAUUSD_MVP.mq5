@@ -8,6 +8,9 @@
 #include "include/XauVisual.mqh"
 
 input bool InpEnableTrading=false;
+input bool InpEmitTimeBasisProbe=false;
+
+int g_time_basis_probe_count=0;
 
 bool NearlyEqual(const double left,const double right)
   {
@@ -188,5 +191,17 @@ int OnInit()
 
 void OnTick()
   {
+   if(InpEmitTimeBasisProbe && g_time_basis_probe_count<5)
+     {
+      MqlTick tick;
+      if(SymbolInfoTick(_Symbol,tick))
+        {
+         PrintFormat("TIME_BASIS_PROBE index=%d server=%s bid=%s",
+                     g_time_basis_probe_count+1,
+                     TimeToString(TimeCurrent(),TIME_DATE|TIME_SECONDS),
+                     DoubleToString(tick.bid,_Digits));
+         g_time_basis_probe_count++;
+        }
+     }
    // Intentionally inert until current adapters pass parity and live gates.
   }

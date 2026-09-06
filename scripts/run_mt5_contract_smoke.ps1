@@ -59,5 +59,9 @@ $visualPass = @($newLogs | Select-String -SimpleMatch `
 if ($visualPass.Count -eq 0) {
     throw "Visual payload success marker not found after terminal exit code $($process.ExitCode)."
 }
+$timeProbe = @($newLogs | Select-String -SimpleMatch "TIME_BASIS_PROBE index=")
+if ($timeProbe.Count -lt 5) {
+    throw "Five time-basis probe markers not found after terminal exit code $($process.ExitCode)."
+}
 
-"MT5 runtime smoke PASS (16 vectors; native adapters; visual payload; inert mode)."
+"MT5 runtime smoke PASS (16 vectors; native/visual adapters; time probe; inert mode)."

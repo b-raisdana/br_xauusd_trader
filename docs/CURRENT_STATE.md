@@ -4,7 +4,7 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: Inert MQL5 runtime baseline verified / Causal Breakout-to-Pullback lifecycle orchestration implemented
+- Current activity: Causal Breakout-to-Pullback lifecycle plus durable signal audit projection implemented / Replay input next
 - Strategy target: MVP v2 Consolidated Rulebook
 - Rule status: Core Python strategy, Risk/Execution, Safety and Audit rules implemented and contract-tested; full MT5 orchestration/rendering remain
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
@@ -50,7 +50,7 @@
 - Initial Risk/Execution evidence: 7 focused tests PASS, including adjacent Free Space 3.00, structural Stop with six-dollar cap, first qualifying Target, native-cost RF, unlimited monotonic protection steps, protected orders, fixed 0.01 lot, 200/300 concurrency and native margin boundary.
 - Financial Safety evidence: 6 focused tests PASS, including sub-300 net-realized 20% latch/reset/actions, GROSS15 inclusive aggregation of realized/open/pending/new native cash risk, gross-loss non-netting, combined rejection precedence and fail-closed invalid inputs.
 - Operational Safety evidence: 4 focused tests PASS, including Broker-derived inclusive five-minute pre-close actions, timezone-basis validation, first attach, same-day restart flatten/cancel/lock and next-Broker-Day release.
-- Audit/Visual evidence: 6 focused Python tests PASS, including immutable daily Event IDs, required fields, exact serialization, six-label marker payloads, fsync-backed JSONL append, deterministic same-day sequence recovery and fail-closed corrupt/gapped history. MQL `XauVisual.mqh` compiles render-only Zone/marker primitives and its label/tooltip payload passed runtime smoke; visual chart inspection remains.
+- Audit/Visual evidence: 7 focused/integration tests PASS. Reversal, Breakout and Pullback orchestration outputs project once per active-day candidate into durable events with Rule IDs, order kind and Parent BO lineage; JSONL append/recovery fails closed on corrupt/gapped history. MQL `XauVisual.mqh` compiles render-only Zone/marker primitives and its label/tooltip payload passed runtime smoke; order/fill/close/reject projection and visual chart inspection remain.
 - Equivalence scaffold: versioned `tests/vectors/core_contracts.json` uses Decimal strings and executes sixteen Python vectors spanning Zone/Engagement/Signal/Trend/Pullback/Momentum/TP/Risk/Safety/Restart; generated MQL constants are byte-drift tested and the MQL startup consumer passed in isolated Strategy Tester. Real-tick lifecycle equivalence remains separate.
 - Current MQL5 baseline: `src/mt5/XAUUSD_MVP.mq5` plus modular Contract, Native and Visual includes compile with sixteen matching startup assertions and explicit `1e-9` double tolerance. `scripts/run_mt5_contract_smoke.ps1` reproduced `CORE_VECTOR_SMOKE_PASS`, `NATIVE_ADAPTER_SMOKE_PASS` and `VISUAL_PAYLOAD_SMOKE_PASS` on 2026-09-06. The Native boundary runtime-validated Broker symbol metadata, current trade session, `OrderCalcProfit` cash risk and `OrderCalcMargin`; the Visual boundary is render-only. No order-send API exists. MetaEditor build 6151 reports 0 errors/0 warnings; `OnTick` remains inert and `InpEnableTrading=true` fails initialization.
 - Price boundaries use finite `Decimal` values and merged Zone IDs use `{BrokerDay ISO}:R{sorted ordinal}`; future MQL5 parity must test conversion/tolerance explicitly.
@@ -59,7 +59,7 @@
 - Current executable baseline established with project-local Python 3.11.15, `uv`, deterministic migration tests, Ruff, mypy and pytest.
 - Windows runtime discovery confirmed Git 2.54.0, GitHub CLI 2.100.0 and MT5 Terminal/MetaEditor build 6151. PowerShell entry points require `-ExecutionPolicy Bypass` on this host.
 - Quality gate now fails closed on external command failures and excludes immutable `legacy_reference/` from current-code lint/type enforcement.
-- Current test baseline: 73 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by the repository checks; all three historical MQL5 files have `#property strict` and balanced braces. The isolated MQL core/native/visual-payload runtime smoke passed; this is not strategy acceptance.
+- Current test baseline: 74 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by the repository checks; all three historical MQL5 files have `#property strict` and balanced braces. The isolated MQL core/native/visual-payload runtime smoke passed; this is not strategy acceptance.
 - Template و Handoff به‌صورت محتوایی Merge شدند و Workflow محلی CI حفظ شد.
 - Repository روی Branch `main` ایجاد و Baseline در Git ثبت شد.
 - `FINAL_PROJECT_HANDOFF_2026-09-06.md` طبق تصمیم Project Leader وارد Repository نشد.
@@ -148,6 +148,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید خروجی‌های orchestration را به audit event stream متصل کند، سپس Python replay را برای Regression هدفمند آماده کند. Trading تا Live Gate inert می‌ماند.
+Codex باید normalized causal replay input/runner را به orchestration و audit event stream متصل کند؛ سپس Regression هدفمند را روی داده قابل‌بازتولید اجرا کند. Trading تا Live Gate inert می‌ماند.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

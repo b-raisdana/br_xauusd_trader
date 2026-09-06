@@ -21,6 +21,7 @@ from xauusd.momentum import (
     pre_zone_trigger_price,
     strict_pullback_trend,
 )
+from xauusd.orchestration import MarketAuditProjector
 from xauusd.pullback import (
     PULLBACK_PENETRATION_USD,
     PULLBACK_WINDOW_BARS,
@@ -118,6 +119,7 @@ __all__ = [
     "InitialRisk",
     "MarketState",
     "MarketBarCloseUpdate",
+    "MarketAuditProjector",
     "MarketTickUpdate",
     "OrderAttemptLedger",
     "OrderAttemptResult",

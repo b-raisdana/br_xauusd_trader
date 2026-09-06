@@ -8,7 +8,7 @@
 |---|---|---|---|
 | Migration integrity | Rule/Decision/Experiment separation | PASS | Template/Handoff Merge شد؛ Legacy از Active Rules جدا و تصمیم‌های نهایی Leader ثبت شد. |
 | Package structure smoke | Required root, Source-of-Truth files and canonical ranges | PASS | Canonical SHA-256 and required structure remain covered by pytest. |
-| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | Local gate on 2026-09-06; 83 tests PASS, including explicit-offset tick normalization, canonical Zone-day attachment, causal replay, constrained MT5 export, fail-closed time-basis matching and inert MQL boundaries. |
+| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | Local gate on 2026-09-06; 88 tests PASS, including protected Execution lifecycle, explicit-offset tick normalization, canonical Zone-day attachment, causal replay, constrained MT5 export, fail-closed time-basis matching and inert MQL boundaries. |
 | Legacy static integrity | Historical sources/manifests without promotion | PASS | Python AST 9/9; PowerShell parser 12/12; MQL5 strict + balanced braces 3/3; Git-staged core manifest 16/16 across byte-preserved attributes. Not compile/runtime evidence. |
 | Zone/Trend/orchestration slice | Rule → causal ticks → bar close → deterministic tests | PASS | 21 focused tests; strict tick-chain/final-close validation and Breakout-before-Trend-roll PASS; 23 canonical days → 421 merged Zones; 444/444 source rows retained. |
 | Breakout/Reversal signal slice | Strict qualification, touch and accounting contracts | PASS | 9 focused/integration tests; strict buffer/lineage, same-Tick Trend, directional Market touch, gap/wick, duplicate, daily usage and shared bar slot PASS. |
@@ -17,12 +17,12 @@
 | Initial Risk/Execution slice | Geometry, native RF, protection and fixed capital profiles | PASS | 7 focused tests; Free Space, Stop/Target, RF, monotonic steps, protected order, 0.01 lot, max3/max5 and margin boundary PASS. |
 | Financial Safety slice | Daily net-realized and GROSS15 entry gates | PASS | 6 focused tests; daily latch/reset/actions, inclusive gross budget, all four native risk components, combined rejection and invalid-input failure PASS. |
 | Operational Safety slice | Broker session boundary and restart lock | PASS | 4 focused tests; inclusive pre-close action set, time-basis validation, persisted same-day detection and next-day release PASS. |
-| Audit payload slice | Immutable trace records, durable JSONL and leader marker DTOs | PASS | 7 focused/integration tests; required fields, daily IDs, fsync/recovery/fail-closed history, marker payloads and deduplicated Reversal/Breakout/Pullback signal projection PASS. Order/fill/close/reject projection remains. |
+| Audit payload slice | Immutable trace records, durable JSONL and leader marker DTOs | PASS | 12 focused/integration tests; required fields, daily IDs, fsync/recovery/fail-closed history, marker payloads, deduplicated signals and request-linked protected ORDER→FILL/REJECT projection PASS. CLOSE and lifecycle recovery remain. |
 | Equivalence-vector scaffold | Shared versioned Decimal-string inputs/outputs | PASS for Python + MQL runtime | 16 vectors execute in Python; generated-header drift and explicit `1e-9` MQL tolerance PASS; isolated Strategy Tester emitted the exact core success marker. |
-| Rule traceability | Rule name → code → test → journal | NOT_RUN | Reversal/Breakout/Pullback signal outputs persist with semantic Rule IDs and lineage; order/fill/close/reject plus full replay traceability remain. |
+| Rule traceability | Rule name → code → test → journal | NOT_RUN | Signal and protected ORDER/FILL/REJECT outputs persist with semantic Rule IDs, request IDs and lineage; CLOSE, lifecycle recovery and full replay traceability remain. |
 | Contract tests | همه موارد بخش 3 `TODO.md` | PASS at Python domain boundary | All listed fast contracts PASS; external Native/MT5 parity and durable side effects remain separate gates. |
 | MT5 tick acquisition | Read-only UTC raw input, ignored cache | PASS for bounded smoke | Bridge 5.0.6180 exported 6,487 ticks/290,594 bytes; explicit-offset normalization replayed all rows as one M15 bar. An ordered five-tick probe uniquely correlated local server time to UTC; no cache, probe values, resolved Broker-specific offset or account identity are committed. |
-| Targeted regression | Trend/Normal/FreeSpace/Strict/TP/Safety | NOT_RUN | Current replay engine, raw UTC acquisition, locally verified time-basis workflow and canonical Zone-day attachment exist; execution/exit orchestration and full historical input remain missing. |
+| Targeted regression | Trend/Normal/FreeSpace/Strict/TP/Safety | NOT_RUN | Current replay engine, raw UTC acquisition, locally verified time-basis workflow, canonical Zone-day attachment and standalone protected Execution lifecycle exist; replay integration, exit orchestration and full historical input remain missing. |
 | Python ↔ MT5 equivalence | Frozen core vectors | PASS for frozen core; lifecycle NOT_RUN | 16 shared vectors PASS in Python and isolated MQL runtime at `1e-9`; real-tick order lifecycle comparison remains. |
 | MT5 compile/runtime smoke | `#property strict`, zero errors, inert startup | PASS for current inert core + Native/Visual boundaries | Build 6151: 0 errors/0 warnings; isolated Strategy Tester validated 16 vectors, Symbol/Session/Profit/Margin adapters, the audit label/tooltip payload and five bounded opt-in time-probe markers. This is not full EA acceptance or visual inspection. |
 | MT5 real-tick acceptance | 200/300 USD scenarios | NOT_RUN | Broker profile و `.set` جاری موجود نیست. |
@@ -50,7 +50,7 @@
 | Execution | SL/TP at creation، native costs، one order/bar، 0.01 lot، max3/max5 | PASS at Python contract boundary — read-only MT5 Native adapter compiles; runtime validation/equivalence remains. |
 | Risk budgets | Daily realized 20% و GROSS15 reservation | PASS |
 | Safety | Session-5min flatten و restart fail-closed | PASS at Python contract boundary — Broker session adapter compiles; runtime validation and persistence remain. |
-| Audit/Visual | Event/Rule/Zone/BO lineage، reject reasons، chart markers/tooltips | NOT_RUN — Python event/durable journal and MQL render-only primitives/payload PASS; chart-object visual inspection remains. |
+| Audit/Visual | Event/Rule/Zone/BO lineage، reject reasons، chart markers/tooltips | NOT_RUN — Python signal and linked ORDER/FILL/REJECT durable events plus MQL render-only primitives/payload PASS; CLOSE, lifecycle recovery and chart-object visual inspection remain. |
 
 ## Evidence تاریخی در انتظار بازیابی
 

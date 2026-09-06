@@ -48,6 +48,54 @@ class AuditEvent:
     execution_request_id: str | None
     reason: str | None
 
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> AuditEvent:
+        """Decode one durable event without coercing malformed identity fields."""
+        try:
+            event_id = payload["event_id"]
+            rule_ids_value = payload["rule_ids"]
+            zone_id = payload["zone_id"]
+            if not isinstance(event_id, str) or not isinstance(zone_id, str):
+                raise TypeError("event_id and zone_id must be strings")
+            if not isinstance(rule_ids_value, list) or not all(
+                isinstance(item, str) for item in rule_ids_value
+            ):
+                raise TypeError("rule_ids must be a string list")
+
+            def optional_string(field: str) -> str | None:
+                value = payload.get(field)
+                if value is not None and not isinstance(value, str):
+                    raise TypeError(f"{field} must be a string or null")
+                return value
+
+            def optional_price(field: str) -> Decimal | None:
+                value = payload.get(field)
+                return price(value) if value is not None else None
+
+            return cls(
+                event_id=event_id,
+                rule_ids=tuple(rule_ids_value),
+                kind=AuditEventKind(payload["kind"]),
+                broker_time=datetime.fromisoformat(payload["broker_time"]),
+                zone_id=zone_id,
+                signal_family=SignalFamily(payload["signal_family"]),
+                direction=TradeDirection(payload["direction"]),
+                entry=optional_price("entry"),
+                close_price=optional_price("close_price"),
+                stop_loss=optional_price("stop_loss"),
+                take_profit=optional_price("take_profit"),
+                order_type=(
+                    OrderType(payload["order_type"])
+                    if payload.get("order_type") is not None
+                    else None
+                ),
+                parent_breakout_id=optional_string("parent_breakout_id"),
+                execution_request_id=optional_string("execution_request_id"),
+                reason=optional_string("reason"),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise AuditPersistenceError("Invalid durable audit event payload") from exc
+
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
         payload["broker_time"] = self.broker_time.isoformat()
@@ -128,6 +176,29 @@ class JsonlAuditStore:
                 os.fsync(stream.fileno())
         except OSError as exc:
             raise AuditPersistenceError(f"Cannot append audit journal: {self.path}") from exc
+
+    def events_for_day(self, broker_day: date) -> tuple[AuditEvent, ...]:
+        """Read typed events for lifecycle recovery; any malformed record fails closed."""
+        if not self.path.exists():
+            return ()
+        self.last_sequence(broker_day)
+        events: list[AuditEvent] = []
+        try:
+            with self.path.open(encoding="utf-8") as stream:
+                for line_number, line in enumerate(stream, start=1):
+                    if not line.strip():
+                        raise AuditPersistenceError(f"Blank audit record at line {line_number}")
+                    event = AuditEvent.from_dict(json.loads(line))
+                    event_day = event.event_id.rsplit(":E", maxsplit=1)[0]
+                    if event.broker_time.date().isoformat() != event_day:
+                        raise AuditPersistenceError(
+                            f"Audit Event day mismatch at line {line_number}"
+                        )
+                    if event.broker_time.date() == broker_day:
+                        events.append(event)
+        except (OSError, json.JSONDecodeError) as exc:
+            raise AuditPersistenceError(f"Cannot recover audit journal: {self.path}") from exc
+        return tuple(events)
 
 
 class AuditJournal:

@@ -185,3 +185,47 @@ def test_failed_close_audit_keeps_filled_position_open() -> None:
             reason="opposite_breakout",
         )
     assert ledger.record("REQ1").status is ExecutionStatus.FILLED
+
+
+def test_execution_state_recovers_atomically_from_typed_journal(tmp_path) -> None:
+    from xauusd.audit import JsonlAuditStore
+
+    store = JsonlAuditStore(tmp_path / "events.jsonl")
+    original = ExecutionLedger(AuditJournal(store))
+    original.begin_day(DAY)
+    original.submit(request(family=SignalFamily.PULLBACK))
+    original.fill("REQ1", broker_time=NOW, fill_price="100")
+    original.close(
+        "REQ1",
+        broker_time=NOW,
+        close_price="101",
+        rule_ids=("EXTEND_PULLBACK_TP",),
+        reason="strict_failed_after_initial_tp",
+    )
+
+    recovered = ExecutionLedger(AuditJournal(store))
+    recovered.begin_day(DAY)
+    recovered.recover(store.events_for_day(DAY))
+
+    assert recovered.record("REQ1").status is ExecutionStatus.CLOSED
+    assert recovered.record("REQ1").request.parent_breakout_id == "BO1"
+
+
+def test_invalid_recovery_does_not_replace_existing_state() -> None:
+    journal = AuditJournal()
+    ledger = ExecutionLedger(journal)
+    ledger.begin_day(DAY)
+    ledger.submit(request())
+    invalid_fill = journal.record(
+        rule_ids=("ORDER_PROTECTED_FROM_CREATION",),
+        kind=AuditEventKind.FILL,
+        broker_time=NOW,
+        zone_id="z2",
+        signal_family=SignalFamily.REVERSAL,
+        direction=TradeDirection.BUY,
+        execution_request_id="UNKNOWN",
+    )
+
+    with pytest.raises(ValueError, match="has no Order"):
+        ledger.recover((invalid_fill,))
+    assert ledger.record("REQ1").status is ExecutionStatus.SUBMITTED

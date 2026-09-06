@@ -150,6 +150,34 @@ def test_jsonl_journal_is_durable_and_resumes_daily_sequence(tmp_path) -> None:
     records = path.read_text(encoding="utf-8").splitlines()
     assert len(records) == 2
     assert '"entry":"3400.10"' in records[0]
+    recovered = JsonlAuditStore(path).events_for_day(DAY)
+    assert recovered == first.events + resumed.events
+
+
+def test_typed_audit_recovery_rejects_malformed_or_cross_day_payload(tmp_path) -> None:
+    malformed = tmp_path / "malformed.jsonl"
+    malformed.write_text('{"event_id":"2026-09-06:E000001"}\n', encoding="utf-8")
+    with pytest.raises(AuditPersistenceError, match="Invalid durable"):
+        JsonlAuditStore(malformed).events_for_day(DAY)
+
+    journal = AuditJournal(JsonlAuditStore(tmp_path / "mismatch.jsonl"))
+    journal.begin_day(DAY)
+    journal.record(
+        rule_ids=("BREAKOUT_VALIDATION",),
+        kind=AuditEventKind.SIGNAL,
+        broker_time=NOW,
+        zone_id="z1",
+        signal_family=SignalFamily.BREAKOUT,
+        direction=TradeDirection.BUY,
+    )
+    payload = (
+        (tmp_path / "mismatch.jsonl")
+        .read_text(encoding="utf-8")
+        .replace("2026-09-06:E000001", "2026-09-07:E000001")
+    )
+    (tmp_path / "mismatch.jsonl").write_text(payload, encoding="utf-8")
+    with pytest.raises(AuditPersistenceError, match="day mismatch"):
+        JsonlAuditStore(tmp_path / "mismatch.jsonl").events_for_day(DAY)
 
 
 def test_jsonl_journal_fails_closed_on_corrupt_or_gapped_history(tmp_path) -> None:

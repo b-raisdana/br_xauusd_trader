@@ -34,3 +34,28 @@ def test_current_mt5_baseline_is_strict_vector_driven_and_live_inert() -> None:
     ):
         assert contract in contracts
     assert "PARITY_PRICE_TOLERANCE = 1e-9" in contracts
+
+
+def test_native_adapter_is_read_only_and_uses_broker_apis() -> None:
+    root = Path(__file__).parents[1]
+    source = (root / "src" / "mt5" / "include" / "XauNative.mqh").read_text(encoding="utf-8")
+
+    assert "OrderCalcProfit" in source
+    assert "OrderCalcMargin" in source
+    assert "SymbolInfoSessionTrade" in source
+    assert "SymbolInfoInteger" in source
+    assert "SymbolInfoDouble" in source
+    assert "OrderSend" not in source
+    assert "CTrade" not in source
+
+
+def test_contract_smoke_configuration_is_local_and_trading_disabled() -> None:
+    root = Path(__file__).parents[1]
+    config = (root / "config" / "mt5" / "contract_smoke.ini").read_text(encoding="utf-8")
+
+    assert "AllowLiveTrading=0" in config
+    assert "UseLocal=1" in config
+    assert "UseRemote=0" in config
+    assert "UseCloud=0" in config
+    assert "Visual=0" in config
+    assert "InpEnableTrading=false" in config

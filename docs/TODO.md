@@ -39,7 +39,7 @@
 - [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.
 - [x] ماژول Risk/Execution — Initial SL/TP، Base R، RF، Profit Protection، Native input boundary، fixed volume/concurrency و Margin Gate پیاده و تست شدند.
 - [x] ماژول Safety — Daily loss، Portfolio risk، Broker session flatten و Restart fail-closed پیاده و Contract-tested شدند.
-- [ ] ماژول Audit/Visual — Event/validation/serialization، durable fail-closed JSONL Journal و marker payload تست شد؛ MT5 Chart rendering باقی است.
+- [ ] ماژول Audit/Visual — Event/serialization، durable fail-closed JSONL Journal و MT5 render-only Zone/marker primitives پیاده و compile/runtime-payload tested شد؛ Visual chart inspection باقی است.
 - [x] Compile Gate — current inert baseline با `#property strict` روی MetaEditor build 6151، صفر Error و صفر Warning compile شد؛ پس از هر توسعه باید تکرار شود.
 
 ---

@@ -4,7 +4,7 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: Causal Breakout-to-Pullback lifecycle plus durable signal audit projection implemented / Replay input next
+- Current activity: Causal Breakout-to-Pullback lifecycle, durable signal audit and normalized replay runner implemented
 - Strategy target: MVP v2 Consolidated Rulebook
 - Rule status: Core Python strategy, Risk/Execution, Safety and Audit rules implemented and contract-tested; full MT5 orchestration/rendering remain
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
@@ -59,7 +59,8 @@
 - Current executable baseline established with project-local Python 3.11.15, `uv`, deterministic migration tests, Ruff, mypy and pytest.
 - Windows runtime discovery confirmed Git 2.54.0, GitHub CLI 2.100.0 and MT5 Terminal/MetaEditor build 6151. PowerShell entry points require `-ExecutionPolicy Bypass` on this host.
 - Quality gate now fails closed on external command failures and excludes immutable `legacy_reference/` from current-code lint/type enforcement.
-- Current test baseline: 74 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by the repository checks; all three historical MQL5 files have `#property strict` and balanced braces. The isolated MQL core/native/visual-payload runtime smoke passed; this is not strategy acceptance.
+- Normalized Python replay now enforces Broker-Day ownership, unique/non-overlapping bars, chronological in-bar ticks, OHLC consistency and final Bid=Close before routing through the same MarketState and durable audit projector. Historical tick input and exit/execution replay remain.
+- Current test baseline: 76 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by the repository checks; all three historical MQL5 files have `#property strict` and balanced braces. The isolated MQL core/native/visual-payload runtime smoke passed; this is not strategy acceptance.
 - Template و Handoff به‌صورت محتوایی Merge شدند و Workflow محلی CI حفظ شد.
 - Repository روی Branch `main` ایجاد و Baseline در Git ثبت شد.
 - `FINAL_PROJECT_HANDOFF_2026-09-06.md` طبق تصمیم Project Leader وارد Repository نشد.
@@ -148,6 +149,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید normalized causal replay input/runner را به orchestration و audit event stream متصل کند؛ سپس Regression هدفمند را روی داده قابل‌بازتولید اجرا کند. Trading تا Live Gate inert می‌ماند.
+Codex باید replay را به order/exit state گسترش دهد و یک normalized historical tick input قابل‌بازتولید تامین کند؛ سپس Regression هدفمند را اجرا کند. Trading تا Live Gate inert می‌ماند.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

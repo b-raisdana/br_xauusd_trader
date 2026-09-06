@@ -4,7 +4,7 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: Causal replay runner implemented / Read-only MT5 UTC tick acquisition validated
+- Current activity: Raw MT5 tick acquisition and explicit-offset M15 normalization/replay validated / Broker time-basis evidence next
 - Strategy target: MVP v2 Consolidated Rulebook
 - Rule status: Core Python strategy, Risk/Execution, Safety and Audit rules implemented and contract-tested; full MT5 orchestration/rendering remain
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
@@ -61,7 +61,8 @@
 - Quality gate now fails closed on external command failures and excludes immutable `legacy_reference/` from current-code lint/type enforcement.
 - Normalized Python replay now enforces Broker-Day ownership, unique/non-overlapping bars, chronological in-bar ticks, OHLC consistency and final Bid=Close before routing through the same MarketState and durable audit projector. Historical tick input and exit/execution replay remain.
 - `scripts/export_mt5_ticks.py` pins the MT5 Python bridge, accepts only explicit UTC ranges, writes only under ignored `data/cache/`, exports no account identity, and was runtime-validated on a 15-minute window: 6,487 ticks, 290,594 bytes, SHA-256 `498d87fa9c8359207284207537c91e85eee9f6a3c11f070d2e1cfb0a04c03d04`. The cache itself is not committed.
-- Current test baseline: 77 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by the repository checks; all three historical MQL5 files have `#property strict` and balanced braces. The isolated MQL core/native/visual-payload runtime smoke passed; this is not strategy acceptance.
+- `load_mt5_tick_bars` preserves source row order for equal-millisecond ticks, rejects backward time, requires an explicit whole-minute offset, and creates internally consistent M15 Bid candles. The ignored 6,487-tick sample mechanically normalized/replayed as one UTC-basis bar; this does not claim the target Broker offset.
+- Current test baseline: 79 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by the repository checks; all three historical MQL5 files have `#property strict` and balanced braces. The isolated MQL core/native/visual-payload runtime smoke passed; this is not strategy acceptance.
 - Template و Handoff به‌صورت محتوایی Merge شدند و Workflow محلی CI حفظ شد.
 - Repository روی Branch `main` ایجاد و Baseline در Git ثبت شد.
 - `FINAL_PROJECT_HANDOFF_2026-09-06.md` طبق تصمیم Project Leader وارد Repository نشد.
@@ -150,6 +151,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید terminal Broker-time basis را بدون ثبت هویت Broker/Account verify و raw UTC ticks را به Broker-Day M15 replay input تبدیل کند؛ سپس order/exit state را گسترش دهد. Trading تا Live Gate inert می‌ماند.
+Codex باید terminal Broker-time basis را بدون ثبت هویت Broker/Account verify کند، سپس Zone days را به normalized M15 replay متصل و order/exit state را گسترش دهد. Trading تا Live Gate inert می‌ماند.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

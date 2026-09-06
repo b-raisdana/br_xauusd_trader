@@ -112,3 +112,46 @@ def test_market_state_rejects_non_causal_tick_chain_and_close() -> None:
                 close="102",
             )
         )
+
+
+def test_breakout_arms_pullback_and_shares_entry_attempt_slot_with_reversal() -> None:
+    day = date(2026, 9, 6)
+    zone = build_daily_zones(
+        [
+            RawZone.from_values(
+                broker_day=day,
+                low="100",
+                high="101",
+                priority="normal",
+                source_row=1,
+            )
+        ]
+    )[day][0]
+    state = MarketState()
+    state.begin_day(day, [zone])
+    state.record_closed_candle(
+        Candle.from_values(broker_day=day, open="95", high="99", low="90", close="98")
+    )
+    state.begin_bar("99", bar_id="t")
+    state.process_tick(previous_bid="99", bid="100")
+    state.process_tick(previous_bid="100", bid="102.01")
+    state.close_bar(
+        Candle.from_values(broker_day=day, open="99", high="103", low="99", close="102.01")
+    )
+
+    assert state.begin_bar("102.01", bar_id="t+1") == ()
+    pullback = state.process_tick(previous_bid="102.01", bid="100.80").pullback_candidates[0]
+    assert pullback.parent_breakout_id == "BO1"
+    assert pullback.entry_price == zone.high
+    assert state.pullbacks.record_pending_order_attempt(pullback, broker_accepted=True).sent
+
+    state.process_tick(previous_bid="100.80", bid="99")
+    reversal = state.process_tick(previous_bid="99", bid="100").reversal_candidates[0]
+    blocked = state.reversals.record_market_order_attempt(reversal, broker_accepted=True)
+    assert not blocked.sent
+    assert blocked.rejection_reason == "entry_attempt_already_used"
+
+    expiries = state.begin_day(date(2026, 9, 7), [])
+    assert len(expiries) == 1
+    assert expiries[0].pending_order_must_cancel
+    assert expiries[0].reason == "broker_day_changed"

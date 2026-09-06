@@ -8,11 +8,11 @@
 |---|---|---|---|
 | Migration integrity | Rule/Decision/Experiment separation | PASS | Template/Handoff Merge شد؛ Legacy از Active Rules جدا و تصمیم‌های نهایی Leader ثبت شد. |
 | Package structure smoke | Required root, Source-of-Truth files and canonical ranges | PASS | Canonical SHA-256 and required structure remain covered by pytest. |
-| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | Local gate on 2026-09-06; 72 tests PASS, including causal bar-close orchestration, durable audit persistence and inert MQL Native/Visual boundaries. |
+| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | Local gate on 2026-09-06; 73 tests PASS, including causal Breakout/Pullback orchestration, durable audit persistence and inert MQL Native/Visual boundaries. |
 | Legacy static integrity | Historical sources/manifests without promotion | PASS | Python AST 9/9; PowerShell parser 12/12; MQL5 strict + balanced braces 3/3; Git-staged core manifest 16/16 across byte-preserved attributes. Not compile/runtime evidence. |
 | Zone/Trend/orchestration slice | Rule → causal ticks → bar close → deterministic tests | PASS | 21 focused tests; strict tick-chain/final-close validation and Breakout-before-Trend-roll PASS; 23 canonical days → 421 merged Zones; 444/444 source rows retained. |
 | Breakout/Reversal signal slice | Strict qualification, touch and accounting contracts | PASS | 9 focused/integration tests; strict buffer/lineage, same-Tick Trend, directional Market touch, gap/wick, duplicate, daily usage and shared bar slot PASS. |
-| Pullback signal slice | Conservative entry lifecycle and accounting | PASS | 6 focused tests; penetration/edge retry, five-bar window, Multiple PB, Normal1/High∞, independent counters, active-cycle and cancellation contracts PASS. |
+| Pullback signal slice | Conservative entry lifecycle and accounting | PASS | 7 focused/integration tests; penetration/edge retry, five-bar window, Breakout lineage, shared Reversal/Pullback bar slot, rollover cancellation, Multiple PB and Normal1/High∞ PASS. |
 | Momentum/TP slice | Strict trend, target trigger, conflict and extension lifecycle | PASS | 5 focused tests; Same-Bar/closed/current checks, crossing/gap, touch block, safe one-step modify, restore and Market Close PASS. |
 | Initial Risk/Execution slice | Geometry, native RF, protection and fixed capital profiles | PASS | 7 focused tests; Free Space, Stop/Target, RF, monotonic steps, protected order, 0.01 lot, max3/max5 and margin boundary PASS. |
 | Financial Safety slice | Daily net-realized and GROSS15 entry gates | PASS | 6 focused tests; daily latch/reset/actions, inclusive gross budget, all four native risk components, combined rejection and invalid-input failure PASS. |

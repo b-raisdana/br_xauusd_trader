@@ -1,0 +1,28 @@
+# Decision Log
+
+این فایل دلیل تصمیم‌های پایدار را نگه می‌دارد. متن اجرایی قانون فقط در `RULES.md` معتبر است و تاریخچه لغو/آینده در `RULES_ARCHIVE_FUTURE.md` قرار دارد.
+
+| ID | تصمیم | دلیل / Evidence | اثر | وضعیت |
+|---|---|---|---|---|
+| D-001 | Repository جایگزین Chat به‌عنوان Source of Truth شد. | Context طولانی باعث حذف، اختلاط و بازسازی ناقص Rules شده بود. | ادامه پروژه از فایل و Git انجام می‌شود. | Active |
+| D-002 | نقش Project Leader، ChatGPT Work و Codex از هم جدا شد. | حفظ اختیار Business/Risk و حداقل‌کردن کار اجرایی Leader. | سؤال فقط برای تصمیم واقعی Leader برگردانده می‌شود. | Active |
+| D-003 | `BASE_R_USD=6` از `ACTUAL_STOP_DISTANCE` جدا شد. | Legacy دو معنای R را مخلوط کرده بود. | R مبهم در Rule فعال ممنوع است. | Active |
+| D-004 | Trend روزانه با `NONE → N1 → N2 → N3` Bootstrap می‌شود و Carry روز قبل ندارد. | قانون ثانویه جدید بر Sticky قدیمی مقدم است. | Regression در برابر Sticky قدیمی اجباری است. | Active |
+| D-005 | HH/HL/LH/LL N=3 و مرجع‌های پنج/دوکندلی کنار گذاشته شدند. | تأخیر و ناسازگاری با لگ جاری؛ N3 روزانه تصمیم نهایی است. | در Active Baseline استفاده نمی‌شوند. | Superseded chain closed |
+| D-006 | Normal Reversal فعال است؛ Normal max1 و High max2 در روز. | تصمیم جدید Leader، با وجود ضعف تاریخی Normal. | Attribution مستقل Normal/High لازم است. | Active |
+| D-007 | PB مصرف مستقل دارد: Normal1/High∞، Window پنج کندل و Multiple PB per BO. | تفکیک Window، Daily Usage و Active Cycle. | Contract و Regression مستقل لازم است. | Active |
+| D-008 | Strict Trend شامل Current Candle در نقطه تصمیم و Same-Bar بر مبنای M15 Open است. | Closed-only Momentum سریع را از دست می‌داد؛ PB Entry تعریف دوگانه می‌ساخت. | State نویزی در تمام Tickها ایجاد نمی‌شود. | Active |
+| D-009 | `PRE_ZONE_TRIGGER_DISTANCE=1.00` Baseline تست است و Grid Search نمی‌شود. | فضای عملیاتی بیشتر بدون ادعای Optimal و کاهش ریسک Overfit. | Crossing/Tick Gap باید تست شود. | Active for MVP validation |
+| D-010 | Reversal فقط در Touch واقعی Block می‌شود و TP Extension برگشت‌پذیر است. | Market Reversal از قبل Pending نیست؛ شکست Momentum علت Extension را حذف می‌کند. | Restore قبل از TP اولیه؛ Market Close بعد از عبور. | Active |
+| D-011 | Free Space هدف جدید 3 دلار است؛ Space15 فقط Control تاریخی است. | Secondary Rule جدید مقدم است، ولی Evidence قبلی Space15 مثبت بود. | A/B هدفمند بدون Grid Search اجباری است. | Active pending validation |
+| D-012 | Initial Stop/Target واحد و Profit Protection پله‌ای جای مدل‌های Exit موازی/R0 را گرفت. | کاهش Selection Bias و یکسان‌سازی معنای Base R. | مدل‌های b-12..b-17 و b-29 بازنشسته‌اند. | Active |
+| D-013 | Native Costs جای هزینه مصنوعی ثابت را گرفت. | جلوگیری از دوباره‌شماری و انطباق با Broker. | PnL نهایی از Deal History است. | Active |
+| D-014 | Session-end ALL_FLAT و Restart fail-closed Baseline Safety هستند. | Tail loss Carry و شکنندگی State Recovery قدیمی. | Persistent Recovery به Post-MVP منتقل شد. | Active |
+| D-015 | MVP با Lot ثابت و سناریوهای 200/300 دلار پیش می‌رود. | جداسازی اثبات Edge از Capital Optimization. | Dynamic sizing Post-MVP است. | Active |
+| D-016 | VLAD/تولید Zone پروژه تحقیقاتی جدا است. | جلوگیری از آمیختن Scope و Evidence دو پروژه. | بدون تصمیم جدید وارد Active Rulebook نمی‌شود. | Active |
+| D-017 | در تعارض Handoff با Rulebook تجمیع‌شده، `RULES.md` و `RULES_ARCHIVE_FUTURE.md` مقدم‌اند. | دستور صریح Project Leader در Migration نهایی. | UQهای قدیمی که بعداً حل شده‌اند دوباره Open نمی‌شوند. | Active |
+| D-018 | High Reversal multiplier تاریخی 1.5× وارد Active Rule جدید نمی‌شود. | Handoff آن را retained دانسته، اما Rulebook بالادست `INITIAL_STOP` را با cap شش دلار تعریف کرده و استثنای High ندارد. | multiplier فقط Evidence/Regression تاریخی است. | Active migration resolution |
+| D-019 | تعریف Legacy برای `ZONE_ENGAGEMENT` عیناً حفظ می‌شود. | تأیید مستقیم Project Leader در Migration. | Breakout engagement از رفتار آخرین کد تاریخی پیروی می‌کند. | Active |
+| D-020 | در هر M15 فقط یک تلاش Entry مجاز است و تلاش اول Slot کندل را مصرف می‌کند. | تأیید مستقیم Project Leader؛ هم‌زمان دو Entry نباید ایجاد شود. | Signalهای بعدی فقط Audit می‌شوند. | Active |
+| D-021 | Pre-Zone Trigger نسبت به Zone حامل TP جاری است و TP را یک Zone در جهت معامله جلو می‌برد. | رفع ابهام مستقیم توسط Project Leader. | Index Zone ورود یا Targetهای قبلی در Trigger اثری ندارد. | Active |
+| D-022 | سهمیه Reversal با ارسال Market Order مصرف می‌شود؛ Signal صرف مصرف نمی‌کند. | رفع ابهام مستقیم توسط Project Leader. | موفقیت Fill و PnL سهمیه مصرف‌شده را برنمی‌گرداند. | Active |

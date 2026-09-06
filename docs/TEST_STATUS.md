@@ -1,0 +1,55 @@
+# Test and Verification Status
+
+این فایل فقط وضعیت Evidence قابل بازتولید در Repository فعلی را نشان می‌دهد. گزارش تاریخی بدون Artifact/Command/Commit، PASS جاری محسوب نمی‌شود.
+
+## وضعیت فعلی Gateها
+
+| Gate | Scope | وضعیت فعلی | Evidence / Blocker |
+|---|---|---|---|
+| Migration integrity | Rule/Decision/Experiment separation | PASS | Template/Handoff Merge شد؛ Legacy از Active Rules جدا و تصمیم‌های نهایی Leader ثبت شد. |
+| Package structure smoke | Required root and Source-of-Truth files | PASS | فایل‌های الزامی در Repository نهایی بررسی شدند؛ Handoff اضافی و پوشه‌های غیرضروری وجود ندارند. |
+| Rule traceability | Rule name → code → test → journal | NOT_RUN | کد جاری بررسی نشده است. |
+| Contract tests | همه موارد بخش 3 `TODO.md` | NOT_RUN | EA/Research harness جاری در دسترس نیست. |
+| Targeted regression | Trend/Normal/FreeSpace/Strict/TP/Safety | NOT_RUN | Dataset و baseline artifacts باید بازیابی شوند. |
+| Python ↔ MT5 equivalence | Frozen vectors | NOT_RUN | Engineهای جاری بررسی نشده‌اند. |
+| MT5 compile | `#property strict`, zero errors | BLOCKED | سورس و Compile Log جاری موجود نیست. |
+| MT5 real-tick acceptance | 200/300 USD scenarios | NOT_RUN | Broker profile و `.set` جاری موجود نیست. |
+| Visual QA | Chart + Journal + Rule IDs | NOT_RUN | بعد از Technical PASS. |
+| MVP Freeze | Rulebook/Code/Evidence immutable version | NOT_RUN | همه Gateهای قبلی لازم‌اند. |
+| Shadow/Demo | Broker acceptance | NOT_RUN | پس از MVP Freeze. |
+| Limited Live | Explicit Leader approval | BLOCKED | شواهد و Risk approval موجود نیست. |
+| Historical bundle core manifest | `SHA256_KIT.txt` | PASS | هر 16 ورودی Manifest با فایل استخراج‌شده Match شد. |
+| Historical patch manifest | `SHA256_PATCH.txt` | FAIL | `README_FA.md` mismatch و دو مسیر `reversal_portfolio_reference/*` در Bundle موجود نیستند؛ Evidence دست‌کاری نشد. |
+| Canonical ranges identity | uploaded/data/reference copies | PASS | SHA-256 هر سه نسخه یکسان است. |
+
+## Coverage الزامی Rules
+
+| گروه Rule | تست‌های اجباری | وضعیت |
+|---|---|---|
+| Zone | Load/Normalize/Sort، line Zone، chain merge `<1.5`، Priority، no hard cap | NOT_RUN |
+| Trend | Day bootstrap، live threshold، sticky state، Tick event order | NOT_RUN |
+| Breakout | Engage، Trend at Close، strict ±1 buffer، lineage، close opposite Reversal | NOT_RUN |
+| Reversal | directional Market touch، wick validity، Normal1/High2، duplicate guard | NOT_RUN |
+| Pullback | penetration 0.20، broken-edge entry/retry، t+1..t+5، multi-PB، Normal1/High∞ | NOT_RUN |
+| Strict/Conflict/TP | closed/current candle، Same-Bar، Doji، crossing/gap، touch block، extend/restore/close | NOT_RUN |
+| Free Space | Buy/Sell formula و minimum 3 USD | NOT_RUN |
+| Initial risk | Stop Zone/cap6، first target ≥6، missing-Zone reject | NOT_RUN |
+| Profit protection | Native RF، X-step، no SL loosening | NOT_RUN |
+| Execution | SL/TP at creation، native costs، one order/bar، 0.01 lot، max3/max5 | NOT_RUN |
+| Risk budgets | Daily realized 20% و GROSS15 reservation | NOT_RUN |
+| Safety | Session-5min flatten و restart fail-closed | NOT_RUN |
+| Audit/Visual | Event/Rule/Zone/BO lineage، reject reasons، chart markers/tooltips | NOT_RUN |
+
+## Evidence تاریخی در انتظار بازیابی
+
+| Evidence | ادعای تاریخی | وضعیت جاری |
+|---|---|---|
+| E-R0 | Compile و Control PASS | BLOCKED — Artifact/Commit missing |
+| E-R2 | ALL_FLAT بهتر از Carry | BLOCKED — Protocol/Timezone missing |
+| E-REV | 207/207 Replay و PnL نزدیک | BLOCKED — Fixtures/engines missing |
+| E-OPS | 4/4 Restart behavior | BLOCKED — Logs/commit missing |
+| Python bootstrap v4 | Data/cache validation successful | BLOCKED — script در Bundle موجود است؛ execution log/cache کامل و محیط بازتولیدشده موجود نیست |
+
+توضیح: Bundle فنی اکنون در بسته Migration موجود است، اما PASSهای تاریخی تا زمانی که Command/Environment و Artifactها در Repository بازتولید نشوند، PASS جاری Strategy محسوب نمی‌شوند.
+
+Statusها: `PASS`, `FAIL`, `NOT_RUN`, `BLOCKED`, `NOT_APPLICABLE`.

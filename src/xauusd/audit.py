@@ -44,6 +44,7 @@ class AuditEvent:
     take_profit: Decimal | None
     order_type: OrderType | None
     parent_breakout_id: str | None
+    execution_request_id: str | None
     reason: str | None
 
     def to_dict(self) -> dict[str, Any]:
@@ -161,6 +162,7 @@ class AuditJournal:
         take_profit: Decimal | str | int | float | None = None,
         order_type: OrderType | None = None,
         parent_breakout_id: str | None = None,
+        execution_request_id: str | None = None,
         reason: str | None = None,
     ) -> AuditEvent:
         if self._broker_day is None:
@@ -192,6 +194,7 @@ class AuditJournal:
             take_profit=price(take_profit) if take_profit is not None else None,
             order_type=order_type,
             parent_breakout_id=parent_breakout_id,
+            execution_request_id=execution_request_id,
             reason=reason,
         )
         if self._store:

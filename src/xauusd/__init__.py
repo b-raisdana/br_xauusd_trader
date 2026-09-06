@@ -10,6 +10,7 @@ from xauusd.audit import (
     SignalFamily,
     chart_marker,
 )
+from xauusd.execution import ExecutionLedger, ExecutionRecord, ExecutionRequest, ExecutionStatus
 from xauusd.market_state import MarketBarCloseUpdate, MarketState, MarketTickUpdate
 from xauusd.momentum import (
     PRE_ZONE_TRIGGER_DISTANCE_USD,
@@ -124,6 +125,10 @@ __all__ = [
     "DailyRealizedLossGuard",
     "EngagementUpdate",
     "EntrySafetyDecision",
+    "ExecutionLedger",
+    "ExecutionRecord",
+    "ExecutionRequest",
+    "ExecutionStatus",
     "OperationalSafetyActions",
     "InitialRisk",
     "MarketState",

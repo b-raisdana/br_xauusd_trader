@@ -9,7 +9,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from xauusd.audit import AuditEvent, AuditJournal, SignalFamily
-from xauusd.execution import ExecutionLedger, ExecutionRequest
+from xauusd.execution import ExecutionLedger, ExecutionRequest, ExecutionStatus
 from xauusd.market_state import MarketState
 from xauusd.orchestration import MarketAuditProjector
 from xauusd.pullback import PullbackExpiry, PullbackOrderCandidate
@@ -53,10 +53,38 @@ class ReplayExecutionOutcome:
 
 
 @dataclass(frozen=True, slots=True)
+class ReplayCloseOutcome:
+    request_id: str
+    broker_time: datetime
+    close_price: Decimal
+    rule_ids: tuple[str, ...]
+    reason: str
+
+    @classmethod
+    def from_values(
+        cls,
+        *,
+        request_id: str,
+        broker_time: datetime,
+        close_price: Decimal | str | int | float,
+        rule_ids: tuple[str, ...],
+        reason: str,
+    ) -> ReplayCloseOutcome:
+        if not request_id.strip():
+            raise ValueError("Replay Close Request ID is required")
+        if not rule_ids or any(not rule_id.strip() for rule_id in rule_ids):
+            raise ValueError("Replay Close Rule IDs are required")
+        if not reason.strip():
+            raise ValueError("Replay Close reason is required")
+        return cls(request_id, broker_time, price(close_price), rule_ids, reason)
+
+
+@dataclass(frozen=True, slots=True)
 class ReplayTick:
     broker_time: datetime
     bid: Decimal
     execution_outcomes: tuple[ReplayExecutionOutcome, ...] = ()
+    close_outcomes: tuple[ReplayCloseOutcome, ...] = ()
 
     @classmethod
     def from_values(
@@ -65,8 +93,14 @@ class ReplayTick:
         broker_time: datetime,
         bid: Decimal | str | int | float,
         execution_outcomes: tuple[ReplayExecutionOutcome, ...] = (),
+        close_outcomes: tuple[ReplayCloseOutcome, ...] = (),
     ) -> ReplayTick:
-        return cls(broker_time=broker_time, bid=price(bid), execution_outcomes=execution_outcomes)
+        return cls(
+            broker_time=broker_time,
+            bid=price(bid),
+            execution_outcomes=execution_outcomes,
+            close_outcomes=close_outcomes,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -161,9 +195,18 @@ class ReplayRunner:
                 matched = self._match_outcomes(
                     update.reversal_candidates, update.pullback_candidates, tick
                 )
+                self._validate_close_outcomes(tick)
                 self.projector.record_tick(update, broker_time=tick.broker_time)
                 for candidate, outcome in matched:
                     self._apply_outcome(candidate, outcome, replay.zones, tick.broker_time)
+                for close_outcome in tick.close_outcomes:
+                    self.execution.close(
+                        close_outcome.request_id,
+                        broker_time=close_outcome.broker_time,
+                        close_price=close_outcome.close_price,
+                        rule_ids=close_outcome.rule_ids,
+                        reason=close_outcome.reason,
+                    )
                 previous_bid = tick.bid
             close = self.state.close_bar(bar.candle)
             self.projector.record_bar_close(close, broker_time=bar.close_time)
@@ -192,6 +235,17 @@ class ReplayRunner:
         return tuple(
             (candidates[outcome.candidate_id], outcome) for outcome in tick.execution_outcomes
         )
+
+    def _validate_close_outcomes(self, tick: ReplayTick) -> None:
+        request_ids = [outcome.request_id for outcome in tick.close_outcomes]
+        if len(request_ids) != len(set(request_ids)):
+            raise ValueError("Replay Tick contains duplicate Close outcomes")
+        for outcome in tick.close_outcomes:
+            if outcome.broker_time < tick.broker_time:
+                raise ValueError("Replay Close outcome precedes Tick")
+            record = self.execution.record(outcome.request_id)
+            if record.status is not ExecutionStatus.FILLED:
+                raise ValueError(f"Replay Close has no open filled position: {outcome.request_id}")
 
     def _apply_outcome(
         self,

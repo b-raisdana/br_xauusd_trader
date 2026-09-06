@@ -8,7 +8,8 @@
 - Strategy target: MVP v2 Consolidated Rulebook
 - Rule status: Active behavior consolidated; executable validation not yet performed in the current Repository
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
-- Last verified Git commit: Initial migration checkpoint pending
+- Last verified Git commit: `4cc06b1` — migrated project baseline
+- Last verified date: 2026-09-06
 - Current branch: main
 - GitHub sync: NOT_CONFIGURED
 - Live state: RESEARCH_ONLY
@@ -42,6 +43,7 @@
 ## موارد تکمیل‌شده
 
 - Template و Handoff به‌صورت محتوایی Merge شدند و Workflow محلی CI حفظ شد.
+- Repository روی Branch `main` ایجاد و Baseline در Git ثبت شد.
 - `FINAL_PROJECT_HANDOFF_2026-09-06.md` طبق تصمیم Project Leader وارد Repository نشد.
 - پوشه‌های غیرضروری `research/` و `output/` ایجاد نشدند.
 - `ZONE_ENGAGEMENT` مطابق رفتار Legacy تثبیت شد.

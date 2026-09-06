@@ -13,7 +13,7 @@
 - [x] این اسناد با نسخه‌های موجود Repository به‌صورت Diff/Merge ادغام شوند؛ فایل کامل‌تر حفظ شد و CI محلی از بین نرفت.
 - [x] نام‌های قدیمی Rule به نام‌های فعال این Rulebook Crosswalk شوند.
 - [ ] هر ادعای تاریخی PASS فقط پس از یافتن Artifact/Command/Commit متناظر در `TEST_STATUS.md` ثبت شود.
-- [ ] پس از Merge، یک Git checkpoint منسجم ساخته و در صورت پیکربندی امن با GitHub Sync شود.
+- [x] پس از Merge، Git checkpoint منسجم `4cc06b1` ساخته شد؛ GitHub هنوز پیکربندی نشده است.
 - [x] ناسازگاری `SHA256_PATCH.txt` بدون تغییر Evidence بررسی و به‌عنوان مشکل Manifest/Path تاریخی ثبت شد.
 - [x] Merge و کنترل انسجام Rulebook پیش از شروع کدنویسی انجام شد.
 

@@ -1,6 +1,17 @@
 """Deterministic domain contracts for the current XAUUSD MVP."""
 
 from xauusd.market_state import MarketState, MarketTickUpdate
+from xauusd.signals import (
+    BREAKOUT_BUFFER_USD,
+    BreakoutSignal,
+    BreakoutTracker,
+    OrderAttemptLedger,
+    OrderAttemptResult,
+    OrderType,
+    ReversalCandidate,
+    ReversalTracker,
+    TradeDirection,
+)
 from xauusd.trend import Candle, CandleDirection, DailyTrendTracker, TrendState
 from xauusd.zones import (
     MERGE_GAP_USD,
@@ -17,14 +28,23 @@ from xauusd.zones import (
 
 __all__ = [
     "MERGE_GAP_USD",
+    "BREAKOUT_BUFFER_USD",
     "BreakoutSide",
+    "BreakoutSignal",
+    "BreakoutTracker",
     "Candle",
     "CandleDirection",
     "DailyTrendTracker",
     "EngagementUpdate",
     "MarketState",
     "MarketTickUpdate",
+    "OrderAttemptLedger",
+    "OrderAttemptResult",
+    "OrderType",
     "RawZone",
+    "ReversalCandidate",
+    "ReversalTracker",
+    "TradeDirection",
     "TrendState",
     "Zone",
     "ZoneEngagementTracker",

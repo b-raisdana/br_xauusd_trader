@@ -4,9 +4,9 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: Zone/Trend contract slice complete / Ready for Signal implementation
+- Current activity: Breakout/Reversal signal slice complete / Ready for Pullback lifecycle
 - Strategy target: MVP v2 Consolidated Rulebook
-- Rule status: Zone/Trend rules implemented and contract-tested in Python; remaining rules pending
+- Rule status: Zone/Trend and Breakout/Reversal signal rules implemented and contract-tested in Python; remaining rules pending
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
 - Last verified Git commit before this audit: `b4e00aa` — migration checkpoint
 - Last verified date: 2026-09-06
@@ -42,8 +42,9 @@
 
 ## موارد تکمیل‌شده
 
-- Current Python domain package `src/xauusd/` now implements deterministic Zone load/normalize/sort/chain-merge/Priority, per-M15 engagement, daily Trend bootstrap and fixed Tick ordering.
+- Current Python domain package `src/xauusd/` now implements deterministic Zone/Trend state, strict-buffer Breakout qualification and daily lineage, tick-real Reversal candidates, daily usage/duplicate guards and a shared one-entry-attempt-per-M15 ledger.
 - Zone/Trend contract evidence: 19 focused tests PASS; canonical `ranges.csv` loads as 23 Broker Days, 421 merged Zones and all 444 source rows retained.
+- Breakout/Reversal contract evidence: 9 focused/integration tests PASS, including strict equality rejection, daily `BO#` reset, Market-only directional touch, wick penetration, multi-Zone gap suppression, Normal1/High2 shared-direction usage, audit-only non-consumption, failed-request consumption and same-Tick new-Trend consumption.
 - Price boundaries use finite `Decimal` values and merged Zone IDs use `{BrokerDay ISO}:R{sorted ordinal}`; future MQL5 parity must test conversion/tolerance explicitly.
 - `.gitattributes` now preserves canonical `ranges.csv` and all immutable Legacy evidence byte-for-byte across Windows/Linux; staged Git blobs verify core manifest 16/16 and canonical SHA-256 exactly.
 - First-run repository audit completed on 2026-09-06: all current and legacy source/test files were inventoried; `_migration_inbox` is absent.
@@ -139,6 +140,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید Signal contractها را پیاده کند: ابتدا Breakout validation/lineage و Reversal directional touch/usage/duplicate guard، سپس Pullback lifecycle. بعد از آن Risk/Safety و MQL5 Equivalence ادامه می‌یابد.
+Codex باید Pullback lifecycle را پیاده کند: Conservative penetration/entry retry، پنجره `t+1..t+5`، Multiple PB per parent BO و سهمیه مستقل Normal1/High∞. سپس Strict Trend/Conflict/TP ادامه می‌یابد.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

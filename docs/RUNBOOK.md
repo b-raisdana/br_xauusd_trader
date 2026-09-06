@@ -10,7 +10,7 @@ Codex keeps this file updated with exact repeatable commands.
 - Installed MT5 Terminal and MetaEditor: build 6151 under `C:\Program Files\MetaTrader 5`
 - Historical broker profile: MetaQuotes-Demo
 - Required external apps: MT5 terminal and compiler; Python environment for research/replay
-- GitHub CLI: not installed; no Git remote is configured
+- GitHub CLI: 2.100.0; private `origin` is `https://github.com/behrad203-tech/XAAUSD-PAction-projectFolder.git`
 
 ## Setup
 ```powershell

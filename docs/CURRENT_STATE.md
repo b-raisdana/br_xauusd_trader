@@ -11,7 +11,7 @@
 - Last verified Git commit before this audit: `b4e00aa` — migration checkpoint
 - Last verified date: 2026-09-06
 - Current branch: main
-- GitHub sync: NOT_CONFIGURED
+- GitHub sync: PRIVATE `origin/main` — `behrad203-tech/XAAUSD-PAction-projectFolder`
 - Live state: RESEARCH_ONLY
 
 ## Source-of-Truth files
@@ -44,7 +44,7 @@
 
 - First-run repository audit completed on 2026-09-06: all current and legacy source/test files were inventoried; `_migration_inbox` is absent.
 - Current executable baseline established with project-local Python 3.11.15, `uv`, deterministic migration tests, Ruff, mypy and pytest.
-- Windows runtime discovery confirmed Git 2.54.0, MT5 Terminal/MetaEditor build 6151 and no GitHub CLI. PowerShell entry points require `-ExecutionPolicy Bypass` on this host.
+- Windows runtime discovery confirmed Git 2.54.0, GitHub CLI 2.100.0 and MT5 Terminal/MetaEditor build 6151. PowerShell entry points require `-ExecutionPolicy Bypass` on this host.
 - Quality gate now fails closed on external command failures and excludes immutable `legacy_reference/` from current-code lint/type enforcement.
 - Current test baseline: 3 passed; legacy Python AST parse: 9/9; PowerShell parse: 12/12; all three historical MQL5 files have `#property strict` and balanced braces. These static checks are not MT5 compile or strategy acceptance.
 - Template و Handoff به‌صورت محتوایی Merge شدند و Workflow محلی CI حفظ شد.

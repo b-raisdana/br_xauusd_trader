@@ -9,7 +9,7 @@ input bool InpEnableTrading=false;
 
 bool NearlyEqual(const double left,const double right)
   {
-   return MathAbs(left-right) <= 1e-9;
+   return MathAbs(left-right) <= PARITY_PRICE_TOLERANCE;
   }
 
 bool RunCoreVectorSmoke()
@@ -22,6 +22,30 @@ bool RunCoreVectorSmoke()
       return false;
    if(!ReversalDirectionalTouch(breakout_zone,XAU_SELL,XAU_TREND_UP,
                                 VEC_REVERSAL_PREVIOUS,VEC_REVERSAL_CURRENT,false))
+      return false;
+   if(UpdateTrend(XAU_TREND_NONE,1,VEC_TREND_REFERENCE_HIGH,VEC_TREND_REFERENCE_LOW,
+                  VEC_TREND_BID) != XAU_TREND_UP)
+      return false;
+
+   XauZone pullback_zone;
+   pullback_zone.id="2026-09-06:R1";
+   pullback_zone.low=VEC_PULLBACK_LOW;
+   pullback_zone.high=VEC_PULLBACK_HIGH;
+   double pullback_entry=0.0;
+   if(!PullbackPenetrated(pullback_zone,XAU_BUY,VEC_PULLBACK_BID,pullback_entry) ||
+      !NearlyEqual(pullback_entry,VEC_PULLBACK_HIGH))
+      return false;
+   int closed_directions[2]={1,1};
+   if(!StrictPullbackTrend(XAU_BUY,closed_directions,VEC_STRICT_CURRENT_OPEN,
+                           VEC_STRICT_CURRENT_BID,VEC_STRICT_CURRENT_ASK))
+      return false;
+
+   XauZone trigger_zone;
+   trigger_zone.id="2026-09-06:R2";
+   trigger_zone.low=VEC_TRIGGER_TARGET_LOW;
+   trigger_zone.high=VEC_TRIGGER_TARGET_HIGH;
+   if(!NearlyEqual(PreZoneTriggerPrice(XAU_BUY,trigger_zone),VEC_TRIGGER_TARGET_LOW-1.0) ||
+      !PreZoneCrossed(XAU_BUY,trigger_zone,VEC_TRIGGER_PREVIOUS,VEC_TRIGGER_CURRENT))
       return false;
 
    XauZone risk_zones[4];
@@ -37,9 +61,19 @@ bool RunCoreVectorSmoke()
    if(!NearlyEqual(sl,VEC_RISK_EXPECTED_SL) || !NearlyEqual(tp,VEC_RISK_EXPECTED_TP) ||
       stop_zone!="R2" || target_zone!="R4")
       return false;
-   return PortfolioRiskAllows(VEC_PORTFOLIO_CAPITAL,VEC_PORTFOLIO_REALIZED,
-                              VEC_PORTFOLIO_OPEN,VEC_PORTFOLIO_PENDING,
-                              VEC_PORTFOLIO_PROPOSED);
+   if(!PortfolioRiskAllows(VEC_PORTFOLIO_CAPITAL,VEC_PORTFOLIO_REALIZED,
+                           VEC_PORTFOLIO_OPEN,VEC_PORTFOLIO_PENDING,
+                           VEC_PORTFOLIO_PROPOSED))
+      return false;
+   double protected_stop=0.0;
+   if(!ProfitProtectionStop(XAU_BUY,VEC_PROTECTION_ENTRY,VEC_PROTECTION_RF,
+                            VEC_PROTECTION_BID,VEC_PROTECTION_ASK,
+                            VEC_PROTECTION_CURRENT_SL,protected_stop) ||
+      !NearlyEqual(protected_stop,118.25))
+      return false;
+   if(!DailyLossLocked(VEC_DAILY_CAPITAL,VEC_DAILY_NET_PNL,false))
+      return false;
+   return SessionEndActive(StringToTime(VEC_SESSION_NOW),StringToTime(VEC_SESSION_END));
   }
 
 int OnInit()

@@ -55,6 +55,48 @@
         "proposed_order_risk": "8"
       },
       "expected": {"budget_cash": "30.00", "used_with_proposed": "30", "allowed": true}
+    },
+    {
+      "id": "trend-live-break-up",
+      "contract": "TREND_DIRECTION",
+      "input": {"current_state": "none", "reference_high": "100", "reference_low": "90", "reference_count": 1, "bid": "101"},
+      "expected": {"state": "up"}
+    },
+    {
+      "id": "pullback-buy-penetration-boundary",
+      "contract": "PULLBACK_CONSERVATIVE_ENTRY",
+      "input": {"zone_low": "100", "zone_high": "101", "direction": "buy", "bid": "100.80"},
+      "expected": {"penetrated": true, "entry": "101"}
+    },
+    {
+      "id": "strict-buy-momentum",
+      "contract": "STRICT_PULLBACK_TREND",
+      "input": {"direction": "buy", "closed_directions": ["bullish", "bullish"], "current_open": "105", "current_bid": "106", "current_ask": "106.10"},
+      "expected": {"valid": true}
+    },
+    {
+      "id": "pre-zone-buy-gap-cross",
+      "contract": "PRE_ZONE_DECISION_TRIGGER",
+      "input": {"direction": "buy", "target_low": "110", "target_high": "111", "previous_price": "108", "current_price": "110"},
+      "expected": {"trigger": "109.00", "crossed": true}
+    },
+    {
+      "id": "profit-protection-buy-step-four",
+      "contract": "PROFIT_PROTECTION",
+      "input": {"direction": "buy", "entry": "100", "risk_free": "100.25", "current_bid": "124.10", "current_ask": "124.20", "current_stop": "112"},
+      "expected": {"modify": true, "stop": "118.25"}
+    },
+    {
+      "id": "daily-loss-inclusive-boundary",
+      "contract": "DAILY_REALIZED_LOSS_GUARD",
+      "input": {"strategy_capital": "200", "net_realized_pnl": "-40", "previously_locked": false},
+      "expected": {"locked": true}
+    },
+    {
+      "id": "session-five-minute-boundary",
+      "contract": "SESSION_END_FLATTEN",
+      "input": {"broker_now": "2026-09-06T20:55:00", "broker_session_end": "2026-09-06T21:00:00"},
+      "expected": {"active": true}
     }
   ]
 }

@@ -18,6 +18,13 @@ def render_header(payload: dict[str, Any]) -> str:
     reversal = vectors["reversal-sell-directional-touch"]["input"]
     risk = vectors["initial-risk-buy-skips-near-target"]
     portfolio = vectors["gross15-inclusive-boundary"]["input"]
+    trend = vectors["trend-live-break-up"]["input"]
+    pullback = vectors["pullback-buy-penetration-boundary"]["input"]
+    strict = vectors["strict-buy-momentum"]["input"]
+    trigger = vectors["pre-zone-buy-gap-cross"]["input"]
+    protection = vectors["profit-protection-buy-step-four"]["input"]
+    daily = vectors["daily-loss-inclusive-boundary"]["input"]
+    session = vectors["session-five-minute-boundary"]["input"]
     risk_zones = risk["input"]["zones"]
     lines = [
         "// Generated from tests/vectors/core_contracts.json. Do not edit manually.",
@@ -44,6 +51,32 @@ def render_header(payload: dict[str, Any]) -> str:
             f"#define VEC_PORTFOLIO_OPEN {portfolio['open_position_risk']}",
             f"#define VEC_PORTFOLIO_PENDING {portfolio['pending_order_risk']}",
             f"#define VEC_PORTFOLIO_PROPOSED {portfolio['proposed_order_risk']}",
+            f"#define VEC_TREND_REFERENCE_HIGH {trend['reference_high']}",
+            f"#define VEC_TREND_REFERENCE_LOW {trend['reference_low']}",
+            f"#define VEC_TREND_BID {trend['bid']}",
+            f"#define VEC_PULLBACK_LOW {pullback['zone_low']}",
+            f"#define VEC_PULLBACK_HIGH {pullback['zone_high']}",
+            f"#define VEC_PULLBACK_BID {pullback['bid']}",
+            f"#define VEC_STRICT_CURRENT_OPEN {strict['current_open']}",
+            f"#define VEC_STRICT_CURRENT_BID {strict['current_bid']}",
+            f"#define VEC_STRICT_CURRENT_ASK {strict['current_ask']}",
+            f"#define VEC_TRIGGER_TARGET_LOW {trigger['target_low']}",
+            f"#define VEC_TRIGGER_TARGET_HIGH {trigger['target_high']}",
+            f"#define VEC_TRIGGER_PREVIOUS {trigger['previous_price']}",
+            f"#define VEC_TRIGGER_CURRENT {trigger['current_price']}",
+            f"#define VEC_PROTECTION_ENTRY {protection['entry']}",
+            f"#define VEC_PROTECTION_RF {protection['risk_free']}",
+            f"#define VEC_PROTECTION_BID {protection['current_bid']}",
+            f"#define VEC_PROTECTION_ASK {protection['current_ask']}",
+            f"#define VEC_PROTECTION_CURRENT_SL {protection['current_stop']}",
+            f"#define VEC_DAILY_CAPITAL {daily['strategy_capital']}",
+            f"#define VEC_DAILY_NET_PNL {daily['net_realized_pnl']}",
+            '#define VEC_SESSION_NOW "'
+            + session["broker_now"].replace("-", ".").replace("T", " ")
+            + '"',
+            '#define VEC_SESSION_END "'
+            + session["broker_session_end"].replace("-", ".").replace("T", " ")
+            + '"',
         )
     )
     return "\n".join(lines) + "\n"

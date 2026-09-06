@@ -4,6 +4,10 @@
 const double BASE_R_USD = 6.0;
 const double BREAKOUT_BUFFER_USD = 1.0;
 const double GROSS_DAILY_RISK_FRACTION = 0.15;
+const double PULLBACK_PENETRATION_USD = 0.20;
+const double PRE_ZONE_TRIGGER_DISTANCE_USD = 1.0;
+const double DAILY_REALIZED_LOSS_FRACTION = 0.20;
+const double PARITY_PRICE_TOLERANCE = 1e-9;
 
 enum XauDirection
   {
@@ -44,6 +48,53 @@ bool ReversalDirectionalTouch(const XauZone &zone,const XauDirection direction,
    if(direction == XAU_SELL)
       return trend == XAU_TREND_UP && previous_bid < zone.low && current_bid >= zone.low;
    return trend == XAU_TREND_DOWN && previous_bid > zone.high && current_bid <= zone.high;
+  }
+
+XauTrend UpdateTrend(const XauTrend current_state,const int reference_count,
+                     const double reference_high,const double reference_low,const double bid)
+  {
+   if(reference_count <= 0)
+      return current_state;
+   if(bid > reference_high)
+      return XAU_TREND_UP;
+   if(bid < reference_low)
+      return XAU_TREND_DOWN;
+   return current_state;
+  }
+
+bool PullbackPenetrated(const XauZone &zone,const XauDirection direction,const double bid,
+                        double &entry_price)
+  {
+   entry_price=(direction == XAU_BUY ? zone.high : zone.low);
+   if(direction == XAU_BUY)
+      return bid <= zone.high-PULLBACK_PENETRATION_USD;
+   return bid >= zone.low+PULLBACK_PENETRATION_USD;
+  }
+
+bool StrictPullbackTrend(const XauDirection direction,const int &closed_directions[],
+                         const double current_open,const double current_bid,
+                         const double current_ask)
+  {
+   const int required=(direction == XAU_BUY ? 1 : -1);
+   for(int i=0;i<ArraySize(closed_directions);i++)
+      if(closed_directions[i] != required)
+         return false;
+   return (direction == XAU_BUY ? current_bid > current_open : current_ask < current_open);
+  }
+
+double PreZoneTriggerPrice(const XauDirection direction,const XauZone &target_zone)
+  {
+   return (direction == XAU_BUY ? target_zone.low-PRE_ZONE_TRIGGER_DISTANCE_USD
+                                : target_zone.high+PRE_ZONE_TRIGGER_DISTANCE_USD);
+  }
+
+bool PreZoneCrossed(const XauDirection direction,const XauZone &target_zone,
+                    const double previous_price,const double current_price)
+  {
+   const double trigger=PreZoneTriggerPrice(direction,target_zone);
+   if(direction == XAU_BUY)
+      return previous_price < trigger && current_price >= trigger;
+   return previous_price > trigger && current_price <= trigger;
   }
 
 bool InitialStop(const XauDirection direction,const double entry,const XauZone &zones[],
@@ -110,6 +161,35 @@ bool PortfolioRiskAllows(const double strategy_capital,const double realized_gro
       return false;
    const double budget=strategy_capital*GROSS_DAILY_RISK_FRACTION;
    return realized_gross_loss+open_risk+pending_risk+proposed_risk <= budget+1e-9;
+  }
+
+bool ProfitProtectionStop(const XauDirection direction,const double entry,
+                          const double risk_free,const double current_bid,
+                          const double current_ask,const double current_stop,
+                          double &proposed_stop)
+  {
+   const double favorable=(direction == XAU_BUY ? current_bid-entry : entry-current_ask);
+   const int step=(int)MathFloor(favorable/BASE_R_USD);
+   if(step < 1)
+      return false;
+   proposed_stop=(direction == XAU_BUY ? risk_free+(step-1)*BASE_R_USD
+                                       : risk_free-(step-1)*BASE_R_USD);
+   return (direction == XAU_BUY ? proposed_stop > current_stop : proposed_stop < current_stop);
+  }
+
+bool DailyLossLocked(const double strategy_capital,const double net_realized_pnl,
+                     const bool previously_locked)
+  {
+   if(previously_locked)
+      return true;
+   if(strategy_capital <= 0.0 || strategy_capital >= 300.0)
+      return false;
+   return net_realized_pnl <= -strategy_capital*DAILY_REALIZED_LOSS_FRACTION;
+  }
+
+bool SessionEndActive(const datetime broker_now,const datetime broker_session_end)
+  {
+   return broker_now >= broker_session_end-5*60;
   }
 
 #endif

@@ -18,5 +18,13 @@ def test_current_mt5_baseline_is_strict_vector_driven_and_live_inert() -> None:
         "InitialStop",
         "InitialTarget",
         "PortfolioRiskAllows",
+        "UpdateTrend",
+        "PullbackPenetrated",
+        "StrictPullbackTrend",
+        "PreZoneCrossed",
+        "ProfitProtectionStop",
+        "DailyLossLocked",
+        "SessionEndActive",
     ):
         assert contract in contracts
+    assert "PARITY_PRICE_TOLERANCE = 1e-9" in contracts

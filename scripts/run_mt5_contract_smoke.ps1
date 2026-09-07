@@ -54,6 +54,11 @@ $executionPass = @($newLogs | Select-String -SimpleMatch `
 if ($executionPass.Count -eq 0) {
     throw "Execution projector success marker not found after terminal exit code $($process.ExitCode)."
 }
+$statePass = @($newLogs | Select-String -SimpleMatch `
+        "STATE_ORDER_SMOKE_PASS tick/trend/bar-close mode=inert")
+if ($statePass.Count -eq 0) {
+    throw "State-ordering success marker not found after terminal exit code $($process.ExitCode)."
+}
 $nativePass = @($newLogs | Select-String -SimpleMatch `
         "NATIVE_ADAPTER_SMOKE_PASS symbol/session/risk/margin/deal-map mode=read-only")
 if ($nativePass.Count -eq 0) {

@@ -49,8 +49,13 @@ $pass = @($newLogs | Select-String -SimpleMatch "CORE_VECTOR_SMOKE_PASS vectors=
 if ($pass.Count -eq 0) {
     throw "Runtime success marker not found after terminal exit code $($process.ExitCode)."
 }
+$executionPass = @($newLogs | Select-String -SimpleMatch `
+        "EXECUTION_PROJECTOR_SMOKE_PASS lifecycle/protection mode=inert")
+if ($executionPass.Count -eq 0) {
+    throw "Execution projector success marker not found after terminal exit code $($process.ExitCode)."
+}
 $nativePass = @($newLogs | Select-String -SimpleMatch `
-        "NATIVE_ADAPTER_SMOKE_PASS symbol/session/risk/margin mode=read-only")
+        "NATIVE_ADAPTER_SMOKE_PASS symbol/session/risk/margin/deal-map mode=read-only")
 if ($nativePass.Count -eq 0) {
     throw "Native adapter success marker not found after terminal exit code $($process.ExitCode)."
 }
@@ -64,4 +69,4 @@ if ($timeProbe.Count -lt 5) {
     throw "Five time-basis probe markers not found after terminal exit code $($process.ExitCode)."
 }
 
-"MT5 runtime smoke PASS (18 vectors; native/visual adapters; time probe; inert mode)."
+"MT5 runtime smoke PASS (18 vectors; execution/native/visual adapters; time probe; inert mode)."

@@ -230,6 +230,46 @@ bool RunStateOrderingSmoke()
    if(!CloseBarBreakoutBeforeRoll(state,zone,XAU_BUY,VEC_BREAKOUT_CLOSE,true,
                                   103.0,99.0,breakout) || !breakout || state.count != 2)
       return false;
+   XauZone daily_zones[2];
+   daily_zones[0].id="R1"; daily_zones[0].low=100.0; daily_zones[0].high=101.0;
+   daily_zones[0].priority=0;
+   daily_zones[1].id="R2"; daily_zones[1].low=103.0; daily_zones[1].high=104.0;
+   daily_zones[1].priority=1;
+   XauDailyZoneSignalState daily_states[];
+   bool multi_zone_gap=false;
+   int breakout_sequence=0;
+   string attempted_bars[];
+   if(!InitializeDailyZoneStates(daily_zones,daily_states))
+      return false;
+   BeginSignalBar(daily_states,99.0);
+   if(!UpdateZoneEngagement(daily_states,99.0,100.0,multi_zone_gap) || multi_zone_gap ||
+      !daily_states[0].buy_engaged || NextBreakoutId(breakout_sequence) != "BO1" ||
+      !ConsumeReversalUsage(daily_states[0]) || ConsumeReversalUsage(daily_states[0]) ||
+      !ConsumeReversalUsage(daily_states[1]) || !ConsumeReversalUsage(daily_states[1]) ||
+      ConsumeReversalUsage(daily_states[1]) || !RecordEntryAttempt(attempted_bars,"t1") ||
+      RecordEntryAttempt(attempted_bars,"t1"))
+      return false;
+   XauPullbackWindowState pullback;
+   bool pending_must_cancel=false;
+   string candidate_id="";
+   double pullback_entry=0.0;
+   if(!CreatePullbackWindow(pullback,"BO1",daily_states[1].zone,XAU_BUY) ||
+      !BeginPullbackBar(pullback,pending_must_cancel) || pending_must_cancel ||
+      !EvaluatePullbackPrice(pullback,daily_states[1].pullback_fills,103.80,
+                             candidate_id,pullback_entry) || candidate_id != "BO1:PB1" ||
+      !NearlyEqual(pullback_entry,104.0) ||
+      !RecordPullbackAttempt(pullback,attempted_bars,"t2",true) ||
+      !RecordPullbackFill(pullback,daily_states[1]) || daily_states[1].pullback_fills != 1 ||
+      !BeginPullbackBar(pullback,pending_must_cancel) ||
+      !EvaluatePullbackPrice(pullback,daily_states[1].pullback_fills,103.80,
+                             candidate_id,pullback_entry) || candidate_id != "BO1:PB2" ||
+      !RecordPullbackAttempt(pullback,attempted_bars,"t3",true))
+      return false;
+   for(int offset=3;offset<=6;offset++)
+      if(!BeginPullbackBar(pullback,pending_must_cancel))
+         return false;
+   if(!pending_must_cancel || pullback.active)
+      return false;
    Print("STATE_ORDER_SMOKE_PASS tick/trend/bar-close mode=inert");
    return true;
   }

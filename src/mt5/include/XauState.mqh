@@ -9,6 +9,194 @@ struct XauTrendReferenceState
    double lows[3];
   };
 
+struct XauDailyZoneSignalState
+  {
+   XauZone zone;
+   bool buy_engaged;
+   bool sell_engaged;
+   int reversal_usage;
+   int pullback_fills;
+  };
+
+struct XauPullbackWindowState
+  {
+   string parent_breakout_id;
+   XauZone zone;
+   XauDirection direction;
+   int bar_offset;
+   bool active;
+   bool penetration_latched;
+   bool pending_active;
+   int sequence;
+  };
+
+bool CreatePullbackWindow(XauPullbackWindowState &window,const string parent_breakout_id,
+                          const XauZone &zone,const XauDirection direction)
+  {
+   if(parent_breakout_id == "" || zone.id == "" || zone.low > zone.high)
+      return false;
+   window.parent_breakout_id=parent_breakout_id;
+   window.zone=zone;
+   window.direction=direction;
+   window.bar_offset=0;
+   window.active=true;
+   window.penetration_latched=false;
+   window.pending_active=false;
+   window.sequence=0;
+   return true;
+  }
+
+bool BeginPullbackBar(XauPullbackWindowState &window,bool &pending_must_cancel)
+  {
+   pending_must_cancel=false;
+   if(!window.active)
+      return false;
+   window.bar_offset++;
+   if(!PullbackWindowActive(window.bar_offset))
+     {
+      pending_must_cancel=window.pending_active;
+      window.pending_active=false;
+      window.active=false;
+     }
+   return true;
+  }
+
+bool EvaluatePullbackPrice(XauPullbackWindowState &window,const int daily_fills,
+                           const double bid,string &candidate_id,double &entry_price)
+  {
+   candidate_id="";
+   entry_price=0.0;
+   if(!window.active || !PullbackWindowActive(window.bar_offset) || window.pending_active ||
+      !PullbackUsageAllowed(window.zone.priority,daily_fills))
+      return false;
+   if(!window.penetration_latched)
+     {
+      if(window.direction == XAU_BUY)
+         window.penetration_latched=bid <= window.zone.high-PULLBACK_PENETRATION_USD;
+      else
+         window.penetration_latched=bid >= window.zone.low+PULLBACK_PENETRATION_USD;
+     }
+   if(!window.penetration_latched)
+      return false;
+   window.sequence++;
+   candidate_id=window.parent_breakout_id+":PB"+IntegerToString(window.sequence);
+   entry_price=(window.direction == XAU_BUY ? window.zone.high : window.zone.low);
+   return true;
+  }
+
+bool RecordPullbackAttempt(XauPullbackWindowState &window,string &attempted_bars[],
+                           const string bar_id,const bool broker_accepted)
+  {
+   if(!window.active || window.pending_active || !RecordEntryAttempt(attempted_bars,bar_id))
+      return false;
+   if(broker_accepted)
+      window.pending_active=true;
+   return true;
+  }
+
+bool RecordPullbackFill(XauPullbackWindowState &window,XauDailyZoneSignalState &zone_state)
+  {
+   if(!window.active || !window.pending_active || window.zone.id != zone_state.zone.id)
+      return false;
+   zone_state.pullback_fills++;
+   window.pending_active=false;
+   window.penetration_latched=false;
+   return true;
+  }
+
+bool RecordPullbackPendingRemoved(XauPullbackWindowState &window)
+  {
+   if(!window.active || !window.pending_active)
+      return false;
+   window.pending_active=false;
+   return true;
+  }
+
+bool InitializeDailyZoneStates(const XauZone &zones[],XauDailyZoneSignalState &states[])
+  {
+   ArrayResize(states,ArraySize(zones));
+   for(int i=0;i<ArraySize(zones);i++)
+     {
+      if(zones[i].id == "" || zones[i].low > zones[i].high)
+         return false;
+      states[i].zone=zones[i];
+      states[i].buy_engaged=false;
+      states[i].sell_engaged=false;
+      states[i].reversal_usage=0;
+      states[i].pullback_fills=0;
+     }
+   return true;
+  }
+
+void BeginSignalBar(XauDailyZoneSignalState &states[],const double open_bid)
+  {
+   for(int i=0;i<ArraySize(states);i++)
+     {
+      const bool inside=open_bid >= states[i].zone.low && open_bid <= states[i].zone.high;
+      states[i].buy_engaged=inside;
+      states[i].sell_engaged=inside;
+     }
+  }
+
+bool UpdateZoneEngagement(XauDailyZoneSignalState &states[],const double previous_bid,
+                          const double current_bid,bool &multi_zone_tick_gap)
+  {
+   XauZone zones[];
+   ArrayResize(zones,ArraySize(states));
+   for(int i=0;i<ArraySize(states);i++)
+      zones[i]=states[i].zone;
+   multi_zone_tick_gap=CountDirectionalCrosses(zones,previous_bid,current_bid) > 1;
+   for(int i=0;i<ArraySize(states);i++)
+     {
+      if(multi_zone_tick_gap)
+        {
+         const bool inside=current_bid >= states[i].zone.low && current_bid <= states[i].zone.high;
+         if(inside)
+           {
+            states[i].buy_engaged=true;
+            states[i].sell_engaged=true;
+           }
+         continue;
+        }
+      if(!states[i].buy_engaged && previous_bid < states[i].zone.low &&
+         current_bid >= states[i].zone.low)
+         states[i].buy_engaged=true;
+      if(!states[i].sell_engaged && previous_bid > states[i].zone.high &&
+         current_bid <= states[i].zone.high)
+         states[i].sell_engaged=true;
+     }
+   return true;
+  }
+
+string NextBreakoutId(int &daily_sequence)
+  {
+   daily_sequence++;
+   return "BO"+IntegerToString(daily_sequence);
+  }
+
+bool ConsumeReversalUsage(XauDailyZoneSignalState &state)
+  {
+   const int limit=(state.zone.priority == 1 ? 2 : 1);
+   if(state.reversal_usage >= limit)
+      return false;
+   state.reversal_usage++;
+   return true;
+  }
+
+bool RecordEntryAttempt(string &attempted_bars[],const string bar_id)
+  {
+   if(bar_id == "")
+      return false;
+   for(int i=0;i<ArraySize(attempted_bars);i++)
+      if(attempted_bars[i] == bar_id)
+         return false;
+   const int index=ArraySize(attempted_bars);
+   if(ArrayResize(attempted_bars,index+1) != index+1)
+      return false;
+   attempted_bars[index]=bar_id;
+   return true;
+  }
+
 void BeginTrendDay(XauTrendReferenceState &state)
   {
    state.trend=XAU_TREND_NONE;

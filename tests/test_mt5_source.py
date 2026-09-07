@@ -103,6 +103,38 @@ def test_mql_state_orders_breakout_before_candle_roll() -> None:
     assert "OrderSend" not in source
 
 
+def test_mql_daily_signal_state_shares_usage_and_attempt_ledgers() -> None:
+    root = Path(__file__).parents[1]
+    source = (root / "src" / "mt5" / "include" / "XauState.mqh").read_text(encoding="utf-8")
+
+    for contract in (
+        "InitializeDailyZoneStates",
+        "BeginSignalBar",
+        "UpdateZoneEngagement",
+        "NextBreakoutId",
+        "ConsumeReversalUsage",
+        "RecordEntryAttempt",
+    ):
+        assert contract in source
+
+
+def test_mql_pullback_window_uses_shared_daily_state() -> None:
+    root = Path(__file__).parents[1]
+    source = (root / "src" / "mt5" / "include" / "XauState.mqh").read_text(encoding="utf-8")
+
+    for contract in (
+        "CreatePullbackWindow",
+        "BeginPullbackBar",
+        "EvaluatePullbackPrice",
+        "RecordPullbackAttempt",
+        "RecordPullbackFill",
+        "RecordPullbackPendingRemoved",
+    ):
+        assert contract in source
+    assert "PullbackUsageAllowed" in source
+    assert "RecordEntryAttempt" in source
+
+
 def test_native_adapter_is_read_only_and_uses_broker_apis() -> None:
     root = Path(__file__).parents[1]
     source = (root / "src" / "mt5" / "include" / "XauNative.mqh").read_text(encoding="utf-8")

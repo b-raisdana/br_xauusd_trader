@@ -47,13 +47,24 @@ Owns:
 2. Inspect Git status and actual code before changing anything.
 3. Recover or update executable TODOs.
 4. Choose safe reversible technical defaults without asking the Leader.
-5. Implement the smallest coherent solution.
+5. Implement the largest safe coherent batch that can be verified without crossing a Leader approval boundary; complete several adjacent TODO outcomes when they naturally belong together.
 6. Add/update tests.
 7. Run targeted checks then relevant quality gates.
 8. Update project documentation to match reality.
 9. Create a coherent verified Git checkpoint.
 10. Sync GitHub when configured and safe.
-11. Report only outcome, evidence, material risk, and genuine Leader decision.
+11. Treat reports, commits and pushes as checkpoints, not stopping points. Select the next safe `READY` outcome and continue.
+12. Report only outcome, evidence, material risk, and genuine Leader decision.
+
+## Persistence and batching
+- A delegated project objective remains active until it is achieved, explicitly cancelled/replaced by the Project Leader, or genuinely blocked by an approval boundary, missing authority or external condition.
+- Do not stop merely because one module, test slice, commit, push or milestone completed.
+- After every verified checkpoint, immediately continue with the next related executable TODO while safe work remains.
+- Prefer end-to-end batches that include implementation, tests, integration, documentation and Git synchronization over isolated micro-slices.
+- A status request or question from the Project Leader is not a cancellation. Answer it concisely, then resume the active objective unless the latest instruction replaces it.
+- Intermediate updates are informational. Never require the Project Leader to reply with “continue” for routine execution.
+- If one path is externally blocked, continue other safe in-scope work that reduces the remaining objective. Stop only when no meaningful safe progress remains.
+- Persistence does not expand scope, bypass confirmed Rules, weaken tests, authorize live trading, or remove any approval requirement below.
 
 ## Escalate only when needed
 Escalate for:

@@ -4,11 +4,11 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: MQL Strict/Conflict/reversible-TP state validated / Safety-request orchestration next
+- Current activity: MQL Safety/protected-request decisions validated / Audit-request orchestration next
 - Strategy target: MVP v2 Consolidated Rulebook
 - Rule status: Core Python strategy, Risk/Execution, Safety and Audit rules implemented and contract-tested; full MT5 orchestration/rendering remain
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
-- Last verified Git checkpoint entering this continuation: `51bcdb0` — MQL daily signal/Pullback state
+- Last verified Git checkpoint entering this continuation: `50f61ec` — MQL Strict/Conflict/reversible-TP state
 - Last verified date: 2026-09-07
 - Current branch: main
 - GitHub sync: PRIVATE `origin/main` — synchronized; use Git log for the exact head
@@ -52,7 +52,7 @@
 - Operational Safety evidence: 4 focused tests PASS, including Broker-derived inclusive five-minute pre-close actions, timezone-basis validation, first attach, same-day restart flatten/cancel/lock and next-Broker-Day release.
 - Audit/Visual evidence: 23 focused/integration tests PASS. Reversal, Breakout and Pullback signals plus protected ORDER/FILL/REJECT/CLOSE/MODIFY/CANCEL outcomes persist with request/BO lineage. Modify/Cancel reject events preserve current Position/Pending state, accepted Modify enforces no SL loosening, and typed recovery reuses the same invariant. Visual chart inspection remains.
 - Equivalence scaffold: versioned `tests/vectors/core_contracts.json` uses Decimal strings and executes nineteen Python vectors spanning Zone/Engagement/Signal/Trend/Pullback/Momentum/TP/Risk/Safety/Restart, Execution transition/protection validity and causal Tick ordering; generated MQL constants are byte-drift tested and the MQL startup consumer passed in isolated Strategy Tester. Real-tick lifecycle equivalence remains separate.
-- Current MQL5 baseline: `src/mt5/XAUUSD_MVP.mq5` plus modular Contract, State, Execution, Native and Visual includes compile with nineteen shared assertions and explicit `1e-9` tolerance. State now covers causal Trend/Bar Close, per-bar Zone Engagement, daily BO lineage, Normal/High Reversal usage, shared entry-attempt slots and Pullback `t+1..t+5` penetration/Pending/Fill/re-arm/expiry. The inert Execution projector, atomic ticket bindings and correlated Native Fill/Close path remain green. Native history remains unhooked and filtered; no callback, account-identity or order-send API exists. MetaEditor build 6151 reports 0 errors/0 warnings.
+- Current MQL5 baseline: `src/mt5/XAUUSD_MVP.mq5` plus modular Contract, State, Execution, Native and Visual includes compile with nineteen shared assertions and explicit `1e-9` tolerance. State covers causal daily signals, Pullback and reversible TP. Safety/request decisions now enforce Daily-before-GROSS15 precedence, 200/300 concurrency, inclusive Native margin, fixed 0.01 volume, directional protection and Session/Restart actions. The inert Execution projector, atomic ticket bindings and correlated Native Fill/Close path remain green. Native history remains unhooked and filtered; no callback, account-identity or order-send API exists. MetaEditor build 6151 reports 0 errors/0 warnings.
 - Price boundaries use finite `Decimal` values and merged Zone IDs use `{BrokerDay ISO}:R{sorted ordinal}`; future MQL5 parity must test conversion/tolerance explicitly.
 - `.gitattributes` now preserves canonical `ranges.csv` and all immutable Legacy evidence byte-for-byte across Windows/Linux; staged Git blobs verify core manifest 16/16 and canonical SHA-256 exactly.
 - First-run repository audit completed on 2026-09-06: all current and legacy source/test files were inventoried; `_migration_inbox` is absent.
@@ -156,6 +156,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید Daily/GROSS15/Session/Restart safety را با protected request projection در MQL یکپارچه کند و rejection precedence را تست کند؛ Trading تا Live Gate inert می‌ماند.
+Codex باید protected request را پس از Safety decision به Execution/Audit projection متصل کند، سپس callback Native را با opt-in خاموش و Magic/Symbol صریح اضافه کند؛ Trading تا Live Gate inert می‌ماند.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

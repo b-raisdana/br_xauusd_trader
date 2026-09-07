@@ -48,6 +48,25 @@ enum XauOrderType
    XAU_ORDER_PENDING_STOP = 1
   };
 
+enum XauEntryRejection
+  {
+   XAU_ENTRY_ALLOWED = 0,
+   XAU_ENTRY_DAILY_LOSS = 1,
+   XAU_ENTRY_GROSS_RISK = 2,
+   XAU_ENTRY_CONCURRENCY = 3,
+   XAU_ENTRY_MARGIN = 4,
+   XAU_ENTRY_INVALID_PROTECTION = 5
+  };
+
+struct XauOperationalSafety
+  {
+   bool locked;
+   bool block_entries;
+   bool cancel_pending;
+   bool cancel_pullback_cycles;
+   bool close_positions;
+  };
+
 struct XauZone
   {
    string id;
@@ -285,6 +304,61 @@ bool PortfolioRiskAllows(const double strategy_capital,const double realized_gro
       return false;
    const double budget=strategy_capital*GROSS_DAILY_RISK_FRACTION;
    return realized_gross_loss+open_risk+pending_risk+proposed_risk <= budget+1e-9;
+  }
+
+int MaximumPositions(const double strategy_capital)
+  {
+   if(MathAbs(strategy_capital-200.0) <= PARITY_PRICE_TOLERANCE)
+      return 3;
+   if(MathAbs(strategy_capital-300.0) <= PARITY_PRICE_TOLERANCE)
+      return 5;
+   return -1;
+  }
+
+bool ConcurrencyAllowsEntry(const double strategy_capital,const int open_positions)
+  {
+   const int maximum=MaximumPositions(strategy_capital);
+   return maximum >= 0 && open_positions >= 0 && open_positions < maximum;
+  }
+
+bool NativeMarginAllowsEntry(const double required_margin,const double free_margin)
+  {
+   return required_margin >= 0.0 && free_margin >= 0.0 && required_margin <= free_margin;
+  }
+
+XauEntryRejection EvaluateProtectedEntry(const bool daily_locked,
+                                         const bool portfolio_allowed,
+                                         const bool concurrency_allowed,
+                                         const bool margin_allowed,
+                                         const XauDirection direction,const double entry,
+                                         const double stop_loss,const double take_profit,
+                                         const double volume_lots)
+  {
+   if(daily_locked)
+      return XAU_ENTRY_DAILY_LOSS;
+   if(!portfolio_allowed)
+      return XAU_ENTRY_GROSS_RISK;
+   if(!concurrency_allowed)
+      return XAU_ENTRY_CONCURRENCY;
+   if(!margin_allowed)
+      return XAU_ENTRY_MARGIN;
+   const bool protected_order=(direction == XAU_BUY ? stop_loss < entry && entry < take_profit
+                                                    : take_profit < entry && entry < stop_loss);
+   if(!protected_order || MathAbs(volume_lots-0.01) > PARITY_PRICE_TOLERANCE)
+      return XAU_ENTRY_INVALID_PROTECTION;
+   return XAU_ENTRY_ALLOWED;
+  }
+
+XauOperationalSafety EvaluateOperationalSafety(const bool session_active,
+                                                const bool same_day_restart)
+  {
+   XauOperationalSafety actions;
+   actions.locked=session_active || same_day_restart;
+   actions.block_entries=actions.locked;
+   actions.cancel_pending=actions.locked;
+   actions.cancel_pullback_cycles=actions.locked;
+   actions.close_positions=actions.locked;
+   return actions;
   }
 
 bool ProfitProtectionStop(const XauDirection direction,const double entry,

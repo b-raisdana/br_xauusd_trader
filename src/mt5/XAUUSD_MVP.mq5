@@ -298,6 +298,30 @@ bool RunStateOrderingSmoke()
    return true;
   }
 
+bool RunSafetyRequestSmoke()
+  {
+   const bool portfolio_allowed=PortfolioRiskAllows(200.0,5.0,10.0,7.0,8.0);
+   if(!portfolio_allowed || !ConcurrencyAllowsEntry(200.0,2) ||
+      ConcurrencyAllowsEntry(200.0,3) || !NativeMarginAllowsEntry(10.0,10.0) ||
+      NativeMarginAllowsEntry(10.01,10.0))
+      return false;
+   if(EvaluateProtectedEntry(true,false,false,false,XAU_BUY,100.0,96.0,108.0,0.01) !=
+      XAU_ENTRY_DAILY_LOSS)
+      return false;
+   if(EvaluateProtectedEntry(false,false,true,true,XAU_BUY,100.0,96.0,108.0,0.01) !=
+      XAU_ENTRY_GROSS_RISK)
+      return false;
+   if(EvaluateProtectedEntry(false,true,true,true,XAU_BUY,100.0,96.0,108.0,0.01) !=
+      XAU_ENTRY_ALLOWED)
+      return false;
+   XauOperationalSafety operations=EvaluateOperationalSafety(false,true);
+   if(!operations.locked || !operations.block_entries || !operations.cancel_pending ||
+      !operations.cancel_pullback_cycles || !operations.close_positions)
+      return false;
+   Print("SAFETY_REQUEST_SMOKE_PASS daily/gross/concurrency/margin/operations mode=inert");
+   return true;
+  }
+
 bool RunNativeAdapterSmoke()
   {
    XauExecutionEvent native_event=XAU_EXECUTION_REJECT;
@@ -383,6 +407,8 @@ int OnInit()
    if(!RunExecutionProjectorSmoke())
       return INIT_FAILED;
    if(!RunStateOrderingSmoke())
+      return INIT_FAILED;
+   if(!RunSafetyRequestSmoke())
       return INIT_FAILED;
    if(!RunNativeAdapterSmoke())
       return INIT_FAILED;

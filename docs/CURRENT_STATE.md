@@ -11,7 +11,7 @@
 - Last verified Git checkpoint entering this continuation: `751feec` — guarded Strategy Tester lifecycle
 - Last verified date: 2026-09-07
 - Current branch: main
-- GitHub sync: PRIVATE `origin/main` — synchronized; use Git log for the exact head
+- GitHub sync: PRIVATE `origin/main` — rapid-MVP mode; routine push/PR/remote CI deferred, local Git retained
 - Live state: RESEARCH_ONLY
 
 ## Source-of-Truth files
@@ -152,6 +152,7 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 ## Current blocker
 
 - None for local code production, isolated Strategy Tester smoke, or normal GitHub synchronization.
+- Final Rulebook/Code freeze still requires the Project Leader's visual review of selected chart samples; Codex must complete the technical MVP candidate before requesting that review.
 
 ## Leader decisions
 

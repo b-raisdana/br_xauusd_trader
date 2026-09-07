@@ -30,12 +30,12 @@ description: Use for non-trivial implementation, bug fixes, refactors or multi-s
 
 ## Verify
 - targeted checks first;
-- then relevant quality gate;
+- run the full quality gate at a major milestone, final MVP candidate, or after safety-critical changes rather than after every micro-slice;
 - never claim PASS without runnable evidence when a runnable check exists.
 
 ## Close
 - synchronize docs;
-- create a coherent Git checkpoint;
-- push when configured and safe;
+- create one coherent local Git checkpoint for a major verified batch;
+- during rapid MVP execution, defer routine push/PR/remote CI unless the Leader requests it or remote recovery materially requires it;
 - if the objective remains open, immediately continue the next safe batch;
 - report outcome/evidence/risk/Leader decision only.

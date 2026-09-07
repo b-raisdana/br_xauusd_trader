@@ -75,7 +75,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\compile_mt5.ps
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_mt5_contract_smoke.ps1
 ```
 
-The current source is research-only and inert. The compile script accepts `-MetaEditorPath` when MT5 is installed elsewhere. The smoke runner requires all other MetaTrader instances to be closed, discovers the matching terminal data root (or accepts `-DataRoot`), copies only the ignored compiled EA, and requires the 16-vector, read-only Native/Visual and five time-probe markers. Neither a zero-warning compile nor this smoke is strategy acceptance or live approval. Do not treat the historical EA under `legacy_reference/` as current.
+The current source is research-only and inert. The compile script accepts `-MetaEditorPath` when MT5 is installed elsewhere. The smoke runner requires all other MetaTrader instances to be closed, discovers the matching terminal data root (or accepts `-DataRoot`), copies only the ignored compiled EA, and requires the 19-vector, coordinator, full-day current event-loop, read-only Native/Visual and five time-probe markers. Neither a zero-warning compile nor this smoke is strategy acceptance or live approval. Do not treat the historical EA under `legacy_reference/` as current.
 
 ## Recovery after reboot
 1. Open project folder.

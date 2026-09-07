@@ -233,6 +233,14 @@ bool InitializeDailyZoneStates(const XauZone &zones[],XauDailyZoneSignalState &s
    return true;
   }
 
+int FindDailyZoneState(const XauDailyZoneSignalState &states[],const string zone_id)
+  {
+   for(int i=0;i<ArraySize(states);i++)
+      if(states[i].zone.id == zone_id)
+         return i;
+   return -1;
+  }
+
 void BeginSignalBar(XauDailyZoneSignalState &states[],const double open_bid)
   {
    for(int i=0;i<ArraySize(states);i++)

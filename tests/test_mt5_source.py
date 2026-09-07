@@ -18,6 +18,7 @@ def test_current_mt5_baseline_is_strict_vector_driven_and_live_inert() -> None:
     assert "if(InpEnableTrading)" in source
     assert "input bool InpObserveNativeOutcomes=false" in source
     assert "input long InpStrategyMagic=0" in source
+    assert "input bool InpRunCurrentEventLoop=false" in source
     assert "trade.Buy" not in source
     assert "trade.Sell" not in source
     for contract in (
@@ -125,6 +126,25 @@ def test_mql_state_orders_breakout_before_candle_roll() -> None:
     assert "OrderSend" not in source
 
 
+def test_mql_coordinator_owns_causal_day_bar_tick_and_close_order() -> None:
+    root = Path(__file__).parents[1]
+    source = (root / "src" / "mt5" / "include" / "XauCoordinator.mqh").read_text(encoding="utf-8")
+
+    for contract in (
+        "BeginCoordinatorDay",
+        "BeginCoordinatorBar",
+        "ProcessCoordinatorTick",
+        "CloseCoordinatorBar",
+    ):
+        assert contract in source
+    assert source.index("ProcessTrendTick(state.trend,bid)") < source.index(
+        "UpdateZoneEngagement(state.zones,previous_bid,bid,multi_zone_gap)"
+    )
+    assert source.index("BreakoutValid") < source.index("RecordTrendCandle")
+    assert "OrderSend" not in source
+    assert "CTrade" not in source
+
+
 def test_mql_daily_signal_state_shares_usage_and_attempt_ledgers() -> None:
     root = Path(__file__).parents[1]
     source = (root / "src" / "mt5" / "include" / "XauState.mqh").read_text(encoding="utf-8")
@@ -206,6 +226,23 @@ def test_contract_smoke_configuration_is_local_and_trading_disabled() -> None:
     assert "InpEmitTimeBasisProbe=true" in config
     assert "InpObserveNativeOutcomes=false" in config
     assert "InpStrategyMagic=0" in config
+    assert "InpRunCurrentEventLoop=true" in config
+
+
+def test_current_event_loop_loads_canonical_zones_and_remains_inert() -> None:
+    root = Path(__file__).parents[1]
+    source = (root / "src" / "mt5" / "XAUUSD_MVP.mq5").read_text(encoding="utf-8")
+
+    assert '#include "generated/DailyZones.mqh"' in source
+    assert "LoadGeneratedRawZones" in source
+    assert "BuildMergedZones" in source
+    assert "CopyRates" in source
+    assert "ProcessCurrentEventLoopTick" in source
+    assert "ProcessCoordinatorTick" in source
+    assert "CloseCoordinatorBar" in source
+    assert "CURRENT_EVENT_LOOP_DONE breakout=" in source
+    assert "OrderSend" not in source
+    assert "CTrade" not in source
 
 
 def test_visual_adapter_is_audit_derived_and_contains_no_trading_path() -> None:

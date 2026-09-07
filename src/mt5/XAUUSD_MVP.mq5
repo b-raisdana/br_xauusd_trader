@@ -4,21 +4,31 @@
 
 #include "generated/CoreVectors.mqh"
 #include "include/XauContracts.mqh"
+#include "generated/DailyZones.mqh"
 #include "include/XauExecution.mqh"
 #include "include/XauAudit.mqh"
 #include "include/XauNative.mqh"
 #include "include/XauState.mqh"
+#include "include/XauCoordinator.mqh"
 #include "include/XauVisual.mqh"
 
 input bool InpEnableTrading=false;
 input bool InpEmitTimeBasisProbe=false;
 input bool InpObserveNativeOutcomes=false;
 input long InpStrategyMagic=0;
+input bool InpRunCurrentEventLoop=false;
 
 int g_time_basis_probe_count=0;
 XauExecutionProjection g_execution_projections[];
 XauExecutionBinding g_execution_bindings[];
 const string EXECUTION_BINDINGS_FILE="XAUUSD_Current\\bindings.tsv";
+XauMarketCoordinator g_market_state;
+datetime g_current_bar_time=0;
+bool g_event_loop_ready=false;
+bool g_event_loop_failure_reported=false;
+long g_breakout_candidate_count=0;
+long g_reversal_candidate_count=0;
+long g_pullback_candidate_count=0;
 
 bool NearlyEqual(const double left,const double right)
   {
@@ -324,6 +334,37 @@ bool RunStateOrderingSmoke()
    return true;
   }
 
+bool RunCoordinatorSmoke()
+  {
+   XauZone zones[1];
+   zones[0].id="2026-09-06:R1";
+   zones[0].low=100.0;
+   zones[0].high=101.0;
+   zones[0].priority=0;
+   XauMarketCoordinator state;
+   int cancellations=0;
+   XauSignalCandidate candidates[];
+   XauSignalCandidate breakouts[];
+   if(!BeginCoordinatorDay(state,"2026-09-06",zones) ||
+      !RecordTrendCandle(state.trend,99.5,98.0) ||
+      !BeginCoordinatorBar(state,"2026-09-06T10:00",99.0,99.1,cancellations) ||
+      cancellations != 0 ||
+      !ProcessCoordinatorTick(state,StringToTime("2026.09.06 10:01:00"),100.0,100.1,
+                              candidates) || ArraySize(candidates) != 1 ||
+      candidates[0].family != XAU_SIGNAL_REVERSAL ||
+      !ProcessCoordinatorTick(state,StringToTime("2026.09.06 10:02:00"),102.1,102.2,
+                              candidates) || ArraySize(candidates) != 0 ||
+      !CloseCoordinatorBar(state,StringToTime("2026.09.06 10:15:00"),102.2,99.0,102.1,
+                           breakouts) || ArraySize(breakouts) != 1 ||
+      breakouts[0].family != XAU_SIGNAL_BREAKOUT ||
+      ArraySize(state.pullbacks) != 1 || state.trend.count != 2 ||
+      !BeginCoordinatorBar(state,"2026-09-06T10:15",102.1,102.2,cancellations) ||
+      state.pullbacks[0].bar_offset != 1)
+      return false;
+   Print("COORDINATOR_SMOKE_PASS day/bar/tick/trend/engagement/signal/close mode=inert");
+   return true;
+  }
+
 bool RunSafetyRequestSmoke()
   {
    const bool portfolio_allowed=PortfolioRiskAllows(200.0,5.0,10.0,7.0,8.0);
@@ -443,6 +484,106 @@ bool RunVisualPayloadSmoke()
    return true;
   }
 
+bool InitializeCurrentEventLoop(const MqlTick &tick,const datetime bar_time)
+  {
+   const string broker_day=TimeToString(tick.time,TIME_DATE);
+   XauZone raw_zones[];
+   XauZone merged_zones[];
+   if(!LoadGeneratedRawZones(broker_day,raw_zones))
+      return false;
+   string zone_day=broker_day;
+   StringReplace(zone_day,".","-");
+   if(BuildMergedZones(raw_zones,zone_day,merged_zones) <= 0 ||
+      !BeginCoordinatorDay(g_market_state,zone_day,merged_zones))
+      return false;
+
+   MqlDateTime day_parts;
+   if(!TimeToStruct(tick.time,day_parts))
+      return false;
+   day_parts.hour=0;
+   day_parts.min=0;
+   day_parts.sec=0;
+   const datetime day_start=StructToTime(day_parts);
+   if(bar_time > day_start)
+     {
+      MqlRates history[];
+      const int copied=CopyRates(_Symbol,PERIOD_M15,day_start,bar_time-1,history);
+      const datetime previous_bar=iTime(_Symbol,PERIOD_M15,1);
+      if(copied < 0 && previous_bar >= day_start)
+         return false;
+      const int history_count=(copied > 0 ? copied : 0);
+      for(int i=0;i<history_count;i++)
+         if(!RecordTrendCandle(g_market_state.trend,history[i].high,history[i].low))
+            return false;
+     }
+
+   const double open_bid=iOpen(_Symbol,PERIOD_M15,0);
+   int pending_cancellations=0;
+   if(open_bid <= 0.0 ||
+      !BeginCoordinatorBar(g_market_state,TimeToString(bar_time,TIME_DATE|TIME_MINUTES),
+                           open_bid,open_bid+MathMax(0.0,tick.ask-tick.bid),
+                           pending_cancellations))
+      return false;
+   g_current_bar_time=bar_time;
+   g_event_loop_ready=true;
+   PrintFormat("CURRENT_EVENT_LOOP_READY zones=%d history_bars=%d mode=inert",
+               ArraySize(merged_zones),g_market_state.trend.count);
+   return true;
+  }
+
+bool ProcessCurrentEventLoopTick(const MqlTick &tick)
+  {
+   const datetime bar_time=iTime(_Symbol,PERIOD_M15,0);
+   if(bar_time <= 0)
+      return false;
+   if(!g_event_loop_ready)
+     {
+      if(!InitializeCurrentEventLoop(tick,bar_time))
+         return false;
+     }
+   else if(TimeToString(tick.time,TIME_DATE) !=
+           StringSubstr(g_market_state.broker_day,0,4)+"."+
+           StringSubstr(g_market_state.broker_day,5,2)+"."+
+           StringSubstr(g_market_state.broker_day,8,2))
+     {
+      g_event_loop_ready=false;
+      if(!InitializeCurrentEventLoop(tick,bar_time))
+         return false;
+     }
+   else if(bar_time != g_current_bar_time)
+     {
+      XauSignalCandidate breakouts[];
+      const double high=iHigh(_Symbol,PERIOD_M15,1);
+      const double low=iLow(_Symbol,PERIOD_M15,1);
+      const double close_bid=iClose(_Symbol,PERIOD_M15,1);
+      if(!CloseCoordinatorBar(g_market_state,bar_time,high,low,close_bid,breakouts))
+         return false;
+      int pending_cancellations=0;
+      const double open_bid=iOpen(_Symbol,PERIOD_M15,0);
+      if(!BeginCoordinatorBar(g_market_state,
+                              TimeToString(bar_time,TIME_DATE|TIME_MINUTES),open_bid,
+                              open_bid+MathMax(0.0,tick.ask-tick.bid),pending_cancellations))
+         return false;
+      g_current_bar_time=bar_time;
+      if(ArraySize(breakouts)>0 || pending_cancellations>0)
+        {
+         g_breakout_candidate_count+=ArraySize(breakouts);
+         PrintFormat("CURRENT_EVENT_LOOP_CLOSE breakouts=%d cancellations=%d mode=inert",
+                     ArraySize(breakouts),pending_cancellations);
+        }
+     }
+
+   XauSignalCandidate candidates[];
+   if(!ProcessCoordinatorTick(g_market_state,tick.time,tick.bid,tick.ask,candidates))
+      return false;
+   for(int i=0;i<ArraySize(candidates);i++)
+      if(candidates[i].family == XAU_SIGNAL_REVERSAL)
+         g_reversal_candidate_count++;
+      else if(candidates[i].family == XAU_SIGNAL_PULLBACK)
+         g_pullback_candidate_count++;
+   return true;
+  }
+
 int OnInit()
   {
    if(InpEnableTrading)
@@ -466,6 +607,8 @@ int OnInit()
    if(!RunGuardedNativeCallbackSmoke())
       return INIT_FAILED;
    if(!RunStateOrderingSmoke())
+      return INIT_FAILED;
+   if(!RunCoordinatorSmoke())
       return INIT_FAILED;
    if(!RunSafetyRequestSmoke())
       return INIT_FAILED;
@@ -510,5 +653,24 @@ void OnTick()
          g_time_basis_probe_count++;
         }
      }
-   // Intentionally inert until current adapters pass parity and live gates.
+   if(InpRunCurrentEventLoop)
+     {
+      MqlTick tick;
+      if((!SymbolInfoTick(_Symbol,tick) || !ProcessCurrentEventLoopTick(tick)) &&
+         !g_event_loop_failure_reported)
+        {
+         Print("Current event loop failed closed; no trading action is available.");
+         g_event_loop_failure_reported=true;
+        }
+     }
+   // The event loop emits state/candidates only; trading remains unavailable.
+  }
+
+void OnDeinit(const int reason)
+  {
+   if(InpRunCurrentEventLoop)
+      PrintFormat("CURRENT_EVENT_LOOP_DONE breakout=%I64d reversal=%I64d pullback=%I64d "
+                  "failed=%d mode=inert",g_breakout_candidate_count,
+                  g_reversal_candidate_count,g_pullback_candidate_count,
+                  (int)g_event_loop_failure_reported);
   }

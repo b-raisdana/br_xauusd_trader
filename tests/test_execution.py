@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 
@@ -229,3 +230,146 @@ def test_invalid_recovery_does_not_replace_existing_state() -> None:
     with pytest.raises(ValueError, match="has no Order"):
         ledger.recover((invalid_fill,))
     assert ledger.record("REQ1").status is ExecutionStatus.SUBMITTED
+
+
+def test_modify_updates_protection_only_after_acceptance_and_never_loosens_stop() -> None:
+    journal = AuditJournal()
+    ledger = ExecutionLedger(journal)
+    ledger.begin_day(DAY)
+    ledger.submit(request())
+    ledger.fill("REQ1", broker_time=NOW, fill_price="100")
+
+    modified = ledger.modify(
+        "REQ1",
+        broker_time=NOW + timedelta(seconds=1),
+        broker_accepted=True,
+        stop_loss="97",
+        rule_ids=("PROFIT_PROTECTION",),
+    )
+    assert modified.kind is AuditEventKind.MODIFY
+    assert ledger.record("REQ1").current_stop_loss == Decimal("97")
+
+    rejected = ledger.modify(
+        "REQ1",
+        broker_time=NOW + timedelta(seconds=2),
+        broker_accepted=False,
+        take_profit="110",
+        rule_ids=("EXTEND_PULLBACK_TP",),
+        rejection_reason="native_modify_reject",
+    )
+    assert rejected.kind is AuditEventKind.MODIFY_REJECT
+    assert rejected.take_profit == Decimal("110")
+    assert ledger.record("REQ1").current_take_profit == Decimal("108")
+
+    with pytest.raises(ValueError, match="loosen SL"):
+        ledger.modify(
+            "REQ1",
+            broker_time=NOW + timedelta(seconds=3),
+            broker_accepted=True,
+            stop_loss="96",
+            rule_ids=("PROFIT_PROTECTION",),
+        )
+
+
+def test_pending_cancel_reject_preserves_order_and_acceptance_is_terminal() -> None:
+    ledger = ExecutionLedger(AuditJournal())
+    ledger.begin_day(DAY)
+    ledger.submit(request(family=SignalFamily.PULLBACK))
+
+    rejected = ledger.cancel_pending(
+        "REQ1",
+        broker_time=NOW,
+        broker_accepted=False,
+        rule_ids=("SESSION_END_FLATTEN",),
+        reason="native_cancel_reject",
+    )
+    assert rejected.kind is AuditEventKind.CANCEL_REJECT
+    assert ledger.record("REQ1").status is ExecutionStatus.SUBMITTED
+
+    cancelled = ledger.cancel_pending(
+        "REQ1",
+        broker_time=NOW + timedelta(seconds=1),
+        broker_accepted=True,
+        rule_ids=("SESSION_END_FLATTEN",),
+        reason="session_end",
+    )
+    assert cancelled.kind is AuditEventKind.CANCEL
+    assert ledger.record("REQ1").status is ExecutionStatus.CANCELLED
+    with pytest.raises(ValueError, match="already resolved"):
+        ledger.cancel_pending(
+            "REQ1",
+            broker_time=NOW + timedelta(seconds=2),
+            broker_accepted=True,
+            rule_ids=("SESSION_END_FLATTEN",),
+            reason="duplicate",
+        )
+
+
+def test_market_order_cannot_use_pending_cancel_lifecycle() -> None:
+    ledger = ExecutionLedger(AuditJournal())
+    ledger.begin_day(DAY)
+    ledger.submit(request())
+    with pytest.raises(ValueError, match="Only a Pending"):
+        ledger.cancel_pending(
+            "REQ1",
+            broker_time=NOW,
+            broker_accepted=True,
+            rule_ids=("SESSION_END_FLATTEN",),
+            reason="invalid",
+        )
+
+
+def test_modify_and_cancel_states_recover_from_durable_events(tmp_path) -> None:
+    from xauusd.audit import JsonlAuditStore
+
+    store = JsonlAuditStore(tmp_path / "events.jsonl")
+    original = ExecutionLedger(AuditJournal(store))
+    original.begin_day(DAY)
+    original.submit(request())
+    original.fill("REQ1", broker_time=NOW, fill_price="100")
+    original.modify(
+        "REQ1",
+        broker_time=NOW,
+        broker_accepted=True,
+        stop_loss="97",
+        rule_ids=("PROFIT_PROTECTION",),
+    )
+    pending = replace(request(family=SignalFamily.PULLBACK), request_id="REQ2")
+    original.submit(pending)
+    original.cancel_pending(
+        "REQ2",
+        broker_time=NOW,
+        broker_accepted=True,
+        rule_ids=("SESSION_END_FLATTEN",),
+        reason="session_end",
+    )
+
+    recovered = ExecutionLedger(AuditJournal(store))
+    recovered.begin_day(DAY)
+    recovered.recover(store.events_for_day(DAY))
+
+    assert recovered.record("REQ1").current_stop_loss == Decimal("97")
+    assert recovered.record("REQ1").status is ExecutionStatus.FILLED
+    assert recovered.record("REQ2").status is ExecutionStatus.CANCELLED
+
+
+def test_recovery_rejects_audit_modify_that_loosens_stop() -> None:
+    journal = AuditJournal()
+    original = ExecutionLedger(journal)
+    original.begin_day(DAY)
+    original.submit(request())
+    original.fill("REQ1", broker_time=NOW, fill_price="100")
+    invalid_modify = replace(
+        journal.events[-1],
+        event_id="2026-09-06:E000003",
+        kind=AuditEventKind.MODIFY,
+        stop_loss=Decimal("95"),
+        take_profit=Decimal("108"),
+    )
+
+    recovered = ExecutionLedger(AuditJournal())
+    recovered.begin_day(DAY)
+    with pytest.raises(ValueError, match="loosen SL"):
+        recovered.recover((*journal.events, invalid_modify))
+    with pytest.raises(ValueError, match="Unknown"):
+        recovered.record("REQ1")

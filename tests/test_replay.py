@@ -8,9 +8,11 @@ from xauusd.audit import AuditEventKind, AuditJournal, SignalFamily
 from xauusd.market_state import MarketState
 from xauusd.replay import (
     ReplayBar,
+    ReplayCancelOutcome,
     ReplayCloseOutcome,
     ReplayDay,
     ReplayExecutionOutcome,
+    ReplayModifyOutcome,
     ReplayRunner,
     ReplayTick,
     build_replay_days,
@@ -337,3 +339,106 @@ def test_replay_rejects_close_without_an_existing_fill_before_audit() -> None:
 
     with pytest.raises(ValueError, match="no open filled position"):
         ReplayRunner(MarketState(), AuditJournal()).run_day(replace(replay, bars=(bar,)))
+
+
+@pytest.mark.parametrize(
+    ("accepted", "reason", "expected_kind", "expected_stop"),
+    [
+        (True, None, AuditEventKind.MODIFY, Decimal("105")),
+        (False, "native_modify_reject", AuditEventKind.MODIFY_REJECT, Decimal("106.00")),
+    ],
+)
+def test_replay_applies_explicit_modify_outcome_and_preserves_rejected_state(
+    accepted: bool,
+    reason: str | None,
+    expected_kind: AuditEventKind,
+    expected_stop: Decimal,
+) -> None:
+    candidate_id = "t:R:2026-09-06:R2:sell"
+    fill = ReplayExecutionOutcome.from_values(
+        candidate_id=candidate_id,
+        broker_time=datetime(2026, 9, 6, 10, 1, 1),
+        accepted=True,
+        fill_price="100.1",
+    )
+    replay = execution_replay(fill)
+    modify = ReplayModifyOutcome.from_values(
+        request_id=candidate_id,
+        broker_time=datetime(2026, 9, 6, 10, 14, 1),
+        accepted=accepted,
+        stop_loss="105",
+        rule_ids=("PROFIT_PROTECTION",),
+        rejection_reason=reason,
+    )
+    second_tick = replace(replay.bars[0].ticks[1], modify_outcomes=(modify,))
+    bar = replace(replay.bars[0], ticks=(replay.bars[0].ticks[0], second_tick))
+    runner = ReplayRunner(MarketState(), AuditJournal())
+
+    result = runner.run_day(replace(replay, bars=(bar,)))
+
+    assert expected_kind in [event.kind for event in result.events]
+    assert runner.execution.record(candidate_id).current_stop_loss == expected_stop
+
+
+@pytest.mark.parametrize(
+    ("accepted", "expected_kind", "expected_status"),
+    [
+        (True, AuditEventKind.CANCEL, "cancelled"),
+        (False, AuditEventKind.CANCEL_REJECT, "submitted"),
+    ],
+)
+def test_replay_applies_explicit_pending_cancel_outcome(
+    accepted: bool, expected_kind: AuditEventKind, expected_status: str
+) -> None:
+    dummy = ReplayExecutionOutcome.from_values(
+        candidate_id="t:R:2026-09-06:R2:sell",
+        broker_time=datetime(2026, 9, 6, 10, 1),
+        accepted=False,
+        rejection_reason="unused",
+    )
+    base = execution_replay(dummy)
+    first_tick = replace(base.bars[0].ticks[0], execution_outcomes=())
+    breakout_bar = replace(base.bars[0], ticks=(first_tick, base.bars[0].ticks[1]))
+    pending = ReplayExecutionOutcome.from_values(
+        candidate_id="BO1:PB1",
+        broker_time=datetime(2026, 9, 6, 10, 16),
+        accepted=True,
+    )
+    cancel = ReplayCancelOutcome.from_values(
+        request_id="BO1:PB1",
+        broker_time=datetime(2026, 9, 6, 10, 29, 1),
+        accepted=accepted,
+        rule_ids=("SESSION_END_FLATTEN",),
+        reason="session_end" if accepted else "native_cancel_reject",
+    )
+    pullback_bar = ReplayBar.from_values(
+        bar_id="t+1",
+        open_time=datetime(2026, 9, 6, 10, 15),
+        close_time=datetime(2026, 9, 6, 10, 30),
+        open_bid="102.01",
+        candle=Candle.from_values(
+            broker_day=base.broker_day,
+            open="102.01",
+            high="102.01",
+            low="100.8",
+            close="101",
+        ),
+        ticks=(
+            ReplayTick.from_values(
+                broker_time=datetime(2026, 9, 6, 10, 16),
+                bid="100.8",
+                execution_outcomes=(pending,),
+            ),
+            ReplayTick.from_values(
+                broker_time=datetime(2026, 9, 6, 10, 29),
+                bid="101",
+                cancel_outcomes=(cancel,),
+            ),
+        ),
+    )
+    runner = ReplayRunner(MarketState(), AuditJournal())
+
+    result = runner.run_day(replace(base, bars=(breakout_bar, pullback_bar)))
+
+    assert expected_kind in [event.kind for event in result.events]
+    assert runner.execution.record("BO1:PB1").status.value == expected_status

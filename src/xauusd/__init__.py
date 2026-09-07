@@ -34,9 +34,11 @@ from xauusd.pullback import (
 )
 from xauusd.replay import (
     ReplayBar,
+    ReplayCancelOutcome,
     ReplayCloseOutcome,
     ReplayDay,
     ReplayExecutionOutcome,
+    ReplayModifyOutcome,
     ReplayResult,
     ReplayRunner,
     ReplayTick,
@@ -149,8 +151,10 @@ __all__ = [
     "PullbackTracker",
     "ReplayBar",
     "ReplayCloseOutcome",
+    "ReplayCancelOutcome",
     "ReplayDay",
     "ReplayExecutionOutcome",
+    "ReplayModifyOutcome",
     "ReplayResult",
     "ReplayRunner",
     "ReplayTick",

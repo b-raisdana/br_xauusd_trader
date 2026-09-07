@@ -4,7 +4,7 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: 23-day MQL lifecycle acceptance PASS; Trend/Normal/FreeSpace attribution and Python↔MT5 multi-day parity remain before Freeze
+- Current activity: 23-day MQL lifecycle and signal-priority attribution PASS; Trend/FreeSpace controls, priority PnL attribution and Python↔MT5 multi-day parity remain before Freeze
 - Strategy target: MVP v2 Consolidated Rulebook
 - Rule status: Core Python strategy and guarded MQL signal/request/Native lifecycle, TP extension/restore and same-day restart are implemented and tested for one real-tick day; multi-day equivalence remains
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
@@ -72,6 +72,7 @@
 - `load_mt5_tick_bars` preserves source row order for equal-millisecond ticks, rejects backward time, requires an explicit whole-minute offset, and creates internally consistent M15 Bid candles. The ignored 6,487-tick sample mechanically normalized/replayed as one bar.
 - `scripts/match_mt5_time_basis.py` fail-closes unless an ordered multi-tick probe uniquely matches one whole-30-minute UTC offset in the terminal history. A five-tick local correlation produced one unique match; the probe values, resolved Broker-specific offset and account identity are intentionally not persisted or committed.
 - Current test baseline: 139 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by repository checks. MetaEditor remains 0 errors/0 warnings. The 23-day local-only MQL run passed with 302 attempts, 188 accepts, max3, two cancels/two session closes, TP 10/3/2, zero unknown rejects, SL-loosen, final exposure or lifecycle failure. One-day Python/MQL signal-count parity remains exact; multi-day cross-engine parity remains.
+- Attribution counters on the same 23-day run: Reversal Normal `86/86/0`, Reversal High `26/26/0`, Pullback Normal `146/56/90`, Pullback High `44/20/24` (attempt/accepted/rejected). QA 2026-07-29 passed technically with `16/9/7`, net `+16.33` and zero failure; leader-known signal ledger comparison and per-priority PnL remain.
 - Template و Handoff به‌صورت محتوایی Merge شدند و Workflow محلی CI حفظ شد.
 - Repository روی Branch `main` ایجاد و Baseline در Git ثبت شد.
 - `FINAL_PROJECT_HANDOFF_2026-09-06.md` طبق تصمیم Project Leader وارد Repository نشد.
@@ -161,6 +162,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید Trend/Normal/FreeSpace و QA-day regressionهای باقی‌مانده Stage 4 و Python↔MT5 multi-day parity مرحله 5 را پیش ببرد. MQL 23-day lifecycle، Strict/TP/Safety regression و گزارش Stage 7 ثبت‌اند. Live trading تا Gate رهبر غیرممکن می‌ماند.
+Codex باید Trend/FreeSpace control، PnL مستقل Priority، تکمیل ledger روز QA و Python↔MT5 multi-day parity را پیش ببرد. MQL 23-day lifecycle و attribution شمارشی ثبت‌اند. Live trading تا Gate رهبر غیرممکن می‌ماند.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

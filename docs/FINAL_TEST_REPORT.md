@@ -9,8 +9,8 @@
 | مورد | مقدار ثبت‌شده |
 |---|---|
 | Repository checkpoint موجود | `871189ae632af525361f0041cd08c9206216eaa4` |
-| SHA-256 سورس EA | `1E31F809218382901589964E81B26F17FC8F8E8C568F89F0D24B9F42E3B198F6` |
-| SHA-256 فایل کامپایل‌شده | `548250EA550418C87A6613BD32AE392AC903FCBC3B709968EF1F2FBDC4A1EE18` |
+| SHA-256 سورس EA | `78970C137D2FA580981026BDBF3413902AC1F55E8B3EC12264F4C58100501AFC` |
+| SHA-256 فایل کامپایل‌شده | `4C204E3DC861FFABE0FD9B7BA4BFFFCF042A3A0135810D1BB70FC5252F81490D` |
 | MT5 / MetaEditor | build 6151 |
 | Python | 3.11.15 |
 | Dataset Zone | `data/ranges.csv` |
@@ -77,6 +77,8 @@ Configها به‌ترتیب `tester_200.ini` و `tester_300.ini`، با Real Ti
 Full Quality Gate در 2026-09-08 پاس شد: Ruff، format، mypy، 139 تست Python، `git diff --check`، کامپایل MT5 با صفر خطا/هشدار، سه اجرای پذیرش تک‌روزه، اجرای ۲۳روزه و Evidence ساختاریافته حاضر.
 
 اجرای مهندسی ۲۳روزه 2026-07-29 تا 2026-08-28 نیز PASS شد: 302 attempt، 188 accepted، 114 invalid-price reject، max position=3، cancel/session-close=`2/2`، protection modify=164، TP extend/restore/market-close=`10/3/2` و صفر lifecycle failure، TP reject، SL-loosen و exposure نهایی. این اجرا robustness فنی است و مقایسه کامل Python/MT5 یا ادعای سودآوری نیست.
+
+Attribution همان اجرا: Reversal Normal=`86/86/0` و High=`26/26/0`، Pullback Normal=`146/56/90` و High=`44/20/24` به‌ترتیب attempt/accepted/rejected. QA روز 2026-07-29 نیز با `16/9/7`، net=`+16.33 USD` و صفر failure پاس شد. PnL مستقل هر Priority هنوز ثبت نشده است.
 
 A/B ازپیش‌محدود TP روی همان روز/Config نشان داد شمار Entryها ثابت ماند و Net هر دو Profile فقط `+0.14 USD` تغییر کرد؛ این یک attribution مهندسی یک‌روزه است، نه شواهد سودآوری. Strict Trend و Safety regression پاس‌اند؛ Trend/Normal/FreeSpace attribution و multi-day parity باقی‌اند.
 

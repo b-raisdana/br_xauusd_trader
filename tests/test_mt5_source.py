@@ -399,6 +399,7 @@ def test_pullback_tp_runtime_is_bound_to_project_position_and_tester_broker() ->
     assert "CloseTesterPosition" in ea and "CloseTesterPosition" in broker
     assert "POSITION_MAGIC" in broker and "MQLInfoInteger(MQL_TESTER)" in broker
     assert "TESTER_TP_DONE" in ea
+    assert "TESTER_ATTRIBUTION" in ea
     assert "TESTER_TP_STATE_RECOVERED" in ea
     assert "TESTER_PULLBACK_FILL_RECOVERED" in ea
     assert "status != XAU_EXECUTION_FILLED" in ea

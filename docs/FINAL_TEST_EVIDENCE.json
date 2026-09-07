@@ -5,8 +5,8 @@
   "purpose": "Canonical reusable evidence for reporting without rerunning MetaTrader 5",
   "provenance": {
     "last_committed_repository_head": "871189ae632af525361f0041cd08c9206216eaa4",
-    "ea_source_sha256": "1E31F809218382901589964E81B26F17FC8F8E8C568F89F0D24B9F42E3B198F6",
-    "ea_compiled_sha256": "548250EA550418C87A6613BD32AE392AC903FCBC3B709968EF1F2FBDC4A1EE18",
+    "ea_source_sha256": "78970C137D2FA580981026BDBF3413902AC1F55E8B3EC12264F4C58100501AFC",
+    "ea_compiled_sha256": "4C204E3DC861FFABE0FD9B7BA4BFFFCF042A3A0135810D1BB70FC5252F81490D",
     "mt5_terminal_build": 6151,
     "python_version": "3.11.15",
     "dataset": {
@@ -153,6 +153,27 @@
     "sl_loosen_violations": 0,
     "final_exposure": 0,
     "lifecycle_failures": 0
+  },
+  "signal_attribution": {
+    "multiday_attempt_accepted_rejected": {
+      "reversal_normal": [86, 86, 0],
+      "reversal_high": [26, 26, 0],
+      "pullback_normal": [146, 56, 90],
+      "pullback_high": [44, 20, 24]
+    },
+    "qa_2026_07_29": {
+      "status": "PASS_TECHNICAL",
+      "config_sha256": "37D3FE63CD8C3E385F4D5A5B90ED1E5EFD20F23C36DECBFEAFDA3697AA6F39C7",
+      "attempts": 16,
+      "accepted": 9,
+      "rejected": 7,
+      "net_realized_pnl_usd": "16.33",
+      "reversal_normal": [5, 5, 0],
+      "reversal_high": [0, 0, 0],
+      "pullback_normal": [11, 4, 7],
+      "pullback_high": [0, 0, 0],
+      "lifecycle_failures": 0
+    }
   },
   "pending_final_evidence": [
     "Python-vs-MT5 multi-day lifecycle parity and remaining Trend/Normal/FreeSpace regressions",

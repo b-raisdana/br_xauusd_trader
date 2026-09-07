@@ -30,6 +30,8 @@
 | MT5 compile/runtime smoke | `#property strict`, zero errors, inert startup | PASS for current inert core + State/Execution/Native/Audit boundaries | Build 6151: 0 errors/0 warnings; Strategy Tester validated 19 vectors, causal/daily/Pullback/TP state, Daily/GROSS15/Concurrency/Margin/Operational safety, synthetic execution, Native adapters and audit payload. |
 | MT5 real-tick acceptance | 200/300 USD scenarios | PASS for bounded technical run | Versioned local-only INI profiles and restart profile pass on 2026-08-28 with real ticks, live/remote/cloud disabled; broader regression remains. |
 | MT5 multi-day lifecycle | 23 Zone days, capital 200, real ticks | PASS engineering run | 302 attempts/188 accepted/114 invalid-price rejects; max3, cancel/session-close 2/2, TP extend/restore/market-close 10/3/2; zero unknown reject, SL-loosen, final exposure or failure. |
+| Signal priority attribution | Same 23-day MQL run | PARTIAL PASS | Reversal Normal 86/86/0 and High 26/26/0; Pullback Normal 146/56/90 and High 44/20/24. Per-priority Deal PnL remains. |
+| QA day 2026-07-29 | Real-tick technical ledger summary | PARTIAL PASS | 16 attempts/9 accepted/7 invalid-price rejects, net +16.33, zero failure; external leader-known signal-by-signal reference is unavailable. |
 | Final reusable report | Structured evidence + comprehensive Markdown | PASS Stage 7 | Canonical JSON/report include hashes, profile counters, Symbol spec, TP and restart evidence; summaries must reuse them without rerunning MT5. |
 | MVP Freeze | Rulebook/Code/Evidence immutable version | NOT_RUN | همه Gateهای قبلی لازم‌اند. |
 | Shadow/Demo | Broker acceptance | NOT_RUN | پس از MVP Freeze. |

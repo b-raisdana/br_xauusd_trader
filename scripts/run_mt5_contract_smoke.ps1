@@ -64,6 +64,11 @@ $safetyPass = @($newLogs | Select-String -SimpleMatch `
 if ($safetyPass.Count -eq 0) {
     throw "Safety/request success marker not found after terminal exit code $($process.ExitCode)."
 }
+$auditPass = @($newLogs | Select-String -SimpleMatch `
+        "AUDIT_REQUEST_SMOKE_PASS durable-before-state mode=inert")
+if ($auditPass.Count -eq 0) {
+    throw "Audit/request success marker not found after terminal exit code $($process.ExitCode)."
+}
 $nativePass = @($newLogs | Select-String -SimpleMatch `
         "NATIVE_ADAPTER_SMOKE_PASS symbol/session/risk/margin/deal-map mode=read-only")
 if ($nativePass.Count -eq 0) {

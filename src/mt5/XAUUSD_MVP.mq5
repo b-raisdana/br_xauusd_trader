@@ -5,6 +5,7 @@
 #include "generated/CoreVectors.mqh"
 #include "include/XauContracts.mqh"
 #include "include/XauExecution.mqh"
+#include "include/XauAudit.mqh"
 #include "include/XauNative.mqh"
 #include "include/XauState.mqh"
 #include "include/XauVisual.mqh"
@@ -322,6 +323,32 @@ bool RunSafetyRequestSmoke()
    return true;
   }
 
+bool RunAuditRequestSmoke()
+  {
+   const string audit_file="XAUUSD_Current\\audit_smoke.jsonl";
+   XauOrderAuditEvent event;
+   event.event_id="2026-09-06:E000001";
+   event.request_id="REQ-AUDIT";
+   event.zone_id="2026-09-06:R2";
+   event.rule_ids="REVERSAL_DIRECTIONAL_TOUCH";
+   event.direction=XAU_BUY;
+   event.order_type=XAU_ORDER_MARKET;
+   event.broker_time=StringToTime("2026.09.06 10:00:00");
+   event.entry=100.0;
+   event.stop_loss=96.0;
+   event.take_profit=108.0;
+   XauExecutionProjection projections[];
+   if(AppendOrderThenProject(audit_file,XAU_ENTRY_DAILY_LOSS,event,projections) ||
+      ArraySize(projections) != 0 ||
+      !AppendOrderThenProject(audit_file,XAU_ENTRY_ALLOWED,event,projections) ||
+      ArraySize(projections) != 1 || projections[0].request_id != "REQ-AUDIT" ||
+      !FileIsExist(audit_file))
+      return false;
+   FileDelete(audit_file);
+   Print("AUDIT_REQUEST_SMOKE_PASS durable-before-state mode=inert");
+   return true;
+  }
+
 bool RunNativeAdapterSmoke()
   {
    XauExecutionEvent native_event=XAU_EXECUTION_REJECT;
@@ -409,6 +436,8 @@ int OnInit()
    if(!RunStateOrderingSmoke())
       return INIT_FAILED;
    if(!RunSafetyRequestSmoke())
+      return INIT_FAILED;
+   if(!RunAuditRequestSmoke())
       return INIT_FAILED;
    if(!RunNativeAdapterSmoke())
       return INIT_FAILED;

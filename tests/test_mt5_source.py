@@ -200,3 +200,18 @@ def test_visual_adapter_is_audit_derived_and_contains_no_trading_path() -> None:
     assert "zone_priority" in source
     assert "OrderSend" not in source
     assert "CTrade" not in source
+
+
+def test_mql_audit_appends_before_execution_projection() -> None:
+    root = Path(__file__).parents[1]
+    source = (root / "src" / "mt5" / "include" / "XauAudit.mqh").read_text(encoding="utf-8")
+
+    assert "SerializeOrderAudit" in source
+    assert "AppendAuditLine" in source
+    assert "AppendOrderThenProject" in source
+    assert source.index("AppendAuditLine(audit_file,line)") < source.index(
+        "ArrayResize(projections,index+1)"
+    )
+    assert "FileFlush" in source
+    assert "AccountInfo" not in source
+    assert "OrderSend" not in source

@@ -21,6 +21,43 @@ class ExecutionStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+def execution_transition(
+    status: ExecutionStatus, event_kind: AuditEventKind, order_type: OrderType
+) -> ExecutionStatus | None:
+    transitions = {
+        (ExecutionStatus.SUBMITTED, AuditEventKind.FILL): ExecutionStatus.FILLED,
+        (ExecutionStatus.SUBMITTED, AuditEventKind.REJECT): ExecutionStatus.REJECTED,
+        (ExecutionStatus.FILLED, AuditEventKind.CLOSE): ExecutionStatus.CLOSED,
+        (ExecutionStatus.FILLED, AuditEventKind.MODIFY): ExecutionStatus.FILLED,
+        (ExecutionStatus.FILLED, AuditEventKind.MODIFY_REJECT): ExecutionStatus.FILLED,
+        (ExecutionStatus.SUBMITTED, AuditEventKind.CANCEL_REJECT): ExecutionStatus.SUBMITTED,
+    }
+    if (
+        status is ExecutionStatus.SUBMITTED
+        and event_kind is AuditEventKind.CANCEL
+        and order_type is OrderType.PENDING_STOP
+    ):
+        return ExecutionStatus.CANCELLED
+    return transitions.get((status, event_kind))
+
+
+def protection_modification_valid(
+    *,
+    direction: TradeDirection,
+    entry: Decimal | str | int | float,
+    current_stop: Decimal | str | int | float,
+    proposed_stop: Decimal | str | int | float,
+    proposed_tp: Decimal | str | int | float,
+) -> bool:
+    entry_price = price(entry)
+    existing_stop = price(current_stop)
+    stop = price(proposed_stop)
+    target = price(proposed_tp)
+    if direction is TradeDirection.BUY:
+        return stop >= existing_stop and stop < target and target > entry_price
+    return stop <= existing_stop and target < stop and target < entry_price
+
+
 @dataclass(frozen=True, slots=True)
 class ExecutionRequest:
     request_id: str
@@ -356,13 +393,13 @@ class ExecutionLedger:
         proposed_stop = price(stop_loss) if stop_loss is not None else record.current_stop_loss
         proposed_tp = price(take_profit) if take_profit is not None else record.current_take_profit
         direction = record.request.direction
-        if direction is TradeDirection.BUY:
-            valid = proposed_stop >= record.current_stop_loss and proposed_stop < proposed_tp
-            valid = valid and proposed_tp > record.request.order.entry
-        else:
-            valid = proposed_stop <= record.current_stop_loss and proposed_tp < proposed_stop
-            valid = valid and proposed_tp < record.request.order.entry
-        if not valid:
+        if not protection_modification_valid(
+            direction=direction,
+            entry=record.request.order.entry,
+            current_stop=record.current_stop_loss,
+            proposed_stop=proposed_stop,
+            proposed_tp=proposed_tp,
+        ):
             raise ValueError("Position modification would loosen SL or invalidate protection")
         return proposed_stop, proposed_tp
 

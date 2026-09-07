@@ -30,7 +30,18 @@ def render_header(payload: dict[str, Any]) -> str:
     pullback_state = vectors["pullback-high-window-t5"]["input"]
     tp_failure = vectors["tp-strict-failure-before-initial"]["input"]
     restart = vectors["restart-same-day-lock"]["input"]
+    execution = vectors["execution-cancel-reject-preserves-pending"]
+    modification = vectors["modify-buy-no-sl-loosen"]
     risk_zones = risk["input"]["zones"]
+    status_values = ["submitted", "filled", "rejected", "closed", "cancelled"]
+    event_values = ["fill", "reject", "close", "modify", "modify_reject", "cancel", "cancel_reject"]
+    order_type_values = ["market", "pending_stop"]
+    execution_status = status_values.index(execution["input"]["status"])
+    execution_event = event_values.index(execution["input"]["event"])
+    execution_order_type = order_type_values.index(execution["input"]["order_type"])
+    execution_allowed = int(execution["expected"]["allowed"])
+    modification_direction = int(modification["input"]["direction"] == "sell")
+    modification_valid = int(modification["expected"]["valid"])
     lines = [
         "// Generated from tests/vectors/core_contracts.json. Do not edit manually.",
         f"#define VEC_BREAKOUT_LOW {breakout['zone']['low']}",
@@ -114,6 +125,17 @@ def render_header(payload: dict[str, Any]) -> str:
             '#define VEC_RESTART_LAST_DAY "'
             + restart["persisted_last_activation_day"].replace("-", ".")
             + '"',
+            f"#define VEC_EXECUTION_STATUS {execution_status}",
+            f"#define VEC_EXECUTION_EVENT {execution_event}",
+            f"#define VEC_EXECUTION_ORDER_TYPE {execution_order_type}",
+            f"#define VEC_EXECUTION_EXPECTED_ALLOWED {execution_allowed}",
+            "#define VEC_EXECUTION_EXPECTED_STATUS 0",
+            f"#define VEC_MODIFICATION_DIRECTION {modification_direction}",
+            f"#define VEC_MODIFICATION_ENTRY {modification['input']['entry']}",
+            f"#define VEC_MODIFICATION_CURRENT_SL {modification['input']['current_stop']}",
+            f"#define VEC_MODIFICATION_PROPOSED_SL {modification['input']['proposed_stop']}",
+            f"#define VEC_MODIFICATION_PROPOSED_TP {modification['input']['proposed_tp']}",
+            f"#define VEC_MODIFICATION_EXPECTED_VALID {modification_valid}",
         )
     )
     return "\n".join(lines) + "\n"

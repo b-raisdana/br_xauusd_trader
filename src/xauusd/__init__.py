@@ -10,7 +10,14 @@ from xauusd.audit import (
     SignalFamily,
     chart_marker,
 )
-from xauusd.execution import ExecutionLedger, ExecutionRecord, ExecutionRequest, ExecutionStatus
+from xauusd.execution import (
+    ExecutionLedger,
+    ExecutionRecord,
+    ExecutionRequest,
+    ExecutionStatus,
+    execution_transition,
+    protection_modification_valid,
+)
 from xauusd.market_state import MarketBarCloseUpdate, MarketState, MarketTickUpdate
 from xauusd.momentum import (
     PRE_ZONE_TRIGGER_DISTANCE_USD,
@@ -133,6 +140,8 @@ __all__ = [
     "ExecutionRecord",
     "ExecutionRequest",
     "ExecutionStatus",
+    "execution_transition",
+    "protection_modification_valid",
     "OperationalSafetyActions",
     "InitialRisk",
     "MarketState",

@@ -45,7 +45,7 @@ $process = Start-Process -FilePath $TerminalPath `
     -ArgumentList "/config:`"$config`"" -WindowStyle Hidden -Wait -PassThru
 $newLogs = @(Get-ChildItem -LiteralPath (Join-Path $DataRoot "Tester") -Filter "*.log" `
         -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -ge $started })
-$pass = @($newLogs | Select-String -SimpleMatch "CORE_VECTOR_SMOKE_PASS vectors=16 mode=inert")
+$pass = @($newLogs | Select-String -SimpleMatch "CORE_VECTOR_SMOKE_PASS vectors=18 mode=inert")
 if ($pass.Count -eq 0) {
     throw "Runtime success marker not found after terminal exit code $($process.ExitCode)."
 }
@@ -64,4 +64,4 @@ if ($timeProbe.Count -lt 5) {
     throw "Five time-basis probe markers not found after terminal exit code $($process.ExitCode)."
 }
 
-"MT5 runtime smoke PASS (16 vectors; native/visual adapters; time probe; inert mode)."
+"MT5 runtime smoke PASS (18 vectors; native/visual adapters; time probe; inert mode)."

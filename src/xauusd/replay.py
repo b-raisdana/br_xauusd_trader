@@ -80,11 +80,77 @@ class ReplayCloseOutcome:
 
 
 @dataclass(frozen=True, slots=True)
+class ReplayModifyOutcome:
+    request_id: str
+    broker_time: datetime
+    accepted: bool
+    rule_ids: tuple[str, ...]
+    stop_loss: Decimal | None = None
+    take_profit: Decimal | None = None
+    rejection_reason: str | None = None
+
+    @classmethod
+    def from_values(
+        cls,
+        *,
+        request_id: str,
+        broker_time: datetime,
+        accepted: bool,
+        rule_ids: tuple[str, ...],
+        stop_loss: Decimal | str | int | float | None = None,
+        take_profit: Decimal | str | int | float | None = None,
+        rejection_reason: str | None = None,
+    ) -> ReplayModifyOutcome:
+        if not request_id.strip() or not rule_ids:
+            raise ValueError("Replay Modify requires Request ID and Rule IDs")
+        if stop_loss is None and take_profit is None:
+            raise ValueError("Replay Modify requires SL or TP")
+        if accepted == (rejection_reason is not None):
+            raise ValueError("Replay Modify rejection reason does not match acceptance")
+        return cls(
+            request_id,
+            broker_time,
+            accepted,
+            rule_ids,
+            price(stop_loss) if stop_loss is not None else None,
+            price(take_profit) if take_profit is not None else None,
+            rejection_reason,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ReplayCancelOutcome:
+    request_id: str
+    broker_time: datetime
+    accepted: bool
+    rule_ids: tuple[str, ...]
+    reason: str
+
+    @classmethod
+    def from_values(
+        cls,
+        *,
+        request_id: str,
+        broker_time: datetime,
+        accepted: bool,
+        rule_ids: tuple[str, ...],
+        reason: str,
+    ) -> ReplayCancelOutcome:
+        if not request_id.strip() or not rule_ids:
+            raise ValueError("Replay Cancel requires Request ID and Rule IDs")
+        if not reason.strip():
+            raise ValueError("Replay Cancel reason is required")
+        return cls(request_id, broker_time, accepted, rule_ids, reason)
+
+
+@dataclass(frozen=True, slots=True)
 class ReplayTick:
     broker_time: datetime
     bid: Decimal
     execution_outcomes: tuple[ReplayExecutionOutcome, ...] = ()
     close_outcomes: tuple[ReplayCloseOutcome, ...] = ()
+    modify_outcomes: tuple[ReplayModifyOutcome, ...] = ()
+    cancel_outcomes: tuple[ReplayCancelOutcome, ...] = ()
 
     @classmethod
     def from_values(
@@ -94,12 +160,16 @@ class ReplayTick:
         bid: Decimal | str | int | float,
         execution_outcomes: tuple[ReplayExecutionOutcome, ...] = (),
         close_outcomes: tuple[ReplayCloseOutcome, ...] = (),
+        modify_outcomes: tuple[ReplayModifyOutcome, ...] = (),
+        cancel_outcomes: tuple[ReplayCancelOutcome, ...] = (),
     ) -> ReplayTick:
         return cls(
             broker_time=broker_time,
             bid=price(bid),
             execution_outcomes=execution_outcomes,
             close_outcomes=close_outcomes,
+            modify_outcomes=modify_outcomes,
+            cancel_outcomes=cancel_outcomes,
         )
 
 
@@ -177,6 +247,7 @@ class ReplayRunner:
         self.journal = journal
         self.projector = MarketAuditProjector(journal)
         self.execution = ExecutionLedger(journal)
+        self._pending_candidates: dict[str, PullbackOrderCandidate] = {}
 
     def run_day(self, replay: ReplayDay) -> ReplayResult:
         self._validate_day(replay)
@@ -184,6 +255,7 @@ class ReplayRunner:
         expiries = list(self.state.begin_day(replay.broker_day, replay.zones))
         self.projector.begin_day(replay.broker_day)
         self.execution.begin_day(replay.broker_day)
+        self._pending_candidates.clear()
         for candle in replay.seed_candles:
             self.state.record_closed_candle(candle)
 
@@ -195,7 +267,7 @@ class ReplayRunner:
                 matched = self._match_outcomes(
                     update.reversal_candidates, update.pullback_candidates, tick
                 )
-                self._validate_close_outcomes(tick)
+                self._validate_lifecycle_outcomes(tick)
                 self.projector.record_tick(update, broker_time=tick.broker_time)
                 for candidate, outcome in matched:
                     self._apply_outcome(candidate, outcome, replay.zones, tick.broker_time)
@@ -207,6 +279,28 @@ class ReplayRunner:
                         rule_ids=close_outcome.rule_ids,
                         reason=close_outcome.reason,
                     )
+                for modify in tick.modify_outcomes:
+                    self.execution.modify(
+                        modify.request_id,
+                        broker_time=modify.broker_time,
+                        broker_accepted=modify.accepted,
+                        stop_loss=modify.stop_loss,
+                        take_profit=modify.take_profit,
+                        rule_ids=modify.rule_ids,
+                        rejection_reason=modify.rejection_reason,
+                    )
+                for cancel in tick.cancel_outcomes:
+                    self.execution.cancel_pending(
+                        cancel.request_id,
+                        broker_time=cancel.broker_time,
+                        broker_accepted=cancel.accepted,
+                        rule_ids=cancel.rule_ids,
+                        reason=cancel.reason,
+                    )
+                    if cancel.accepted:
+                        candidate = self._pending_candidates.pop(cancel.request_id)
+                        if not self.state.pullbacks.record_pending_removed(candidate):
+                            raise RuntimeError("Cancelled Pending could not update signal state")
                 previous_bid = tick.bid
             close = self.state.close_bar(bar.candle)
             self.projector.record_bar_close(close, broker_time=bar.close_time)
@@ -236,16 +330,31 @@ class ReplayRunner:
             (candidates[outcome.candidate_id], outcome) for outcome in tick.execution_outcomes
         )
 
-    def _validate_close_outcomes(self, tick: ReplayTick) -> None:
-        request_ids = [outcome.request_id for outcome in tick.close_outcomes]
+    def _validate_lifecycle_outcomes(self, tick: ReplayTick) -> None:
+        outcomes: tuple[ReplayCloseOutcome | ReplayModifyOutcome | ReplayCancelOutcome, ...] = (
+            *tick.close_outcomes,
+            *tick.modify_outcomes,
+            *tick.cancel_outcomes,
+        )
+        request_ids = [outcome.request_id for outcome in outcomes]
         if len(request_ids) != len(set(request_ids)):
-            raise ValueError("Replay Tick contains duplicate Close outcomes")
-        for outcome in tick.close_outcomes:
+            raise ValueError("Replay Tick contains duplicate lifecycle outcomes")
+        for outcome in outcomes:
             if outcome.broker_time < tick.broker_time:
-                raise ValueError("Replay Close outcome precedes Tick")
+                raise ValueError("Replay lifecycle outcome precedes Tick")
             record = self.execution.record(outcome.request_id)
-            if record.status is not ExecutionStatus.FILLED:
+            if isinstance(outcome, (ReplayCloseOutcome, ReplayModifyOutcome)) and (
+                record.status is not ExecutionStatus.FILLED
+            ):
                 raise ValueError(f"Replay Close has no open filled position: {outcome.request_id}")
+            if isinstance(outcome, ReplayCancelOutcome):
+                if (
+                    record.status is not ExecutionStatus.SUBMITTED
+                    or outcome.request_id not in self._pending_candidates
+                ):
+                    raise ValueError(
+                        f"Replay Cancel has no active Pending order: {outcome.request_id}"
+                    )
 
     def _apply_outcome(
         self,
@@ -321,6 +430,8 @@ class ReplayRunner:
             if isinstance(candidate, PullbackOrderCandidate):
                 if not self.state.pullbacks.record_fill(candidate):
                     raise RuntimeError("Accepted Pullback fill could not update signal state")
+        elif isinstance(candidate, PullbackOrderCandidate):
+            self._pending_candidates[request.request_id] = candidate
 
     @staticmethod
     def _validate_day(replay: ReplayDay) -> None:
@@ -356,6 +467,23 @@ class ReplayRunner:
                     raise ValueError("Replay ticks must be chronological and inside the bar")
                 if not bar.candle.low <= tick.bid <= bar.candle.high:
                     raise ValueError("Replay tick Bid is outside Candle range")
+                outcomes: tuple[
+                    ReplayExecutionOutcome
+                    | ReplayCloseOutcome
+                    | ReplayModifyOutcome
+                    | ReplayCancelOutcome,
+                    ...,
+                ] = (
+                    *tick.execution_outcomes,
+                    *tick.close_outcomes,
+                    *tick.modify_outcomes,
+                    *tick.cancel_outcomes,
+                )
+                if any(
+                    outcome.broker_time < tick.broker_time or outcome.broker_time > bar.close_time
+                    for outcome in outcomes
+                ):
+                    raise ValueError("Replay outcome must follow its Tick inside the bar")
                 last_time = tick.broker_time
             final_bid = bar.ticks[-1].bid if bar.ticks else bar.open_bid
             if final_bid != bar.candle.close:

@@ -28,6 +28,10 @@ class AuditEventKind(StrEnum):
     CLOSE = "close"
     REJECT = "reject"
     BLOCK = "block"
+    MODIFY = "modify"
+    MODIFY_REJECT = "modify_reject"
+    CANCEL = "cancel"
+    CANCEL_REJECT = "cancel_reject"
 
 
 @dataclass(frozen=True, slots=True)
@@ -250,8 +254,18 @@ class AuditJournal:
             raise ValueError("Order events require Order Type")
         if signal_family is SignalFamily.PULLBACK and not parent_breakout_id:
             raise ValueError("Pullback events require parent Breakout ID")
-        if kind in {AuditEventKind.REJECT, AuditEventKind.BLOCK} and not reason:
-            raise ValueError("Reject/Block events require a reason")
+        if (
+            kind
+            in {
+                AuditEventKind.REJECT,
+                AuditEventKind.BLOCK,
+                AuditEventKind.MODIFY_REJECT,
+                AuditEventKind.CANCEL,
+                AuditEventKind.CANCEL_REJECT,
+            }
+            and not reason
+        ):
+            raise ValueError("Reject/Block/Cancel events require a reason")
 
         next_sequence = self._sequence + 1
         event = AuditEvent(

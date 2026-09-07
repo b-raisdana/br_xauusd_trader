@@ -18,6 +18,7 @@ class ExecutionStatus(StrEnum):
     FILLED = "filled"
     REJECTED = "rejected"
     CLOSED = "closed"
+    CANCELLED = "cancelled"
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,6 +75,8 @@ class ExecutionRecord:
     request: ExecutionRequest
     status: ExecutionStatus
     transition_time: datetime
+    current_stop_loss: Decimal
+    current_take_profit: Decimal
 
 
 class ExecutionLedger:
@@ -131,7 +134,11 @@ class ExecutionLedger:
                     parent_breakout_id=event.parent_breakout_id,
                 )
                 recovered[request_id] = ExecutionRecord(
-                    request, ExecutionStatus.SUBMITTED, event.broker_time
+                    request,
+                    ExecutionStatus.SUBMITTED,
+                    event.broker_time,
+                    request.order.stop_loss,
+                    request.order.take_profit,
                 )
                 continue
             try:
@@ -167,9 +174,43 @@ class ExecutionLedger:
                 and event.reason is not None
             ):
                 status = ExecutionStatus.CLOSED
+            elif (
+                event.kind is AuditEventKind.CANCEL
+                and record.status is ExecutionStatus.SUBMITTED
+                and record.request.order.order_type is OrderType.PENDING_STOP
+                and event.reason is not None
+            ):
+                status = ExecutionStatus.CANCELLED
+            elif (
+                event.kind is AuditEventKind.CANCEL_REJECT
+                and record.status is ExecutionStatus.SUBMITTED
+                and event.reason is not None
+            ):
+                status = ExecutionStatus.SUBMITTED
+            elif (
+                event.kind is AuditEventKind.MODIFY
+                and record.status is ExecutionStatus.FILLED
+                and (event.stop_loss is not None or event.take_profit is not None)
+            ):
+                status = ExecutionStatus.FILLED
+            elif (
+                event.kind is AuditEventKind.MODIFY_REJECT
+                and record.status is ExecutionStatus.FILLED
+                and event.reason is not None
+            ):
+                status = ExecutionStatus.FILLED
             else:
                 raise ValueError(f"Invalid recovered Execution transition: {request_id}")
-            recovered[request_id] = ExecutionRecord(record.request, status, event.broker_time)
+            if event.kind is AuditEventKind.MODIFY:
+                stop_loss, take_profit = self._validated_protection(
+                    record, event.stop_loss, event.take_profit
+                )
+            else:
+                stop_loss = record.current_stop_loss
+                take_profit = record.current_take_profit
+            recovered[request_id] = ExecutionRecord(
+                record.request, status, event.broker_time, stop_loss, take_profit
+            )
         self._records = recovered
 
     def submit(self, request: ExecutionRequest) -> AuditEvent:
@@ -178,7 +219,11 @@ class ExecutionLedger:
             raise ValueError(f"Duplicate Execution Request ID: {request.request_id}")
         event = self._write(request, AuditEventKind.ORDER, request.broker_time)
         self._records[request.request_id] = ExecutionRecord(
-            request, ExecutionStatus.SUBMITTED, request.broker_time
+            request,
+            ExecutionStatus.SUBMITTED,
+            request.broker_time,
+            request.order.stop_loss,
+            request.order.take_profit,
         )
         return event
 
@@ -192,7 +237,11 @@ class ExecutionLedger:
         record = self._pending(request_id, broker_time)
         event = self._write(record.request, AuditEventKind.FILL, broker_time, entry=fill_price)
         self._records[request_id] = ExecutionRecord(
-            record.request, ExecutionStatus.FILLED, broker_time
+            record.request,
+            ExecutionStatus.FILLED,
+            broker_time,
+            record.current_stop_loss,
+            record.current_take_profit,
         )
         return event
 
@@ -202,7 +251,11 @@ class ExecutionLedger:
         record = self._pending(request_id, broker_time)
         event = self._write(record.request, AuditEventKind.REJECT, broker_time, reason=reason)
         self._records[request_id] = ExecutionRecord(
-            record.request, ExecutionStatus.REJECTED, broker_time
+            record.request,
+            ExecutionStatus.REJECTED,
+            broker_time,
+            record.current_stop_loss,
+            record.current_take_profit,
         )
         return event
 
@@ -234,7 +287,115 @@ class ExecutionLedger:
             extra_rule_ids=rule_ids,
         )
         self._records[request_id] = ExecutionRecord(
-            record.request, ExecutionStatus.CLOSED, broker_time
+            record.request,
+            ExecutionStatus.CLOSED,
+            broker_time,
+            record.current_stop_loss,
+            record.current_take_profit,
+        )
+        return event
+
+    def modify(
+        self,
+        request_id: str,
+        *,
+        broker_time: datetime,
+        broker_accepted: bool,
+        stop_loss: Decimal | str | int | float | None = None,
+        take_profit: Decimal | str | int | float | None = None,
+        rule_ids: tuple[str, ...],
+        rejection_reason: str | None = None,
+    ) -> AuditEvent:
+        self._validate_time(broker_time)
+        record = self.record(request_id)
+        if record.status is not ExecutionStatus.FILLED:
+            raise ValueError(f"Execution Request has no open filled position: {request_id}")
+        if broker_time < record.transition_time:
+            raise ValueError("Position modification precedes latest transition")
+        if stop_loss is None and take_profit is None:
+            raise ValueError("Position modification requires SL or TP")
+        if not rule_ids or any(not rule_id.strip() for rule_id in rule_ids):
+            raise ValueError("Position modification requires Rule IDs")
+        if broker_accepted and rejection_reason is not None:
+            raise ValueError("Accepted modification cannot have a rejection reason")
+        if not broker_accepted and not rejection_reason:
+            raise ValueError("Rejected modification requires a reason")
+        proposed_stop, proposed_tp = self._validated_protection(record, stop_loss, take_profit)
+        direction = record.request.direction
+        kind = AuditEventKind.MODIFY if broker_accepted else AuditEventKind.MODIFY_REJECT
+        event = self.journal.record(
+            rule_ids=tuple(dict.fromkeys((*record.request.rule_ids, *rule_ids))),
+            kind=kind,
+            broker_time=broker_time,
+            zone_id=record.request.zone_id,
+            signal_family=record.request.signal_family,
+            direction=direction,
+            entry=record.request.order.entry,
+            stop_loss=proposed_stop,
+            take_profit=proposed_tp,
+            order_type=record.request.order.order_type,
+            parent_breakout_id=record.request.parent_breakout_id,
+            execution_request_id=request_id,
+            reason=rejection_reason,
+        )
+        self._records[request_id] = ExecutionRecord(
+            record.request,
+            ExecutionStatus.FILLED,
+            broker_time,
+            proposed_stop if broker_accepted else record.current_stop_loss,
+            proposed_tp if broker_accepted else record.current_take_profit,
+        )
+        return event
+
+    @staticmethod
+    def _validated_protection(
+        record: ExecutionRecord,
+        stop_loss: Decimal | str | int | float | None,
+        take_profit: Decimal | str | int | float | None,
+    ) -> tuple[Decimal, Decimal]:
+        proposed_stop = price(stop_loss) if stop_loss is not None else record.current_stop_loss
+        proposed_tp = price(take_profit) if take_profit is not None else record.current_take_profit
+        direction = record.request.direction
+        if direction is TradeDirection.BUY:
+            valid = proposed_stop >= record.current_stop_loss and proposed_stop < proposed_tp
+            valid = valid and proposed_tp > record.request.order.entry
+        else:
+            valid = proposed_stop <= record.current_stop_loss and proposed_tp < proposed_stop
+            valid = valid and proposed_tp < record.request.order.entry
+        if not valid:
+            raise ValueError("Position modification would loosen SL or invalidate protection")
+        return proposed_stop, proposed_tp
+
+    def cancel_pending(
+        self,
+        request_id: str,
+        *,
+        broker_time: datetime,
+        broker_accepted: bool,
+        rule_ids: tuple[str, ...],
+        reason: str,
+    ) -> AuditEvent:
+        record = self._pending(request_id, broker_time)
+        if record.request.order.order_type is not OrderType.PENDING_STOP:
+            raise ValueError("Only a Pending order can be cancelled")
+        if not rule_ids or any(not rule_id.strip() for rule_id in rule_ids):
+            raise ValueError("Pending cancellation requires Rule IDs")
+        if not reason.strip():
+            raise ValueError("Pending cancellation reason is required")
+        kind = AuditEventKind.CANCEL if broker_accepted else AuditEventKind.CANCEL_REJECT
+        event = self._write(
+            record.request,
+            kind,
+            broker_time,
+            reason=reason,
+            extra_rule_ids=rule_ids,
+        )
+        self._records[request_id] = ExecutionRecord(
+            record.request,
+            ExecutionStatus.CANCELLED if broker_accepted else ExecutionStatus.SUBMITTED,
+            broker_time,
+            record.current_stop_loss,
+            record.current_take_profit,
         )
         return event
 

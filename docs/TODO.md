@@ -67,7 +67,7 @@
 - [x] One-step TP extension — انتقال یک Zone جلوتر، نبود Recursive extension و حفظ TP در Modify ناموفق تست شد.
 - [x] TP restore — شکست Strict Trend قبل از لمس TP اولیه، Restore و حفظ TP معتبر در Modify ناموفق تست شد.
 - [x] TP market close fallback — شکست Strict Trend بعد از لمس/عبور TP اولیه برای Buy/Sell، Market Close می‌سازد.
-- [x] Free Space definition — فرمول Buy/Sell، Zone مجاور، نبود Zone و Minimum inclusive سه دلار تست شد.
+- [x] Free Space definition — فرمول Buy/Sell و Zone مجاور تثبیت شد؛ فاصله `<=3` Block و فقط `>3` مجاز است.
 - [x] Initial Stop — نزدیک‌ترین Stop Zone، Cap ثابت شش دلار و نبود Stop Zone تست شد.
 - [x] Initial Target — اولین Zone حداقل شش دلار دورتر، skip Zone نزدیک و Reject نبود Target تست شد.
 - [x] Native RF — Break-even با cash-per-price و هزینه Native ورودی Adapter و عدم استفاده از Entry خام تست شد.
@@ -85,7 +85,7 @@ Gate: همه Contract Testهای بالا PASS.
 
 - [x] Trend Bootstrap — رفتار Sticky تاریخی رد و مقایسه مجدد از Gate MVP حذف شد.
 - [x] Normal/High — هر دو Priority جزء ثابت Strategy هستند؛ PnL تفکیکی معیار حذف هیچ‌کدام نیست و از Gate MVP حذف شد.
-- [x] FreeSpace 3 — مرز `<3 Block / =3 Allow` در Python و MQL قطعی تست شد؛ مقایسه با 15 دلار به Post-MVP منتقل شد.
+- [x] FreeSpace 3 — Rule فعال `<=3 Block / >3 Allow` در Python و MQL اعمال شد؛ مقایسه با 15 دلار به Post-MVP منتقل شد.
 - [x] Signal QA خارجی — Fixture مورد اعتماد مستقل موجود نیست و با تصمیم رهبر از Gate MVP حذف شد؛ گزارش جامع نهایی مرجع پذیرش است.
 - [x] Strict Trend examples — Same-Bar/Multi-Bar/Doji/opposing candle با fixtureهای deterministic و runtime TP ledger بررسی شد؛ Chart گیت فعال نیست.
 - [x] TP Extension A/B — اجرای قبل/بعد روی همان روز و Config بدون Optimization مقایسه شد: شمار attempt/fill ثابت و net هر Profile فقط `+0.14 USD` تغییر کرد.

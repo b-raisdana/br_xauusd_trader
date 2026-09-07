@@ -33,7 +33,7 @@
 - Reversal Market Touch؛ Normal max1 و High max2 در Broker Day.
 - Pullback Conservative با penetration 0.20، Window پنج کندل، Normal1/High∞ و Multi-PB per BO.
 - Strict Pullback Trend با Current Candle/Same-Bar، pre-zone یک دلار، Reversal block در Touch واقعی و TP Extension یک‌مرحله‌ای برگشت‌پذیر.
-- Free Space minimum سه دلار، Initial Stop cap شش دلار، Initial Target اولین Zone حداقل شش دلار دورتر.
+- Free Space باید strict بزرگ‌تر از سه دلار باشد (`<=3` Block)، Initial Stop cap شش دلار و Initial Target اولین Zone حداقل شش دلار دورتر است.
 - Native RF و Profit Protection نامحدود بر مضارب `BASE_R_USD=6`.
 - Lot ثابت 0.01، concurrency سه/پنج برای 200/300 دلار، Daily Loss 20% و GROSS15.
 - Session flatten پنج دقیقه قبل پایان و Restart fail-closed.
@@ -47,7 +47,7 @@
 - Breakout/Reversal contract evidence: 9 focused/integration tests PASS, including strict equality rejection, daily `BO#` reset, Market-only directional touch, wick penetration, multi-Zone gap suppression, Normal1/High2 shared-direction usage, audit-only non-consumption, failed-request consumption and same-Tick new-Trend consumption.
 - Pullback contract evidence: 7 focused/integration tests PASS, including inclusive 0.20 penetration, exact broken-edge retry, `t+1..t+5`, orchestrated pending cancellation at day change, Breakout lineage, shared bar-attempt blocking against Reversal, Normal1/High unlimited fills and one active Zone+Direction window.
 - Momentum/TP contract evidence: 5 focused tests PASS, including Same-Bar/current and closed-candle strictness, Doji failure, target-relative first crossing with tick gap, actual-touch-only Reversal blocking, one-step extension, safe modify retry, restore and Market Close symmetry.
-- Initial Risk/Execution evidence: 7 focused tests PASS, including adjacent Free Space 3.00, structural Stop with six-dollar cap, first qualifying Target, native-cost RF, unlimited monotonic protection steps, protected orders, fixed 0.01 lot, 200/300 concurrency and native margin boundary.
+- Initial Risk/Execution evidence: 7 focused tests PASS, including adjacent Free Space strict `>3.00`, structural Stop with six-dollar cap, first qualifying Target, native-cost RF, unlimited monotonic protection steps, protected orders, fixed 0.01 lot, 200/300 concurrency and native margin boundary.
 - Financial Safety evidence: 6 focused tests PASS, including sub-300 net-realized 20% latch/reset/actions, GROSS15 inclusive aggregation of realized/open/pending/new native cash risk, gross-loss non-netting, combined rejection precedence and fail-closed invalid inputs.
 - Operational Safety evidence: 4 focused tests PASS, including Broker-derived inclusive five-minute pre-close actions, timezone-basis validation, first attach, same-day restart flatten/cancel/lock and next-Broker-Day release.
 - Audit/Report evidence: 23 focused/integration tests PASS. Reversal, Breakout and Pullback signals plus protected ORDER/FILL/REJECT/CLOSE/MODIFY/CANCEL outcomes persist with request/BO lineage. Modify/Cancel reject events preserve current Position/Pending state, accepted Modify enforces no SL loosening, and typed recovery reuses the same invariant. Final reusable result evidence/report remains.

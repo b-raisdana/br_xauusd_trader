@@ -37,7 +37,7 @@ def has_minimum_free_space(
     *, zone_id: str, direction: TradeDirection, zones: tuple[Zone, ...] | list[Zone]
 ) -> bool:
     free_space = directional_free_space(zone_id=zone_id, direction=direction, zones=zones)
-    return free_space is not None and free_space >= MINIMUM_FREE_SPACE_USD
+    return free_space is not None and free_space > MINIMUM_FREE_SPACE_USD
 
 
 @dataclass(frozen=True, slots=True)

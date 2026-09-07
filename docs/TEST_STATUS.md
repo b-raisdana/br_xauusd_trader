@@ -25,7 +25,7 @@
 | MT5 Tester profile 300 | 2026-08-28, real ticks, 0.01 lot, max5, local-only | PASS for bounded one-day lifecycle | 16 attempts/14 accepted/2 invalid-price rejects; net -16.03, gross loss 40.60, max positions 1, 9 protection modifies, TP 1 extend/1 restore/0 reject, zero SL-loosen/other reject/failure and final zero exposure. |
 | Contract tests | همه موارد بخش 3 `TODO.md` | PASS at Python domain boundary | All listed fast contracts PASS; external Native/MT5 parity and durable side effects remain separate gates. |
 | MT5 tick acquisition | Read-only UTC raw input, ignored cache | PASS for bounded smoke | Bridge 5.0.6180 exported 6,487 ticks/290,594 bytes; explicit-offset normalization replayed all rows as one M15 bar. An ordered five-tick probe uniquely correlated local server time to UTC; no cache, probe values, resolved Broker-specific offset or account identity are committed. |
-| Targeted regression | Active MVP Rules | PASS for required scope | Bootstrap and both Zone priorities are fixed Rules; FreeSpace `<3 Block / =3 Allow`، Strict/TP/Safety deterministic tests PASS. Sticky/priority-PnL/external-fixture comparisons are not MVP gates; FreeSpace15 is Post-MVP. |
+| Targeted regression | Active MVP Rules | PASS for required scope | Bootstrap and both Zone priorities are fixed Rules; FreeSpace `<=3 Block / >3 Allow`، Strict/TP/Safety deterministic tests PASS. Sticky/priority-PnL/external-fixture comparisons are not MVP gates; FreeSpace15 is Post-MVP. |
 | Python ↔ MT5 equivalence | Frozen core vectors | PASS for MVP scope | Shared vectors PASS at `1e-9`; causal signal counts match on 541,333 ticks and project-owned Native lifecycle passes both capital profiles. Multi-day Native parity is not an MVP gate because no independent Python Native fixture exists. |
 | MT5 compile/runtime smoke | `#property strict`, zero errors, inert startup | PASS for current inert core + State/Execution/Native/Audit boundaries | Build 6151: 0 errors/0 warnings; Strategy Tester validated 19 vectors, causal/daily/Pullback/TP state, Daily/GROSS15/Concurrency/Margin/Operational safety, synthetic execution, Native adapters and audit payload. |
 | MT5 real-tick acceptance | 200/300 USD scenarios | PASS for bounded technical run | Versioned local-only INI profiles and restart profile pass on 2026-08-28 with real ticks, live/remote/cloud disabled; broader regression remains. |
@@ -50,7 +50,7 @@
 | Reversal | directional Market touch، wick validity، Normal1/High2، duplicate guard | PASS |
 | Pullback | penetration 0.20، broken-edge entry/retry، t+1..t+5، multi-PB، Normal1/High∞ | PASS |
 | Strict/Conflict/TP | closed/current candle، Same-Bar، Doji، crossing/gap، touch block، extend/restore/close | PASS |
-| Free Space | Buy/Sell formula و minimum 3 USD | PASS |
+| Free Space | Buy/Sell formula و strict `>3 USD` | PASS |
 | Initial risk | Stop Zone/cap6، first target ≥6، missing-Zone reject | PASS |
 | Profit protection | Native RF، X-step، no SL loosening | PASS |
 | Execution | SL/TP at creation، native costs، one order/bar، 0.01 lot، max3/max5 | PASS at Python contract + bounded MQL Native lifecycle; exact Symbol/Magic Deal-history evidence exists for both profiles. |

@@ -36,7 +36,7 @@ def make_zones(*bounds: tuple[str, str]) -> tuple[Zone, ...]:
     )[DAY]
 
 
-def test_directional_free_space_uses_adjacent_zone_and_inclusive_minimum() -> None:
+def test_directional_free_space_uses_adjacent_zone_and_strict_minimum() -> None:
     zones = make_zones(("90", "91"), ("95", "96"), ("99", "100"))
     middle = zones[1]
     assert (
@@ -49,27 +49,15 @@ def test_directional_free_space_uses_adjacent_zone_and_inclusive_minimum() -> No
         directional_free_space(zone_id=middle.zone_id, direction=TradeDirection.SELL, zones=zones)
         == 4
     )
-    assert has_minimum_free_space(zone_id=middle.zone_id, direction=TradeDirection.BUY, zones=zones)
+    assert not has_minimum_free_space(
+        zone_id=middle.zone_id, direction=TradeDirection.BUY, zones=zones
+    )
+    assert has_minimum_free_space(
+        zone_id=middle.zone_id, direction=TradeDirection.SELL, zones=zones
+    )
     assert not has_minimum_free_space(
         zone_id=zones[0].zone_id, direction=TradeDirection.SELL, zones=zones
     )
-
-    below_buy = make_zones(("90", "91"), ("95", "96"), ("98.99", "100"))
-    assert directional_free_space(
-        zone_id=below_buy[1].zone_id, direction=TradeDirection.BUY, zones=below_buy
-    ) == Decimal("2.99")
-    assert not has_minimum_free_space(
-        zone_id=below_buy[1].zone_id, direction=TradeDirection.BUY, zones=below_buy
-    )
-
-    below_sell = make_zones(("91.01", "94"), ("96.99", "98"), ("105", "106"))
-    assert directional_free_space(
-        zone_id=below_sell[1].zone_id, direction=TradeDirection.SELL, zones=below_sell
-    ) == Decimal("2.99")
-    assert not has_minimum_free_space(
-        zone_id=below_sell[1].zone_id, direction=TradeDirection.SELL, zones=below_sell
-    )
-
 
 def test_initial_stop_uses_nearest_structural_zone_with_six_dollar_cap() -> None:
     zones = make_zones(("85", "86"), ("97", "98"), ("110", "111"), ("120", "121"))

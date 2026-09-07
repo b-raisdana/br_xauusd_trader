@@ -20,6 +20,7 @@ def test_current_mt5_baseline_is_strict_vector_driven_and_live_inert() -> None:
     assert "input long InpStrategyMagic=0" in source
     assert "input bool InpRunCurrentEventLoop=false" in source
     assert "input bool InpEnableTesterExecution=false" in source
+    assert "input double InpStrategyCapital=200.0" in source
     assert "trade.Buy" not in source
     assert "trade.Sell" not in source
     for contract in (
@@ -230,6 +231,7 @@ def test_contract_smoke_configuration_is_local_and_trading_disabled() -> None:
     assert "InpStrategyMagic=0" in config
     assert "InpRunCurrentEventLoop=true" in config
     assert "InpEnableTesterExecution=false" in config
+    assert "InpStrategyCapital=200.0" in config
 
 
 def test_current_event_loop_loads_canonical_zones_and_remains_inert() -> None:
@@ -322,3 +324,44 @@ def test_mql_tester_risk_snapshot_is_project_filtered_and_tester_locked() -> Non
     assert "NativeCashRisk" in source
     assert "ACCOUNT_LOGIN" not in source
     assert "ACCOUNT_NAME" not in source
+
+
+def test_tester_candidate_flow_is_audit_before_send_and_binding_after_acceptance() -> None:
+    root = Path(__file__).parents[1]
+    source = (root / "src" / "mt5" / "XAUUSD_MVP.mq5").read_text(encoding="utf-8")
+
+    assert "ProcessTesterCandidates" in source
+    assert source.index("AppendOrderThenProject(ORDER_AUDIT_FILE") < source.index(
+        "SubmitTesterPreparedEntry(true"
+    )
+    assert source.index("SubmitTesterPreparedEntry(true") < source.index(
+        "CommitPreparedEntryAttempt(g_market_state"
+    )
+    assert "BindExecutionOrder" in source
+    assert "ApplyProjectOwnedNativeOutcome" in source
+
+
+def test_200_profile_acceptance_config_cannot_enable_live_trading() -> None:
+    root = Path(__file__).parents[1]
+    config = (root / "config" / "mt5" / "tester_200.ini").read_text(encoding="utf-8")
+
+    assert "AllowLiveTrading=0" in config
+    assert "InpEnableTrading=false" in config
+    assert "InpEnableTesterExecution=true" in config
+    assert "InpObserveNativeOutcomes=true" in config
+    assert "InpStrategyCapital=200.0" in config
+    assert "Deposit=200" in config
+    assert "UseRemote=0" in config and "UseCloud=0" in config
+
+
+def test_300_profile_acceptance_config_cannot_enable_live_trading() -> None:
+    root = Path(__file__).parents[1]
+    config = (root / "config" / "mt5" / "tester_300.ini").read_text(encoding="utf-8")
+
+    assert "AllowLiveTrading=0" in config
+    assert "InpEnableTrading=false" in config
+    assert "InpEnableTesterExecution=true" in config
+    assert "InpObserveNativeOutcomes=true" in config
+    assert "InpStrategyCapital=300.0" in config
+    assert "Deposit=300" in config
+    assert "UseRemote=0" in config and "UseCloud=0" in config

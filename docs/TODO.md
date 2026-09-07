@@ -33,7 +33,7 @@
 
 ## 2) بازسازی مهندسی کد
 
-- [ ] ساخت EA جدید ماژولار — Python full lifecycle و MQL causal signal event loop روی یک روز real-tick parity دارد؛ prepared request، tester-only send و filtered risk snapshot موجودند و lifecycle wiring باقی است.
+- [ ] ساخت EA جدید ماژولار — Python full lifecycle و MQL real-tick signal/request/binding/Fill/Close برای profileهای 200/300 اجرا شد؛ operational position/pending management و TP state runtime باقی است.
 - [x] ماژول Zone/Trend — Load/Merge/Priority، Engagement و Trend bootstrap روزانه مستقل پیاده و Contract-tested شد.
 - [x] ماژول Signalها — Breakout، Reversal و Pullback با State مشترک Order Slot و Lineage روشن پیاده و Contract-tested شدند.
 - [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.
@@ -109,8 +109,8 @@ Gate: صفر اختلاف توضیح‌نشده.
 ## 6) Final MT5 Acceptance
 
 - [ ] Broker/Symbol specification — Contract size، Tick size/value، Stops/Freeze level، Session و Cost model ثبت شود.
-- [ ] سناریوی 200 دلار — 0.01 lot، max3، Risk/Safety فعال و بدون Margin Block غیرمنتظره.
-- [ ] سناریوی 300 دلار — 0.01 lot، max5، Risk/Safety فعال و بدون Margin Block غیرمنتظره.
+- [ ] سناریوی 200 دلار — اجرای اولیه 0.01/max3 با 7 attempt، 6 accepted، 1 rejected و failed=0؛ attribution رد و operational gates باقی است.
+- [ ] سناریوی 300 دلار — اجرای اولیه 0.01/max5 با 13 attempt، 11 accepted، 2 rejected و failed=0؛ attribution رد و operational gates باقی است.
 - [ ] Technical QA — صفر SL-loosen، صفر exposure ناخواسته بعد Session، صفر same-day restart fill.
 - [ ] Deal PnL audit — نتیجه نهایی از Deal History و هزینه Native محاسبه شود.
 

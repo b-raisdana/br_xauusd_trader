@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "status": "FINAL_STAGE_7",
-  "as_of": "2026-09-07",
+  "as_of": "2026-09-08",
   "purpose": "Canonical reusable evidence for reporting without rerunning MetaTrader 5",
   "provenance": {
     "last_committed_repository_head": "871189ae632af525361f0041cd08c9206216eaa4",
-    "ea_source_sha256": "6629C4EC7CE356337BED65467767A0915AD5B9EF6FA072258F34FC8DE02D936B",
-    "ea_compiled_sha256": "3DEB4DCDD35F33AD14FBDC091DC00BBB6B09BFFA6825688CFDE1ECB858EDFBDA",
+    "ea_source_sha256": "1E31F809218382901589964E81B26F17FC8F8E8C568F89F0D24B9F42E3B198F6",
+    "ea_compiled_sha256": "548250EA550418C87A6613BD32AE392AC903FCBC3B709968EF1F2FBDC4A1EE18",
     "mt5_terminal_build": 6151,
     "python_version": "3.11.15",
     "dataset": {
@@ -24,7 +24,7 @@
     }
   },
   "automated_checks": {
-    "python_tests": {"status": "PASS", "passed": 138},
+    "python_tests": {"status": "PASS", "passed": 139},
     "legacy_python_ast": {"status": "PASS", "passed": 9, "total": 9},
     "mql_compile": {"status": "PASS", "errors": 0, "warnings": 0},
     "python_mql_contract_vectors": {"status": "PASS", "count": 19},
@@ -130,8 +130,32 @@
       "market_close_branch_observed": false
     }
   },
+  "mt5_multiday_engineering": {
+    "status": "PASS",
+    "config": "config/mt5/tester_multiday_200.ini",
+    "config_sha256": "3E1972CAC0AC4554B90E54E6008CF87A1681AF84AD09A04BFB58F67E9CBDE6E9",
+    "range": "2026-07-29..2026-08-28",
+    "zone_broker_days": 23,
+    "capital_usd": "200.00",
+    "attempts": 302,
+    "accepted": 188,
+    "rejected": 114,
+    "invalid_price_rejections": 114,
+    "other_broker_rejections": 0,
+    "maximum_observed_positions": 3,
+    "pending_cancellations": 2,
+    "session_position_closes": 2,
+    "profit_protection_modifications": 164,
+    "tp_extensions": 10,
+    "tp_restores": 3,
+    "tp_market_closes": 2,
+    "tp_rejections": 0,
+    "sl_loosen_violations": 0,
+    "final_exposure": 0,
+    "lifecycle_failures": 0
+  },
   "pending_final_evidence": [
-    "Multi-day lifecycle parity and targeted regressions",
+    "Python-vs-MT5 multi-day lifecycle parity and remaining Trend/Normal/FreeSpace regressions",
     "Final performance metrics including drawdown and trade distribution when available"
   ],
   "interpretation_limits": [

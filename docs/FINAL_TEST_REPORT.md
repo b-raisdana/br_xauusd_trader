@@ -9,8 +9,8 @@
 | مورد | مقدار ثبت‌شده |
 |---|---|
 | Repository checkpoint موجود | `871189ae632af525361f0041cd08c9206216eaa4` |
-| SHA-256 سورس EA | `6629C4EC7CE356337BED65467767A0915AD5B9EF6FA072258F34FC8DE02D936B` |
-| SHA-256 فایل کامپایل‌شده | `3DEB4DCDD35F33AD14FBDC091DC00BBB6B09BFFA6825688CFDE1ECB858EDFBDA` |
+| SHA-256 سورس EA | `1E31F809218382901589964E81B26F17FC8F8E8C568F89F0D24B9F42E3B198F6` |
+| SHA-256 فایل کامپایل‌شده | `548250EA550418C87A6613BD32AE392AC903FCBC3B709968EF1F2FBDC4A1EE18` |
 | MT5 / MetaEditor | build 6151 |
 | Python | 3.11.15 |
 | Dataset Zone | `data/ranges.csv` |
@@ -24,7 +24,7 @@ Checkpoint بالا والدِ تغییرات این گزارش است؛ Hashه�
 
 | آزمون | نتیجه | Evidence |
 |---|---|---|
-| Python suite | PASS | 138 تست |
+| Python suite | PASS | 139 تست |
 | Legacy Python syntax | PASS | 9/9 AST parse |
 | MQL compile | PASS | صفر Error و صفر Warning |
 | قرارداد مشترک Python/MQL | PASS | 19 vector |
@@ -74,7 +74,9 @@ Configها به‌ترتیب `tester_200.ini` و `tester_300.ini`، با Real Ti
 - Regression هدفمند و Multi-day lifecycle parity.
 - Metrics کامل عملکرد مانند Drawdown و توزیع Trade، در صورت تولید توسط اجرای نهایی.
 
-Full Quality Gate در 2026-09-07 پاس شد: Ruff، format، mypy، 138 تست Python، `git diff --check`، کامپایل MT5 با صفر خطا/هشدار، سه اجرای پذیرش و Evidence ساختاریافته حاضر.
+Full Quality Gate در 2026-09-08 پاس شد: Ruff، format، mypy، 139 تست Python، `git diff --check`، کامپایل MT5 با صفر خطا/هشدار، سه اجرای پذیرش تک‌روزه، اجرای ۲۳روزه و Evidence ساختاریافته حاضر.
+
+اجرای مهندسی ۲۳روزه 2026-07-29 تا 2026-08-28 نیز PASS شد: 302 attempt، 188 accepted، 114 invalid-price reject، max position=3، cancel/session-close=`2/2`، protection modify=164، TP extend/restore/market-close=`10/3/2` و صفر lifecycle failure، TP reject، SL-loosen و exposure نهایی. این اجرا robustness فنی است و مقایسه کامل Python/MT5 یا ادعای سودآوری نیست.
 
 A/B ازپیش‌محدود TP روی همان روز/Config نشان داد شمار Entryها ثابت ماند و Net هر دو Profile فقط `+0.14 USD` تغییر کرد؛ این یک attribution مهندسی یک‌روزه است، نه شواهد سودآوری. Strict Trend و Safety regression پاس‌اند؛ Trend/Normal/FreeSpace attribution و multi-day parity باقی‌اند.
 

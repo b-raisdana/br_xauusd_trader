@@ -4,12 +4,12 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: Stage 7 reusable final-report evidence PASS; Strict/TP/Safety regressions PASS; Trend/Normal/FreeSpace attribution and multi-day equivalence remain before Freeze
+- Current activity: 23-day MQL lifecycle acceptance PASS; Trend/Normal/FreeSpace attribution and Python↔MT5 multi-day parity remain before Freeze
 - Strategy target: MVP v2 Consolidated Rulebook
 - Rule status: Core Python strategy and guarded MQL signal/request/Native lifecycle, TP extension/restore and same-day restart are implemented and tested for one real-tick day; multi-day equivalence remains
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
 - Last verified Git checkpoint entering this continuation: `751feec` — guarded Strategy Tester lifecycle
-- Last verified date: 2026-09-07
+- Last verified date: 2026-09-08
 - Current branch: main
 - GitHub sync: PRIVATE `origin/main` — rapid-MVP mode; routine push/PR/remote CI deferred, local Git retained
 - Live state: RESEARCH_ONLY
@@ -71,7 +71,7 @@
 - `scripts/export_mt5_ticks.py` pins the MT5 Python bridge, accepts only explicit UTC ranges, writes only under ignored `data/cache/`, exports no account identity, and was runtime-validated on a 15-minute window: 6,487 ticks, 290,594 bytes, SHA-256 `498d87fa9c8359207284207537c91e85eee9f6a3c11f070d2e1cfb0a04c03d04`. The cache itself is not committed.
 - `load_mt5_tick_bars` preserves source row order for equal-millisecond ticks, rejects backward time, requires an explicit whole-minute offset, and creates internally consistent M15 Bid candles. The ignored 6,487-tick sample mechanically normalized/replayed as one bar.
 - `scripts/match_mt5_time_basis.py` fail-closes unless an ordered multi-tick probe uniquely matches one whole-30-minute UTC offset in the terminal history. A five-tick local correlation produced one unique match; the probe values, resolved Broker-specific offset and account identity are intentionally not persisted or committed.
-- Current test baseline: 138 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by repository checks. MetaEditor remains 0 errors/0 warnings, inert regression smoke passes, and both local tester profiles plus same-day restart ran with remote/cloud/live disabled. Signal-count parity remains exact on 541,333 native Ticks/88 M15 bars; bounded Native lifecycle, Deal-cost risk, session flatten, TP extension/restore and restart evidence pass.
+- Current test baseline: 139 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by repository checks. MetaEditor remains 0 errors/0 warnings. The 23-day local-only MQL run passed with 302 attempts, 188 accepts, max3, two cancels/two session closes, TP 10/3/2, zero unknown rejects, SL-loosen, final exposure or lifecycle failure. One-day Python/MQL signal-count parity remains exact; multi-day cross-engine parity remains.
 - Template و Handoff به‌صورت محتوایی Merge شدند و Workflow محلی CI حفظ شد.
 - Repository روی Branch `main` ایجاد و Baseline در Git ثبت شد.
 - `FINAL_PROJECT_HANDOFF_2026-09-06.md` طبق تصمیم Project Leader وارد Repository نشد.
@@ -88,7 +88,7 @@
 
 ## موارد تأییدنشده اجرایی
 
-- Multi-day lifecycle parity and targeted rule regressions. Signal-count, guarded lifecycle, TP extension/restore and restart evidence are complete for one day only; Market Close branch was not naturally activated in that day.
+- Python↔MT5 multi-day lifecycle parity and Trend/Normal/FreeSpace attribution remain. MQL-only 23-day lifecycle evidence now includes naturally activated TP Market Close and Session close branches.
 - اتصال Evidenceهای تاریخی به Dataset/Config/Artifact/Commit.
 - رفتار دقیق Broker Symbol/Session و Cost model در محیط هدف.
 - نتیجه Regression Ruleهای جدید در برابر Finalist قدیمی.
@@ -161,6 +161,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید Trend/Normal/FreeSpace و QA-day regressionهای باقی‌مانده Stage 4 و multi-day lifecycle parity مرحله 5 را پیش ببرد؛ Strict/TP/Safety regression و گزارش جامع Stage 7 اکنون ثبت‌اند. Live trading تا Gate رهبر غیرممکن می‌ماند.
+Codex باید Trend/Normal/FreeSpace و QA-day regressionهای باقی‌مانده Stage 4 و Python↔MT5 multi-day parity مرحله 5 را پیش ببرد. MQL 23-day lifecycle، Strict/TP/Safety regression و گزارش Stage 7 ثبت‌اند. Live trading تا Gate رهبر غیرممکن می‌ماند.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

@@ -8,7 +8,7 @@
 |---|---|---|---|
 | Migration integrity | Rule/Decision/Experiment separation | PASS | Template/Handoff Merge شد؛ Legacy از Active Rules جدا و تصمیم‌های نهایی Leader ثبت شد. |
 | Package structure smoke | Required root, Source-of-Truth files and canonical ranges | PASS | Canonical SHA-256 and required structure remain covered by pytest. |
-| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | Latest pytest on 2026-09-07: 138 tests PASS; last full local gate also covered Ruff/mypy/diff, including full Python lifecycle/replay and guarded MQL signal/request/outcome/operational components. |
+| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | Latest full gate on 2026-09-08: 139 tests PASS plus Ruff/format/mypy/diff. |
 | Legacy static integrity | Historical sources/manifests without promotion | PASS | Python AST 9/9; PowerShell parser 12/12; MQL5 strict + balanced braces 3/3; Git-staged core manifest 16/16 across byte-preserved attributes. Not compile/runtime evidence. |
 | Zone/Trend/orchestration slice | Rule → causal ticks → bar close → deterministic tests | PASS | 21 focused tests; strict tick-chain/final-close validation and Breakout-before-Trend-roll PASS; 23 canonical days → 421 merged Zones; 444/444 source rows retained. |
 | Breakout/Reversal signal slice | Strict qualification, touch and accounting contracts | PASS | 9 focused/integration tests; strict buffer/lineage, same-Tick Trend, directional Market touch, gap/wick, duplicate, daily usage and shared bar slot PASS. |
@@ -29,6 +29,7 @@
 | Python ↔ MT5 equivalence | Frozen core vectors | PASS for 19 pure contracts plus one-day signal counts and guarded Native lifecycle | Shared vectors PASS at `1e-9`; causal signal counts match on 541,333 ticks and project-owned Native lifecycle passes both capital profiles. Multi-day lifecycle parity remains. |
 | MT5 compile/runtime smoke | `#property strict`, zero errors, inert startup | PASS for current inert core + State/Execution/Native/Audit boundaries | Build 6151: 0 errors/0 warnings; Strategy Tester validated 19 vectors, causal/daily/Pullback/TP state, Daily/GROSS15/Concurrency/Margin/Operational safety, synthetic execution, Native adapters and audit payload. |
 | MT5 real-tick acceptance | 200/300 USD scenarios | PASS for bounded technical run | Versioned local-only INI profiles and restart profile pass on 2026-08-28 with real ticks, live/remote/cloud disabled; broader regression remains. |
+| MT5 multi-day lifecycle | 23 Zone days, capital 200, real ticks | PASS engineering run | 302 attempts/188 accepted/114 invalid-price rejects; max3, cancel/session-close 2/2, TP extend/restore/market-close 10/3/2; zero unknown reject, SL-loosen, final exposure or failure. |
 | Final reusable report | Structured evidence + comprehensive Markdown | PASS Stage 7 | Canonical JSON/report include hashes, profile counters, Symbol spec, TP and restart evidence; summaries must reuse them without rerunning MT5. |
 | MVP Freeze | Rulebook/Code/Evidence immutable version | NOT_RUN | همه Gateهای قبلی لازم‌اند. |
 | Shadow/Demo | Broker acceptance | NOT_RUN | پس از MVP Freeze. |

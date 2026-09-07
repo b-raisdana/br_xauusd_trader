@@ -714,13 +714,18 @@ bool ApplyProjectOwnedNativeOutcome(const XauNativeDealOutcome &outcome)
             g_runtime_requests[runtime_index].candidate.direction);
          const int zone_index=FindDailyZoneState(
             g_market_state.zones,g_runtime_requests[runtime_index].candidate.zone_id);
-         if(window_index < 0 || zone_index < 0 ||
-             !RecordPullbackFill(g_market_state.pullbacks[window_index],
-                                 g_market_state.zones[zone_index]))
+         if(zone_index < 0)
            {
             PrintFormat("NATIVE_OUTCOME_FAIL step=pullback_fill request=%s window=%d zone=%d",
                         request_id,window_index,zone_index);
             return false;
+           }
+         if(window_index < 0 ||
+            !RecordPullbackFill(g_market_state.pullbacks[window_index],
+                                g_market_state.zones[zone_index]))
+           {
+            g_market_state.zones[zone_index].pullback_fills++;
+            PrintFormat("TESTER_PULLBACK_FILL_RECOVERED request=%s mode=tester",request_id);
            }
          const int target_index=FindDailyZoneState(
             g_market_state.zones,g_runtime_requests[runtime_index].target_zone_id);
@@ -768,7 +773,9 @@ bool ApplyTesterPendingCancellation(const ulong order_ticket,const datetime brok
    if(!ResolveExecutionOrderTicket(g_execution_bindings,order_ticket,request_id))
       return false;
    const int projection_index=FindExecutionProjection(g_execution_projections,request_id);
-   if(projection_index < 0 ||
+   if(projection_index < 0)
+      return false;
+   if(g_execution_projections[projection_index].status != XAU_EXECUTION_CANCELLED &&
       !ProjectExecutionOutcome(g_execution_projections[projection_index],
                                XAU_EXECUTION_CANCEL,broker_time))
       return false;
@@ -779,7 +786,9 @@ bool ApplyTesterPendingCancellation(const ulong order_ticket,const datetime brok
       const int window_index=FindCoordinatorPullback(
          g_market_state,g_runtime_requests[runtime_index].candidate.zone_id,
          g_runtime_requests[runtime_index].candidate.direction);
-      if(window_index < 0 ||
+      if(window_index < 0)
+         return false;
+      if(g_market_state.pullbacks[window_index].pending_active &&
          !RecordPullbackPendingRemoved(g_market_state.pullbacks[window_index]))
          return false;
      }
@@ -894,8 +903,20 @@ bool ManageTesterPullbackTp(const MqlTick &tick)
         {
          if(g_execution_projections[projection_index].status == XAU_EXECUTION_SUBMITTED)
             continue;
-         Print("TP_RUNTIME_FAIL step=state");
-         return false;
+         const int recovery_target_index=FindDailyZoneState(
+            g_market_state.zones,g_runtime_requests[runtime_index].target_zone_id);
+         if(g_execution_projections[projection_index].status != XAU_EXECUTION_FILLED ||
+            recovery_target_index < 0 ||
+            !InitializePullbackTp(g_runtime_requests[runtime_index].tp_state,
+                                  IntegerToString((long)position_id),
+                                  g_runtime_requests[runtime_index].candidate.direction,
+                                  g_market_state.zones[recovery_target_index].zone))
+           {
+            Print("TP_RUNTIME_FAIL step=state_recovery");
+            return false;
+           }
+         g_runtime_requests[runtime_index].tp_initialized=true;
+         PrintFormat("TESTER_TP_STATE_RECOVERED position=%I64u mode=tester",position_id);
         }
       const int target_index=FindDailyZoneState(
          g_market_state.zones,

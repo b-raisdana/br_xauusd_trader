@@ -38,6 +38,10 @@ def test_final_report_evidence_is_machine_readable_and_complete_enough_to_summar
     assert restart["status"] == "PASS"
     assert restart["attempts"] == restart["maximum_observed_positions"] == 0
     assert evidence["safety_evidence"]["symbol_specification"]["status"] == "PASS"
+    multiday = evidence["mt5_multiday_engineering"]
+    assert multiday["status"] == "PASS"
+    assert multiday["attempts"] == multiday["accepted"] + multiday["rejected"]
+    assert multiday["final_exposure"] == multiday["lifecycle_failures"] == 0
 
 
 def test_visual_leader_gate_is_replaced_by_reusable_final_report() -> None:

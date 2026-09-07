@@ -108,8 +108,10 @@ bool LoadTesterExposureRisk(const long magic,const string symbol,
       const ENUM_ORDER_TYPE order_type=(ENUM_ORDER_TYPE)OrderGetInteger(ORDER_TYPE);
       if(order_type != ORDER_TYPE_BUY_STOP && order_type != ORDER_TYPE_SELL_STOP)
          continue;
+      const ENUM_ORDER_TYPE risk_type=(order_type == ORDER_TYPE_BUY_STOP ? ORDER_TYPE_BUY :
+                                                                            ORDER_TYPE_SELL);
       double risk=0.0;
-      if(!NativeCashRisk(order_type,symbol,OrderGetDouble(ORDER_VOLUME_CURRENT),
+      if(!NativeCashRisk(risk_type,symbol,OrderGetDouble(ORDER_VOLUME_CURRENT),
                          OrderGetDouble(ORDER_PRICE_OPEN),OrderGetDouble(ORDER_SL),risk))
          return false;
       snapshot.pending_order_risk+=risk;

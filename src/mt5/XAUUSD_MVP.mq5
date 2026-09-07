@@ -12,6 +12,7 @@
 #include "include/XauCoordinator.mqh"
 #include "include/XauRequests.mqh"
 #include "include/XauTesterBroker.mqh"
+#include "include/XauTesterRisk.mqh"
 #include "include/XauVisual.mqh"
 
 input bool InpEnableTrading=false;

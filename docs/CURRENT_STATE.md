@@ -4,11 +4,11 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: Strategy-Tester-only broker adapter compiled / tester risk snapshot and lifecycle wiring next
+- Current activity: Filtered Strategy Tester risk snapshot compiled / lifecycle wiring next
 - Strategy target: MVP v2 Consolidated Rulebook
 - Rule status: Core Python strategy, Risk/Execution, Safety and Audit rules implemented and contract-tested; full MT5 orchestration/rendering remain
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
-- Last verified Git checkpoint entering this continuation: `abb7da8` — protected MQL request preparation
+- Last verified Git checkpoint entering this continuation: `55cbdce` — hard-locked Strategy Tester broker adapter
 - Last verified date: 2026-09-07
 - Current branch: main
 - GitHub sync: PRIVATE `origin/main` — synchronized; use Git log for the exact head
@@ -55,6 +55,7 @@
 - Current MQL5 baseline: `src/mt5/XAUUSD_MVP.mq5` plus modular Contract, State, Coordinator, Execution, Native and Visual includes compile with nineteen shared assertions and explicit `1e-9` tolerance. Canonical 444 raw Zones/23 days are deterministically generated and drift-tested. The opt-in event loop bootstraps the Broker Day, owns M15 boundaries, runs Trend→Engagement→Reversal/Pullback per Tick and Breakout-before-candle-roll at Close. Safety/request decisions enforce Daily-before-GROSS15 precedence, 200/300 concurrency, inclusive Native margin, fixed 0.01 volume, directional protection and Session/Restart actions. `OnTradeTransaction` remains default-off, requires positive Magic, filters exact Symbol/Magic, ignores unknown bindings, and persists before projection. No account-identity or order-send API exists. MetaEditor build 6151 reports 0 errors/0 warnings.
 - MQL prepared-request boundary now rejects missing directional FreeSpace 3$, missing structural SL/TP, Daily/GROSS15/concurrency/margin and invalid protection before any attempt. An allowed candidate can build the versioned ORDER audit and only an explicit sent request commits the shared candle slot plus Reversal/Pullback usage state. The runtime event loop remains candidate-only; no `OrderSend`/`CTrade` exists.
 - `XauTesterBroker.mqh` now contains the sole order-send API. It is guarded inside the function by `MQL_TESTER`, an explicit enable input, positive Magic and an allowed prepared decision; EA initialization independently rejects the setting outside Strategy Tester. Contract smoke keeps the input false, so no request was sent. This adapter is not yet wired to the event loop.
+- `XauTesterRisk.mqh` groups closed Deal PnL by position for net/gross realized loss and aggregates protected Position/Pending native cash risk plus free margin. Every Deal/Position/Order is filtered by exact Symbol/Magic, account identity fields are never read, and the public loader is hard-locked to Strategy Tester.
 - Price boundaries use finite `Decimal` values and merged Zone IDs use `{BrokerDay ISO}:R{sorted ordinal}`; future MQL5 parity must test conversion/tolerance explicitly.
 - `.gitattributes` now preserves canonical `ranges.csv` and all immutable Legacy evidence byte-for-byte across Windows/Linux; staged Git blobs verify core manifest 16/16 and canonical SHA-256 exactly.
 - First-run repository audit completed on 2026-09-06: all current and legacy source/test files were inventoried; `_migration_inbox` is absent.
@@ -69,7 +70,7 @@
 - `scripts/export_mt5_ticks.py` pins the MT5 Python bridge, accepts only explicit UTC ranges, writes only under ignored `data/cache/`, exports no account identity, and was runtime-validated on a 15-minute window: 6,487 ticks, 290,594 bytes, SHA-256 `498d87fa9c8359207284207537c91e85eee9f6a3c11f070d2e1cfb0a04c03d04`. The cache itself is not committed.
 - `load_mt5_tick_bars` preserves source row order for equal-millisecond ticks, rejects backward time, requires an explicit whole-minute offset, and creates internally consistent M15 Bid candles. The ignored 6,487-tick sample mechanically normalized/replayed as one bar.
 - `scripts/match_mt5_time_basis.py` fail-closes unless an ordered multi-tick probe uniquely matches one whole-30-minute UTC offset in the terminal history. A five-tick local correlation produced one unique match; the probe values, resolved Broker-specific offset and account identity are intentionally not persisted or committed.
-- Current test baseline: 127 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by repository checks. MetaEditor remains 0 errors/0 warnings and inert smoke passed after the tester adapter was added with execution disabled. On 541,333 native Ticks/88 M15 bars, Python↔MQL signal counts matched exactly at BO=28, R=62 and PB=410,904. This is parity evidence, not performance or strategy acceptance.
+- Current test baseline: 128 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by repository checks. MetaEditor remains 0 errors/0 warnings; tester risk source filtering/gating is static-tested while runtime execution remains disabled. On 541,333 native Ticks/88 M15 bars, Python↔MQL signal counts matched exactly at BO=28, R=62 and PB=410,904. This is parity evidence, not performance or strategy acceptance.
 - Template و Handoff به‌صورت محتوایی Merge شدند و Workflow محلی CI حفظ شد.
 - Repository روی Branch `main` ایجاد و Baseline در Git ثبت شد.
 - `FINAL_PROJECT_HANDOFF_2026-09-06.md` طبق تصمیم Project Leader وارد Repository نشد.
@@ -158,6 +159,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید snapshot ریسک فیلترشدهٔ Tester را بسازد، adapter را به audit/binding/outcome state متصل و سناریوهای lifecycle را اجرا کند؛ سپس regressionهای Stage 4 را گسترش دهد. Live trading تا Gate رهبر غیرممکن می‌ماند.
+Codex باید adapter Tester را به risk snapshot، audit-before-send، binding و outcome state متصل و سناریوهای lifecycle را اجرا کند؛ سپس regressionهای Stage 4 را گسترش دهد. Live trading تا Gate رهبر غیرممکن می‌ماند.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

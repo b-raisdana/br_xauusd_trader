@@ -308,3 +308,17 @@ def test_mql_broker_submission_is_hard_locked_to_strategy_tester() -> None:
     assert "InpEnableTesterExecution &&" in ea
     assert "(!(bool)MQLInfoInteger(MQL_TESTER)" in ea
     assert "OrderSend" not in ea
+
+
+def test_mql_tester_risk_snapshot_is_project_filtered_and_tester_locked() -> None:
+    root = Path(__file__).parents[1]
+    source = (root / "src" / "mt5" / "include" / "XauTesterRisk.mqh").read_text(encoding="utf-8")
+
+    assert "TesterExecutionAllowed(enabled)" in source
+    assert "DEAL_SYMBOL" in source and "DEAL_MAGIC" in source
+    assert "POSITION_SYMBOL" in source and "POSITION_MAGIC" in source
+    assert "ORDER_SYMBOL" in source and "ORDER_MAGIC" in source
+    assert "position_closed[index]" in source
+    assert "NativeCashRisk" in source
+    assert "ACCOUNT_LOGIN" not in source
+    assert "ACCOUNT_NAME" not in source

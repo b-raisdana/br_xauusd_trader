@@ -59,6 +59,11 @@ $statePass = @($newLogs | Select-String -SimpleMatch `
 if ($statePass.Count -eq 0) {
     throw "State-ordering success marker not found after terminal exit code $($process.ExitCode)."
 }
+$safetyPass = @($newLogs | Select-String -SimpleMatch `
+        "SAFETY_REQUEST_SMOKE_PASS daily/gross/concurrency/margin/operations mode=inert")
+if ($safetyPass.Count -eq 0) {
+    throw "Safety/request success marker not found after terminal exit code $($process.ExitCode)."
+}
 $nativePass = @($newLogs | Select-String -SimpleMatch `
         "NATIVE_ADAPTER_SMOKE_PASS symbol/session/risk/margin/deal-map mode=read-only")
 if ($nativePass.Count -eq 0) {

@@ -100,6 +100,7 @@ Gate: اختلاف اجرایی بدون توضیح = صفر.
 - [x] Freeze test vectors — schema و 19 vector، شامل lifecycle و causal Tick order، در Python و isolated MQL Strategy Tester با tolerance صریح و generated-header drift gate PASS شد.
 - [ ] Python replay — causal runner، UTC export/normalization، time-basis correlation، Zone-day attachment و fixture-driven Market/Pending Fill/Reject/Close/Modify/Cancel با atomic recovery PASS شد؛ full historical tick input و Native evidence باقی است.
 - [ ] MT5 Real Tick comparison — Finalist روی همان روزها با Every Tick Based on Real Ticks اجرا شود.
+- [x] MQL multi-day lifecycle robustness — تمام 23 روز Zone با Real Ticks و max3 اجرا شد؛ صفر failure/SL-loosen/exposure و TP Market Close بومی مشاهده شد.
 - [ ] اختلاف‌ها طبقه‌بندی شوند — فقط `RULE / CODE / DATA / TEST_CONFIG`؛ مشکل فنی بدون نیاز Business Logic به رهبر برنگردد.
 
 Gate: صفر اختلاف توضیح‌نشده.

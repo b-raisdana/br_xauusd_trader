@@ -71,3 +71,10 @@
 - Result: attempt/accepted/rejected در هر دو Profile ثابت ماند؛ net realized در 200 از `-4.25` به `-4.11` و در 300 از `-16.17` به `-16.03` رسید (اثر `+0.14 USD` در هر Profile). هر اجرا extension=1 و restore=1 داشت؛ market-close=0 و TP reject=0 بود.
 - Safety: max position، gross loss، final exposure، broker reject و SL-loosen تغییر نامطلوب نداشتند؛ restart مستقل نیز با صفر attempt/position/exposure پاس شد.
 - Interpretation limit: این A/B یک‌روزه فقط attribution مهندسی است، نه شاهد سودآوری یا robustness؛ شاخه Market Close در این روز فعال نشد.
+
+### EXP-MT5-MULTIDAY-20260729-20260828
+
+- Protocol: 23 روز Zone canonical، Real Ticks، سرمایه 200/max3، Cost model بومی، بدون Optimization و با Live/Remote/Cloud خاموش.
+- Result: 302 attempt، 188 accepted، 114 invalid-price reject، max position=3، cancel/session close=`2/2`، protection modify=164، TP extend/restore/market-close=`10/3/2`؛ صفر unknown/TP reject، SL-loosen، exposure نهایی و lifecycle failure.
+- Defects found/fixed: Pending-order risk اکنون با جهت Market معادل محاسبه می‌شود؛ Fill و Cancel callback/immediate races idempotent و fill state قابل recovery شدند.
+- Limit: این PASS فقط MQL lifecycle robustness است؛ PnL summary فعلی آخرین Broker Day را نشان می‌دهد و برای عملکرد کل بازه استفاده نمی‌شود. Python↔MT5 multi-day parity هنوز جداست.

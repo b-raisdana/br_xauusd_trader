@@ -399,6 +399,13 @@ def test_pullback_tp_runtime_is_bound_to_project_position_and_tester_broker() ->
     assert "CloseTesterPosition" in ea and "CloseTesterPosition" in broker
     assert "POSITION_MAGIC" in broker and "MQLInfoInteger(MQL_TESTER)" in broker
     assert "TESTER_TP_DONE" in ea
+    assert "TESTER_TP_STATE_RECOVERED" in ea
+    assert "TESTER_PULLBACK_FILL_RECOVERED" in ea
+    assert "status != XAU_EXECUTION_FILLED" in ea
+    assert "status != XAU_EXECUTION_CANCELLED" in ea
+    assert "ORDER_TYPE_BUY_STOP ? ORDER_TYPE_BUY" in (
+        root / "src" / "mt5" / "include" / "XauTesterRisk.mqh"
+    ).read_text(encoding="utf-8")
 
 
 def test_tester_symbol_specification_excludes_account_identity() -> None:
@@ -422,6 +429,20 @@ def test_200_profile_acceptance_config_cannot_enable_live_trading() -> None:
     assert "InpEnableTesterExecution=true" in config
     assert "InpObserveNativeOutcomes=true" in config
     assert "InpStrategyCapital=200.0" in config
+
+
+def test_multiday_profile_is_locked_to_canonical_zone_range_and_local_tester() -> None:
+    config = (Path(__file__).parents[1] / "config" / "mt5" / "tester_multiday_200.ini").read_text(
+        encoding="utf-8"
+    )
+
+    assert "FromDate=2026.07.29" in config and "ToDate=2026.08.29" in config
+    assert "Model=4" in config and "Optimization=0" in config
+    assert "AllowLiveTrading=0" in config
+    assert "UseLocal=1" in config
+    assert "UseRemote=0" in config and "UseCloud=0" in config
+    assert "InpEnableTesterExecution=true" in config
+    assert "InpSimulateSameDayRestart=false" in config
     assert "Deposit=200" in config
     assert "UseRemote=0" in config and "UseCloud=0" in config
 

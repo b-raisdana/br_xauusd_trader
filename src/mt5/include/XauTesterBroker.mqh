@@ -146,6 +146,44 @@ bool CloseTesterPositions(const bool enabled,const long magic,const string symbo
    return true;
   }
 
+bool CloseTesterPosition(const bool enabled,const long magic,const string symbol,
+                         const ulong position_ticket,XauTesterSubmission &submission)
+  {
+   submission.attempted=false;
+   submission.accepted=false;
+   submission.order_ticket=0;
+   submission.deal_ticket=0;
+   submission.retcode=0;
+   if(!TesterExecutionAllowed(enabled) || magic <= 0 || symbol == "" ||
+      position_ticket == 0 || !PositionSelectByTicket(position_ticket) ||
+      PositionGetString(POSITION_SYMBOL) != symbol || PositionGetInteger(POSITION_MAGIC) != magic)
+      return false;
+   MqlTick tick;
+   if(!SymbolInfoTick(symbol,tick))
+      return false;
+   const ENUM_POSITION_TYPE position_type=
+      (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
+   MqlTradeRequest request={};
+   MqlTradeResult result={};
+   request.action=TRADE_ACTION_DEAL;
+   request.position=position_ticket;
+   request.symbol=symbol;
+   request.magic=(ulong)magic;
+   request.volume=PositionGetDouble(POSITION_VOLUME);
+   request.type=(position_type == POSITION_TYPE_BUY ? ORDER_TYPE_SELL : ORDER_TYPE_BUY);
+   request.price=(position_type == POSITION_TYPE_BUY ? tick.bid : tick.ask);
+   request.deviation=20;
+   request.type_filling=NativeFillingPolicy(symbol);
+   request.comment="XAUUSD_TP_CLOSE";
+   submission.attempted=true;
+   const bool sent=OrderSend(request,result);
+   submission.retcode=result.retcode;
+   submission.order_ticket=result.order;
+   submission.deal_ticket=result.deal;
+   submission.accepted=sent && TesterRetcodeAccepted(result.retcode);
+   return true;
+  }
+
 bool ModifyTesterProtection(const bool enabled,const long magic,const string symbol,
                             const ulong position_ticket,const double stop_loss,
                             const double take_profit,bool &accepted)

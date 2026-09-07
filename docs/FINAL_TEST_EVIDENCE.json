@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "status": "FINAL_STAGE_7",
+  "as_of": "2026-09-07",
+  "purpose": "Canonical reusable evidence for reporting without rerunning MetaTrader 5",
+  "provenance": {
+    "last_committed_repository_head": "871189ae632af525361f0041cd08c9206216eaa4",
+    "ea_source_sha256": "6629C4EC7CE356337BED65467767A0915AD5B9EF6FA072258F34FC8DE02D936B",
+    "ea_compiled_sha256": "3DEB4DCDD35F33AD14FBDC091DC00BBB6B09BFFA6825688CFDE1ECB858EDFBDA",
+    "mt5_terminal_build": 6151,
+    "python_version": "3.11.15",
+    "dataset": {
+      "path": "data/ranges.csv",
+      "sha256": "D146FE4650EA52DA64B585A7A0EE15D874E68801F12764481E9EF8C773C9F4F3",
+      "source_rows": 444,
+      "broker_days": 23,
+      "merged_zones": 421
+    },
+    "contract_vectors": {
+      "path": "tests/vectors/core_contracts.json",
+      "sha256": "FDA4287D893604FF0F790F4F5C767A3E8D2F44EE5DF516D82722D196D3897083",
+      "count": 19,
+      "mql_tolerance": "1e-9"
+    }
+  },
+  "automated_checks": {
+    "python_tests": {"status": "PASS", "passed": 138},
+    "legacy_python_ast": {"status": "PASS", "passed": 9, "total": 9},
+    "mql_compile": {"status": "PASS", "errors": 0, "warnings": 0},
+    "python_mql_contract_vectors": {"status": "PASS", "count": 19},
+    "signal_count_parity": {
+      "status": "PASS",
+      "broker_day": "2026-08-28",
+      "native_ticks": 541333,
+      "m15_bars": 88,
+      "breakout": 28,
+      "reversal": 62,
+      "pullback": 410904,
+      "count_differences": 0
+    }
+  },
+  "mt5_real_tick_profiles": [
+    {
+      "name": "capital_200",
+      "config": "config/mt5/tester_200.ini",
+      "config_sha256": "B8126916BF9726FB30B295420F8354E986ABB2EC1B0F9A51041C303ECECE1E98",
+      "broker_day": "2026-08-28",
+      "model": "Every Tick Based on Real Ticks",
+      "capital_usd": "200.00",
+      "lot": "0.01",
+      "maximum_positions": 3,
+      "attempts": 14,
+      "accepted": 12,
+      "rejected": 2,
+      "invalid_price_rejections": 2,
+      "other_broker_rejections": 0,
+      "net_realized_pnl_usd": "-4.11",
+      "realized_gross_loss_usd": "28.68",
+      "maximum_observed_positions": 1,
+      "profit_protection_modifications": 9,
+      "profit_protection_rejections": 0,
+      "sl_loosen_violations": 0,
+      "final_exposure": 0,
+      "lifecycle_failures": 0,
+      "pullback_tp": {"extensions": 1, "restores": 1, "market_closes": 0, "rejections": 0},
+      "status": "PASS_BOUNDED_ENGINEERING"
+    },
+    {
+      "name": "capital_300",
+      "config": "config/mt5/tester_300.ini",
+      "config_sha256": "6EA7AAC87717DFDC82A23F3ECF0D7915498ED36FC8496B5734F3E2F71D1D35CF",
+      "broker_day": "2026-08-28",
+      "model": "Every Tick Based on Real Ticks",
+      "capital_usd": "300.00",
+      "lot": "0.01",
+      "maximum_positions": 5,
+      "attempts": 16,
+      "accepted": 14,
+      "rejected": 2,
+      "invalid_price_rejections": 2,
+      "other_broker_rejections": 0,
+      "net_realized_pnl_usd": "-16.03",
+      "realized_gross_loss_usd": "40.60",
+      "maximum_observed_positions": 1,
+      "profit_protection_modifications": 9,
+      "profit_protection_rejections": 0,
+      "sl_loosen_violations": 0,
+      "final_exposure": 0,
+      "lifecycle_failures": 0,
+      "pullback_tp": {"extensions": 1, "restores": 1, "market_closes": 0, "rejections": 0},
+      "status": "PASS_BOUNDED_ENGINEERING"
+    }
+  ],
+  "safety_evidence": {
+    "daily_loss_and_gross15_contracts": "PASS",
+    "session_flatten": "PASS_BOTH_PROFILES",
+    "final_zero_exposure": "PASS_BOTH_PROFILES",
+    "same_day_restart_runtime": {
+      "status": "PASS",
+      "config": "config/mt5/tester_restart.ini",
+      "config_sha256": "8317BD1CA81901E37E544E6F611FD69E0ED99D484465FA3E17D2273F552E30E4",
+      "attempts": 0,
+      "maximum_observed_positions": 0,
+      "final_exposure": 0,
+      "lifecycle_failures": 0
+    },
+    "symbol_specification": {
+      "status": "PASS",
+      "digits": 2,
+      "point": "0.01",
+      "contract_size": "100.00",
+      "tick_size": "0.01",
+      "tick_value": "0.10",
+      "stops_level": 0,
+      "freeze_level": 0,
+      "volume_min": "0.01",
+      "volume_step": "0.01",
+      "session": "2026-08-28 00:00:00..23:00:00"
+    },
+    "live_trading": "BLOCKED_BY_DESIGN"
+  },
+  "pending_final_evidence": [
+    "Multi-day lifecycle parity and targeted regressions",
+    "Final performance metrics including drawdown and trade distribution when available"
+  ],
+  "interpretation_limits": [
+    "The stored PnL values cover one Broker Day and are engineering evidence, not profitability evidence.",
+    "No missing metric may be inferred or estimated.",
+    "Real-money trading remains outside MVP acceptance and requires explicit Project Leader approval.",
+    "Visual chart inspection is not an MVP gate."
+  ]
+}

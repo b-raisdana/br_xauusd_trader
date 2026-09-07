@@ -21,11 +21,11 @@
 
 ## هدف
 
-پیاده‌سازی الگوریتمیک یک روش Price Action آموزش‌داده‌شده برای اجرای دستی طلا، در قالب EA ماژولار و قابل Audit که قوانین Active Zone/Trend/Breakout/Reversal/Pullback/Risk را بدون تفسیر پنهان اجرا کند، در Python و MT5 رفتار قابل‌مقایسه داشته باشد و پس از عبور از Gateهای فنی و بصری وارد Shadow/Demo شود.
+پیاده‌سازی الگوریتمیک یک روش Price Action آموزش‌داده‌شده برای اجرای دستی طلا، در قالب EA ماژولار و قابل Audit که قوانین Active Zone/Trend/Breakout/Reversal/Pullback/Risk را بدون تفسیر پنهان اجرا کند، در Python و MT5 رفتار قابل‌مقایسه داشته باشد و پس از عبور از Gateهای فنی و ثبت گزارش جامع نهایی وارد Shadow/Demo شود.
 
 ## مسیر تحویل
 
-`Rule Consolidation → Contract Tests → Targeted Regression → Python/MT5 Equivalence → MT5 Acceptance → Visual Leader Acceptance → MVP Freeze → Shadow/Demo`
+`Rule Consolidation → Contract Tests → Targeted Regression → Python/MT5 Equivalence → MT5 Acceptance → Final Test Report → MVP Freeze → Shadow/Demo`
 
 Real Money و افزایش ریسک خارج از این مسیر و نیازمند تأیید مستقیم Project Leader است.
 
@@ -48,7 +48,7 @@ Real Money و افزایش ریسک خارج از این مسیر و نیازم�
 - MT5 Compile Gate بدون Error و اجرای Real-Tick قابل بازتولید باشد.
 - هزینه‌ها از Bid/Ask و Deal History واقعی Broker/Tester محاسبه شوند.
 - صفر SL-loosening، صفر Exposure ناخواسته بعد Session و صفر Fill همان‌روز بعد Restart ثبت شود.
-- چند روز مرجع روی Chart و Journal توسط Project Leader تأیید شوند.
+- Evidence ساختاریافته و گزارش جامع نهاییِ قابل بازتولید برای همه Gateهای فنی ثبت شود.
 - Rulebook، Code و Evidence نسخه پذیرفته‌شده Freeze و غیرقابل Overwrite شوند.
 
 معیارهای سودآوری، Drawdown و مدت Shadow لازم برای Limited Live باید پس از تولید Evidence معتبر توسط Project Leader تصویب شوند.

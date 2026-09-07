@@ -414,7 +414,7 @@ Session از اطلاعات Symbol/Broker خوانده می‌شود و ساعت
 
 ---
 
-## 15) Audit و Visual
+## 15) Audit و Evidence نهایی تست
 
 ### Journal قابل Trace (`AUDIT_JOURNAL`)
 هر Signal/Order/Fill/Close حداقل باید این موارد را ثبت کند:
@@ -427,12 +427,12 @@ Session از اطلاعات Symbol/Broker خوانده می‌شود و ساعت
 - Parent Breakout ID برای Pullback
 - دلیل Reject/Block در صورت عدم ورود
 
-### Visual برای تایید رهبر (`VISUAL_QA`)
-- Normal و High Zone واضح و متفاوت باشند.
-- `R-B / R-S / BO-B / BO-S / PB-B / PB-S` روی Chart دیده شوند.
-- Tooltip شامل Time / Zone / Entry / SL / TP / Event ID باشد.
-- Visual منطق معامله را تغییر ندهد.
-- Debug فنی از نمای ساده رهبر پروژه جدا باشد.
+### گزارش نهایی قابل بازاستفاده (`FINAL_TEST_REPORT`)
+- نتیجه هر اجرای نهایی باید به Evidence ساختاریافته و گزارش جامع انسانی منتقل شود.
+- گزارش حداقل Dataset/Date range، Config و Hash، Build، Symbol/Session/Cost specification، شمارش Signal/Attempt/Fill/Reject/Close، PnL و Drawdown موجود، Risk/Safety/TP counters، خطاها، Gateها و محدودیت تفسیر را نگه دارد.
+- نتیجه مثبت و منفی هر دو ثبت شوند و هیچ مقدار ناموجودی تخمین زده نشود.
+- گزارش و Evidence باید برای تولید هر خلاصه بعدی کافی باشند؛ درخواست گزارش مجدد نباید باعث اجرای دوباره MT5 شود.
+- بررسی بصری Chart یا تایید چشمی رهبر، Gate فعال MVP نیست.
 
 ---
 

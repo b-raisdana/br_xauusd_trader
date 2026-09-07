@@ -23,4 +23,6 @@ After run:
 - report effect size, trade/sample count and relevant uncertainty;
 - perform sensitivity/robustness checks proportional to decision impact;
 - update `EXPERIMENTS.md`;
+- persist complete final metrics, config/data/code provenance, failures and interpretation limits in docs/FINAL_TEST_EVIDENCE.json and docs/FINAL_TEST_REPORT.md;
+- generate later summaries from stored evidence without rerunning the experiment;
 - only the Leader promotes behavior to confirmed Rules.

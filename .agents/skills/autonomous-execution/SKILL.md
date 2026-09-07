@@ -10,6 +10,13 @@ description: Use for non-trivial implementation, bug fixes, refactors or multi-s
 - Inspect Git status and actual code.
 - Define objective acceptance evidence.
 
+## Context efficiency
+- Recover from docs/CURRENT_STATE.md, open TODO items and the latest diff before opening broader history.
+- Use narrow search and bounded file ranges; do not load whole large logs, datasets or documents when selected evidence is enough.
+- Parse verbose command output locally and retain only failures, counters, hashes and decisive lines in model context.
+- Reuse docs/FINAL_TEST_REPORT.md and structured evidence for status/reporting; do not rerun unchanged MT5 tests to produce another summary.
+- Keep updates concise and avoid repeating stored project context.
+
 ## Execute
 1. Maintain the current TODO.
 2. Investigate root cause before patching.

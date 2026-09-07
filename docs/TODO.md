@@ -33,13 +33,13 @@
 
 ## 2) بازسازی مهندسی کد
 
-- [ ] ساخت EA جدید ماژولار — Python full lifecycle و MQL real-tick signal/request/binding/Fill/Close/profit-protection/session-flatten برای profileهای 200/300 اجرا شد؛ TP extension و restart runtime باقی است.
+- [x] ساخت EA جدید ماژولار — Python full lifecycle و MQL real-tick signal/request/binding/Fill/Close/profit-protection/session-flatten/TP/restart برای profileهای 200/300 اجرا شد؛ گسترش multi-day در Gate جدا باقی است.
 - [x] ماژول Zone/Trend — Load/Merge/Priority، Engagement و Trend bootstrap روزانه مستقل پیاده و Contract-tested شد.
 - [x] ماژول Signalها — Breakout، Reversal و Pullback با State مشترک Order Slot و Lineage روشن پیاده و Contract-tested شدند.
 - [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.
 - [x] ماژول Risk/Execution — Initial SL/TP، Base R، RF، Profit Protection، Native input boundary، fixed volume/concurrency و Margin Gate پیاده و تست شدند.
 - [x] ماژول Safety — Daily loss، Portfolio risk، Broker session flatten و Restart fail-closed پیاده و Contract-tested شدند.
-- [ ] ماژول Audit/Visual — Event/serialization، durable fail-closed JSONL Journal و MT5 render-only Zone/marker primitives پیاده و compile/runtime-payload tested شد؛ Visual chart inspection باقی است.
+- [ ] ماژول Audit/Report — Event/serialization و durable fail-closed JSONL Journal پیاده و تست شد؛ Evidence ساختاریافته و گزارش جامع نهایی باید با آخرین Acceptance همگام شوند.
 - [x] Compile Gate — current inert baseline با `#property strict` روی MetaEditor build 6151، صفر Error و صفر Warning compile شد؛ پس از هر توسعه باید تکرار شود.
 
 ---
@@ -108,22 +108,22 @@ Gate: صفر اختلاف توضیح‌نشده.
 
 ## 6) Final MT5 Acceptance
 
-- [ ] Broker/Symbol specification — Contract size، Tick size/value، Stops/Freeze level، Session و Cost model ثبت شود.
+- [x] Broker/Symbol specification — Contract size، Tick size/value، Stops/Freeze level، Session و Cost model روز مرجع ثبت شد.
 - [x] سناریوی 200 دلار — real ticks، 0.01/max3: 14 attempt، 12 accepted، 2 invalid-price reject، max position=1 و failed=0.
 - [x] سناریوی 300 دلار — real ticks، 0.01/max5: 16 attempt، 14 accepted، 2 invalid-price reject، max position=1 و failed=0.
-- [ ] Technical QA — صفر SL-loosen و صفر exposure بعد Session PASS؛ same-day restart runtime هنوز باقی است.
+- [x] Technical QA — صفر SL-loosen، صفر exposure بعد Session و same-day restart با صفر attempt/position/exposure PASS شد.
 - [x] Deal PnL audit — نتیجه bounded یک‌روزه از Deal History و هزینه Native محاسبه شد؛ این Evidence ادعای سودآوری نیست.
 
 Gate: Technical Acceptance PASS.
 
 ---
 
-## 7) تایید بصری رهبر پروژه
+## 7) گزارش جامع نهایی تست
 
-- [ ] انتخاب چند روز نمونه — روزهای Reversal، Breakout، چند Pullback، Strict Trend و TP Extension پوشش داده شوند.
-- [ ] Chart ساده — Zone High/Normal، Markerهای R/BO/PB و Tooltip کامل نمایش داده شود.
-- [ ] تطبیق Rule با Chart — هر Event قابل اتصال به Rule ID و Journal باشد.
-- [ ] تایید رهبر پروژه — فقط پس از تایید منطق روی نمونه‌ها Rulebook/Code Freeze شوند.
+- [x] Evidence ساختاریافته هر اجرای Acceptance شامل نسخه Code/Config/Data و تمام Counterهای فنی و عددی ذخیره شد.
+- [x] `docs/FINAL_TEST_REPORT.md` نتایج همه Profile/Dayهای اجراشده، Gateها، اختلاف‌ها، محدودیت‌ها و روش بازتولید را یکجا ثبت کرد.
+- [x] گزارش با آخرین Compile، 138 تست Python، parity، restart، TP lifecycle و MT5 real-tick acceptance همگام شد.
+- [x] هر گزارش خلاصه بعدی فقط از Evidence ذخیره‌شده تولید می‌شود و MT5 را دوباره اجرا نمی‌کند.
 
 ---
 

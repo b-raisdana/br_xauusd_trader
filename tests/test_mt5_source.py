@@ -368,6 +368,51 @@ def test_tester_session_end_cancels_and_flattens_only_project_state() -> None:
     assert "ModifyTesterProtection" in broker
 
 
+def test_tester_same_day_restart_simulation_flattens_before_candidates() -> None:
+    root = Path(__file__).parents[1]
+    ea = (root / "src" / "mt5" / "XAUUSD_MVP.mq5").read_text(encoding="utf-8")
+    config = (root / "config" / "mt5" / "tester_restart.ini").read_text(encoding="utf-8")
+
+    assert "input bool InpSimulateSameDayRestart=false;" in ea
+    assert "EvaluateOperationalSafety(session_active,g_restart_lock)" in ea
+    assert "TESTER_RESTART_FLAT" in ea
+    assert ea.index("ExecuteTesterOperationalSafety(tick)") < ea.index(
+        "ProcessTesterCandidates(tick,candidates)"
+    )
+    assert "InpSimulateSameDayRestart && !InpEnableTesterExecution" in ea
+    assert "AllowLiveTrading=0" in config
+    assert "InpSimulateSameDayRestart=true" in config
+    assert "UseRemote=0" in config and "UseCloud=0" in config
+
+
+def test_pullback_tp_runtime_is_bound_to_project_position_and_tester_broker() -> None:
+    root = Path(__file__).parents[1]
+    ea = (root / "src" / "mt5" / "XAUUSD_MVP.mq5").read_text(encoding="utf-8")
+    broker = (root / "src" / "mt5" / "include" / "XauTesterBroker.mqh").read_text(encoding="utf-8")
+
+    assert "ManageTesterPullbackTp" in ea
+    assert "LoadPullbackStrictDirections" in ea
+    assert "PreZoneCrossOnce" in ea
+    assert "ProposePullbackTpExtension" in ea
+    assert "EvaluatePullbackTpFailure" in ea
+    assert "RecordPullbackTpRestore" in ea
+    assert "CloseTesterPosition" in ea and "CloseTesterPosition" in broker
+    assert "POSITION_MAGIC" in broker and "MQLInfoInteger(MQL_TESTER)" in broker
+    assert "TESTER_TP_DONE" in ea
+
+
+def test_tester_symbol_specification_excludes_account_identity() -> None:
+    root = Path(__file__).parents[1]
+    ea = (root / "src" / "mt5" / "XAUUSD_MVP.mq5").read_text(encoding="utf-8")
+
+    assert "TESTER_SYMBOL_SPEC" in ea
+    assert "SYMBOL_TRADE_CONTRACT_SIZE" in ea
+    assert "SYMBOL_TRADE_TICK_SIZE" in ea and "SYMBOL_TRADE_TICK_VALUE" in ea
+    assert "SYMBOL_TRADE_STOPS_LEVEL" in ea and "SYMBOL_TRADE_FREEZE_LEVEL" in ea
+    assert "NativeContainingTradeSession" in ea
+    assert "ACCOUNT_LOGIN" not in ea and "ACCOUNT_NAME" not in ea
+
+
 def test_200_profile_acceptance_config_cannot_enable_live_trading() -> None:
     root = Path(__file__).parents[1]
     config = (root / "config" / "mt5" / "tester_200.ini").read_text(encoding="utf-8")

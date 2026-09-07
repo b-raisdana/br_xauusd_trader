@@ -66,6 +66,14 @@ Owns:
 - If one path is externally blocked, continue other safe in-scope work that reduces the remaining objective. Stop only when no meaningful safe progress remains.
 - Persistence does not expand scope, bypass confirmed Rules, weaken tests, authorize live trading, or remove any approval requirement below.
 
+## Context and token efficiency
+- Start recovery from `docs/CURRENT_STATE.md`, open TODO items, and the latest local diff; do not reread the full repository when those sources are sufficient.
+- Search narrowly and read only relevant ranges. Never dump complete large logs, datasets, generated files, Handoffs, or long documents into model context unless the unresolved issue requires them.
+- Parse verbose tool/MT5 output locally and return compact counters, failures, hashes, and selected evidence lines.
+- Reuse persisted test evidence. A status or reporting request must not rerun MT5 or an unchanged expensive gate when `docs/FINAL_TEST_REPORT.md` and its structured evidence answer it.
+- Keep commentary and final responses concise unless the Leader requests detail. Do not repeat instructions or project history already stored in the repository.
+- Use `GPT-5.6 Terra` with medium reasoning as the routine project default when selectable; use Luna/low for mechanical inspection and Sol/medium only for materially difficult debugging or final audit. Do not use high/xhigh routinely.
+
 ## Escalate only when needed
 Escalate for:
 - change of project goal/scope/priority;

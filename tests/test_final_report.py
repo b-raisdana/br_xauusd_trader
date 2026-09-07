@@ -42,6 +42,9 @@ def test_final_report_evidence_is_machine_readable_and_complete_enough_to_summar
     assert multiday["status"] == "PASS"
     assert multiday["attempts"] == multiday["accepted"] + multiday["rejected"]
     assert multiday["final_exposure"] == multiday["lifecycle_failures"] == 0
+    attribution = evidence["signal_attribution"]["multiday_attempt_accepted_rejected"]
+    assert attribution["reversal_normal"] == [86, 86, 0]
+    assert attribution["reversal_high"] == [26, 26, 0]
 
 
 def test_visual_leader_gate_is_replaced_by_reusable_final_report() -> None:

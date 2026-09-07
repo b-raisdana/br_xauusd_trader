@@ -78,3 +78,9 @@
 - Result: 302 attempt، 188 accepted، 114 invalid-price reject، max position=3، cancel/session close=`2/2`، protection modify=164، TP extend/restore/market-close=`10/3/2`؛ صفر unknown/TP reject، SL-loosen، exposure نهایی و lifecycle failure.
 - Defects found/fixed: Pending-order risk اکنون با جهت Market معادل محاسبه می‌شود؛ Fill و Cancel callback/immediate races idempotent و fill state قابل recovery شدند.
 - Limit: این PASS فقط MQL lifecycle robustness است؛ PnL summary فعلی آخرین Broker Day را نشان می‌دهد و برای عملکرد کل بازه استفاده نمی‌شود. Python↔MT5 multi-day parity هنوز جداست.
+
+### EXP-ATTRIBUTION-20260729-20260828
+
+- Same-run counters (attempt/accepted/rejected): Reversal Normal `86/86/0`، Reversal High `26/26/0`، Pullback Normal `146/56/90` و Pullback High `44/20/24`.
+- QA 2026-07-29: `16/9/7`، net realized `+16.33`، Reversal Normal `5/5/0` و Pullback Normal `11/4/7`؛ High در این روز attempt نداشت.
+- Limit: این داده attribution شمارشی است. PnL گروهی بدون اتصال Deal→Request→Priority گزارش نمی‌شود و مقایسه signal-by-signal با مرجع شناخته‌شده رهبر به fixture بیرونی نیاز دارد.

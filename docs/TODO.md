@@ -85,7 +85,7 @@ Gate: همه Contract Testهای بالا PASS.
 
 - [ ] روز مرجع QA — حداقل روزی که رهبر پروژه رفتار صحیح آن را می‌شناسد Signal-by-Signal بررسی شود.
 - [ ] Trend regression — Rule جدید Bootstrap با Sticky قدیمی مقایسه و حذف/اضافه Signalها گزارش شود؛ انتخاب Rule تغییر نمی‌کند مگر با تصمیم جدید رهبر.
-- [ ] Normal Reversal attribution — عملکرد Normal و High جدا گزارش شود چون Evidence قدیمی برای Normal ضعیف بوده است.
+- [ ] Normal Reversal attribution — شمار تلاش/پذیرش/رد در 23 روز تفکیک شد (Normal `86/86/0`، High `26/26/0`)؛ PnL مستقل هر گروه هنوز نیازمند Deal attribution است.
 - [ ] FreeSpace validation — Rule جدید 3$ در برابر Control تاریخی 15$ فقط A/B گزارش شود؛ Grid Search ممنوع است.
 - [x] Strict Trend examples — Same-Bar/Multi-Bar/Doji/opposing candle با fixtureهای deterministic و runtime TP ledger بررسی شد؛ Chart گیت فعال نیست.
 - [x] TP Extension A/B — اجرای قبل/بعد روی همان روز و Config بدون Optimization مقایسه شد: شمار attempt/fill ثابت و net هر Profile فقط `+0.14 USD` تغییر کرد.

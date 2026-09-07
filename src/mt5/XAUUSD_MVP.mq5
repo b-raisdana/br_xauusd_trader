@@ -62,6 +62,9 @@ long g_tp_market_closes=0;
 long g_tp_modify_rejects=0;
 long g_tp_close_rejects=0;
 bool g_symbol_spec_emitted=false;
+long g_attribution_attempts[4];
+long g_attribution_accepts[4];
+long g_attribution_rejects[4];
 
 struct XauRuntimeRequest
   {
@@ -677,6 +680,12 @@ int FindRuntimeRequest(const string request_id)
    return -1;
   }
 
+int AttributionIndex(const XauSignalFamily family,const int priority)
+  {
+   const int family_offset=(family == XAU_SIGNAL_PULLBACK ? 2 : 0);
+   return family_offset+(priority == 1 ? 1 : 0);
+  }
+
 bool ApplyProjectOwnedNativeOutcome(const XauNativeDealOutcome &outcome)
   {
    string request_id="";
@@ -1144,9 +1153,14 @@ bool ProcessTesterCandidates(const MqlTick &tick,const XauSignalCandidate &candi
          return false;
         }
       g_tester_attempt_count++;
+      const int attribution_index=AttributionIndex(
+         prepared.candidate.family,g_market_state.zones[FindDailyZoneState(
+            g_market_state.zones,prepared.candidate.zone_id)].zone.priority);
+      g_attribution_attempts[attribution_index]++;
       if(!submission.accepted)
         {
          g_tester_reject_count++;
+         g_attribution_rejects[attribution_index]++;
          if(submission.retcode == TRADE_RETCODE_INVALID_PRICE)
             g_invalid_price_rejections++;
          else
@@ -1171,6 +1185,7 @@ bool ProcessTesterCandidates(const MqlTick &tick,const XauSignalCandidate &candi
          return false;
         }
       g_tester_accept_count++;
+      g_attribution_accepts[attribution_index]++;
       if(submission.deal_ticket != 0)
         {
          XauNativeDealOutcome immediate;
@@ -1394,5 +1409,11 @@ void OnDeinit(const int reason)
                   "modify_rejects=%I64d close_rejects=%I64d mode=tester",
                   g_tp_extensions,g_tp_restores,g_tp_market_closes,
                   g_tp_modify_rejects,g_tp_close_rejects);
+      PrintFormat("TESTER_ATTRIBUTION rev_normal=%I64d/%I64d/%I64d rev_high=%I64d/%I64d/%I64d "
+                  "pb_normal=%I64d/%I64d/%I64d pb_high=%I64d/%I64d/%I64d mode=tester",
+                  g_attribution_attempts[0],g_attribution_accepts[0],g_attribution_rejects[0],
+                  g_attribution_attempts[1],g_attribution_accepts[1],g_attribution_rejects[1],
+                  g_attribution_attempts[2],g_attribution_accepts[2],g_attribution_rejects[2],
+                  g_attribution_attempts[3],g_attribution_accepts[3],g_attribution_rejects[3]);
      }
   }

@@ -12,8 +12,13 @@
 
 input bool InpEnableTrading=false;
 input bool InpEmitTimeBasisProbe=false;
+input bool InpObserveNativeOutcomes=false;
+input long InpStrategyMagic=0;
 
 int g_time_basis_probe_count=0;
+XauExecutionProjection g_execution_projections[];
+XauExecutionBinding g_execution_bindings[];
+const string EXECUTION_BINDINGS_FILE="XAUUSD_Current\\bindings.tsv";
 
 bool NearlyEqual(const double left,const double right)
   {
@@ -214,6 +219,26 @@ bool RunExecutionProjectorSmoke()
                                      XAU_EXECUTION_CLOSE,0,999,submitted_at+3,107.5))
       return false;
    Print("EXECUTION_PROJECTOR_SMOKE_PASS lifecycle/protection/correlation/persistence/orchestration mode=inert");
+   return true;
+  }
+
+bool RunGuardedNativeCallbackSmoke()
+  {
+   const datetime submitted_at=StringToTime("2026.09.06 11:00:00");
+   XauExecutionProjection projections[1];
+   XauExecutionBinding bindings[];
+   const string bindings_file="XAUUSD_Current\\callback_binding_smoke.tsv";
+   if(!InitializeExecutionProjection(projections[0],"REQ-CB",XAU_ORDER_MARKET,
+                                     XAU_BUY,100.0,96.0,108.0,submitted_at) ||
+      !BindExecutionOrder(bindings,"REQ-CB",601) ||
+      !PersistThenPublishCorrelatedNativeOutcome(projections,bindings,
+                                                 XAU_EXECUTION_FILL,601,701,
+                                                 submitted_at+1,100.2,bindings_file) ||
+      projections[0].status != XAU_EXECUTION_FILLED || bindings[0].position_id != 701 ||
+      !FileIsExist(bindings_file))
+      return false;
+   FileDelete(bindings_file);
+   Print("NATIVE_CALLBACK_SMOKE_PASS opt-in/correlation/persist-before-state mode=inert");
    return true;
   }
 
@@ -425,6 +450,11 @@ int OnInit()
       Print("Live/trading execution is not implemented or approved; initialization blocked.");
       return INIT_FAILED;
      }
+   if(InpObserveNativeOutcomes && InpStrategyMagic<=0)
+     {
+      Print("Native outcome observation requires an explicit positive strategy Magic.");
+      return INIT_FAILED;
+     }
    if(!RunCoreVectorSmoke())
      {
       Print("Core contract vector smoke failed.");
@@ -432,6 +462,8 @@ int OnInit()
      }
    Print("CORE_VECTOR_SMOKE_PASS vectors=19 mode=inert");
    if(!RunExecutionProjectorSmoke())
+      return INIT_FAILED;
+   if(!RunGuardedNativeCallbackSmoke())
       return INIT_FAILED;
    if(!RunStateOrderingSmoke())
       return INIT_FAILED;
@@ -445,6 +477,23 @@ int OnInit()
       return INIT_FAILED;
    Print("XAUUSD MVP research-only contract baseline initialized.");
    return INIT_SUCCEEDED;
+  }
+
+void OnTradeTransaction(const MqlTradeTransaction &transaction,
+                        const MqlTradeRequest &request,
+                        const MqlTradeResult &result)
+  {
+   if(!InpObserveNativeOutcomes)
+      return;
+   XauNativeDealOutcome outcome;
+   if(!LoadNativeDealOutcome(transaction,_Symbol,InpStrategyMagic,outcome))
+      return;
+   if(!PersistThenPublishCorrelatedNativeOutcome(
+      g_execution_projections,g_execution_bindings,outcome.event_kind,
+      outcome.order_ticket,outcome.position_id,outcome.broker_time,outcome.price,
+      EXECUTION_BINDINGS_FILE))
+      return;
+   Print("Project-owned Native outcome persisted and projected.");
   }
 
 void OnTick()

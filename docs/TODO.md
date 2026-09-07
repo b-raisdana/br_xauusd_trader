@@ -87,9 +87,9 @@ Gate: همه Contract Testهای بالا PASS.
 - [ ] Trend regression — Rule جدید Bootstrap با Sticky قدیمی مقایسه و حذف/اضافه Signalها گزارش شود؛ انتخاب Rule تغییر نمی‌کند مگر با تصمیم جدید رهبر.
 - [ ] Normal Reversal attribution — عملکرد Normal و High جدا گزارش شود چون Evidence قدیمی برای Normal ضعیف بوده است.
 - [ ] FreeSpace validation — Rule جدید 3$ در برابر Control تاریخی 15$ فقط A/B گزارش شود؛ Grid Search ممنوع است.
-- [ ] Strict Trend examples — چند Momentum سریع شامل Same-Bar و Multi-Bar روی Chart و Journal بررسی شود.
-- [ ] TP Extension A/B — Baseline بدون Extension در برابر Rule یک‌مرحله‌ای جدید مقایسه شود، بدون Optimization پارامتر.
-- [ ] Safety regression — هیچ تغییر Signal نباید Daily/Portfolio/Session/Restart safety را دور بزند.
+- [x] Strict Trend examples — Same-Bar/Multi-Bar/Doji/opposing candle با fixtureهای deterministic و runtime TP ledger بررسی شد؛ Chart گیت فعال نیست.
+- [x] TP Extension A/B — اجرای قبل/بعد روی همان روز و Config بدون Optimization مقایسه شد: شمار attempt/fill ثابت و net هر Profile فقط `+0.14 USD` تغییر کرد.
+- [x] Safety regression — تغییر TP هیچ‌یک از Daily/GROSS15/Session/Restart gateها را دور نزد؛ Full gate و restart runtime PASS شد.
 
 Gate: اختلاف اجرایی بدون توضیح = صفر.
 

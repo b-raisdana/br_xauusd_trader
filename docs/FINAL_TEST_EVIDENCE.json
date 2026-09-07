@@ -119,6 +119,17 @@
     },
     "live_trading": "BLOCKED_BY_DESIGN"
   },
+  "targeted_regression_evidence": {
+    "strict_trend_contracts": "PASS",
+    "safety_after_tp_change": "PASS",
+    "tp_ab_2026_08_28": {
+      "status": "PASS_ENGINEERING_ATTRIBUTION",
+      "entry_counts_changed": false,
+      "capital_200_net_effect_usd": "+0.14",
+      "capital_300_net_effect_usd": "+0.14",
+      "market_close_branch_observed": false
+    }
+  },
   "pending_final_evidence": [
     "Multi-day lifecycle parity and targeted regressions",
     "Final performance metrics including drawdown and trade distribution when available"

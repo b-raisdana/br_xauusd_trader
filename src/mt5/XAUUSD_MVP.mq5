@@ -6,6 +6,7 @@
 #include "include/XauContracts.mqh"
 #include "include/XauExecution.mqh"
 #include "include/XauNative.mqh"
+#include "include/XauState.mqh"
 #include "include/XauVisual.mqh"
 
 input bool InpEnableTrading=false;
@@ -215,6 +216,24 @@ bool RunExecutionProjectorSmoke()
    return true;
   }
 
+bool RunStateOrderingSmoke()
+  {
+   XauTrendReferenceState state;
+   BeginTrendDay(state);
+   if(!RecordTrendCandle(state,VEC_CAUSAL_REFERENCE_HIGH,VEC_CAUSAL_REFERENCE_LOW) ||
+      ProcessTrendTick(state,VEC_CAUSAL_BID) != XAU_TREND_UP)
+      return false;
+   XauZone zone;
+   zone.low=VEC_BREAKOUT_LOW;
+   zone.high=VEC_BREAKOUT_HIGH;
+   bool breakout=false;
+   if(!CloseBarBreakoutBeforeRoll(state,zone,XAU_BUY,VEC_BREAKOUT_CLOSE,true,
+                                  103.0,99.0,breakout) || !breakout || state.count != 2)
+      return false;
+   Print("STATE_ORDER_SMOKE_PASS tick/trend/bar-close mode=inert");
+   return true;
+  }
+
 bool RunNativeAdapterSmoke()
   {
    XauExecutionEvent native_event=XAU_EXECUTION_REJECT;
@@ -298,6 +317,8 @@ int OnInit()
      }
    Print("CORE_VECTOR_SMOKE_PASS vectors=19 mode=inert");
    if(!RunExecutionProjectorSmoke())
+      return INIT_FAILED;
+   if(!RunStateOrderingSmoke())
       return INIT_FAILED;
    if(!RunNativeAdapterSmoke())
       return INIT_FAILED;

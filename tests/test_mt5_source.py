@@ -92,6 +92,17 @@ def test_native_outcome_orchestration_is_correlated_before_projection() -> None:
     assert "projections[index]=projected" in source
 
 
+def test_mql_state_orders_breakout_before_candle_roll() -> None:
+    root = Path(__file__).parents[1]
+    source = (root / "src" / "mt5" / "include" / "XauState.mqh").read_text(encoding="utf-8")
+
+    assert "BeginTrendDay" in source
+    assert "ProcessTrendTick" in source
+    assert "CloseBarBreakoutBeforeRoll" in source
+    assert source.index("breakout=BreakoutValid") < source.index("return RecordTrendCandle")
+    assert "OrderSend" not in source
+
+
 def test_native_adapter_is_read_only_and_uses_broker_apis() -> None:
     root = Path(__file__).parents[1]
     source = (root / "src" / "mt5" / "include" / "XauNative.mqh").read_text(encoding="utf-8")

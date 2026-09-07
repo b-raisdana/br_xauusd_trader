@@ -157,7 +157,17 @@ bool RunExecutionProjectorSmoke()
    if(!ProjectExecutionOutcome(pending,XAU_EXECUTION_CANCEL,submitted_at+2) ||
       pending.status != XAU_EXECUTION_CANCELLED)
       return false;
-   Print("EXECUTION_PROJECTOR_SMOKE_PASS lifecycle/protection mode=inert");
+
+   XauExecutionBinding bindings[];
+   string resolved_request="";
+   if(!BindExecutionOrder(bindings,"REQ-M",101) ||
+      !ResolveExecutionRequest(bindings,XAU_EXECUTION_FILL,101,0,resolved_request) ||
+      resolved_request != "REQ-M" || !BindExecutionPosition(bindings,101,201) ||
+      !ResolveExecutionRequest(bindings,XAU_EXECUTION_CLOSE,0,201,resolved_request) ||
+      resolved_request != "REQ-M" || BindExecutionOrder(bindings,"REQ-X",101) ||
+      BindExecutionPosition(bindings,101,202))
+      return false;
+   Print("EXECUTION_PROJECTOR_SMOKE_PASS lifecycle/protection/correlation mode=inert");
    return true;
   }
 

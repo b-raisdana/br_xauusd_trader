@@ -15,6 +15,76 @@ struct XauExecutionProjection
    datetime transition_time;
   };
 
+struct XauExecutionBinding
+  {
+   string request_id;
+   ulong order_ticket;
+   ulong position_id;
+  };
+
+bool BindExecutionOrder(XauExecutionBinding &bindings[],const string request_id,
+                        const ulong order_ticket)
+  {
+   if(request_id == "" || order_ticket == 0)
+      return false;
+   for(int i=0;i<ArraySize(bindings);i++)
+     {
+      if(bindings[i].request_id == request_id)
+         return bindings[i].order_ticket == order_ticket;
+      if(bindings[i].order_ticket == order_ticket)
+         return false;
+     }
+   const int index=ArraySize(bindings);
+   if(ArrayResize(bindings,index+1) != index+1)
+      return false;
+   bindings[index].request_id=request_id;
+   bindings[index].order_ticket=order_ticket;
+   bindings[index].position_id=0;
+   return true;
+  }
+
+bool BindExecutionPosition(XauExecutionBinding &bindings[],const ulong order_ticket,
+                           const ulong position_id)
+  {
+   if(order_ticket == 0 || position_id == 0)
+      return false;
+   int matching_index=-1;
+   for(int i=0;i<ArraySize(bindings);i++)
+     {
+      if(bindings[i].position_id == position_id && bindings[i].order_ticket != order_ticket)
+         return false;
+      if(bindings[i].order_ticket == order_ticket)
+         matching_index=i;
+     }
+   if(matching_index < 0)
+      return false;
+   if(bindings[matching_index].position_id != 0 &&
+      bindings[matching_index].position_id != position_id)
+      return false;
+   bindings[matching_index].position_id=position_id;
+   return true;
+  }
+
+bool ResolveExecutionRequest(const XauExecutionBinding &bindings[],
+                             const XauExecutionEvent event_kind,const ulong order_ticket,
+                             const ulong position_id,string &request_id)
+  {
+   request_id="";
+   for(int i=0;i<ArraySize(bindings);i++)
+     {
+      const bool order_match=(event_kind == XAU_EXECUTION_FILL && order_ticket != 0 &&
+                              bindings[i].order_ticket == order_ticket);
+      const bool position_match=(event_kind == XAU_EXECUTION_CLOSE && position_id != 0 &&
+                                 bindings[i].position_id == position_id);
+      if(order_match || position_match)
+        {
+         request_id=bindings[i].request_id;
+         return true;
+        }
+     }
+   return false;
+  }
+
 bool InitializeExecutionProjection(XauExecutionProjection &record,const string request_id,
                                    const XauOrderType order_type,const XauDirection direction,
                                    const double order_entry,const double stop_loss,

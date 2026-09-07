@@ -58,6 +58,17 @@ def test_execution_projector_is_inert_and_uses_shared_contracts() -> None:
     assert "CTrade" not in source
 
 
+def test_execution_ticket_correlation_is_unique_and_inert() -> None:
+    root = Path(__file__).parents[1]
+    source = (root / "src" / "mt5" / "include" / "XauExecution.mqh").read_text(encoding="utf-8")
+
+    assert "XauExecutionBinding" in source
+    assert "BindExecutionOrder" in source
+    assert "BindExecutionPosition" in source
+    assert "ResolveExecutionRequest" in source
+    assert "OrderSend" not in source
+
+
 def test_native_adapter_is_read_only_and_uses_broker_apis() -> None:
     root = Path(__file__).parents[1]
     source = (root / "src" / "mt5" / "include" / "XauNative.mqh").read_text(encoding="utf-8")

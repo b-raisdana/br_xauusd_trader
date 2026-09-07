@@ -283,7 +283,7 @@ Reversal مخالف فقط **هنگام Touch واقعی مرز Zone بعدی** 
 Rule ثانویه هدف MVP:
 `Minimum Free Space = 0.5 × BASE_R_USD = 3.00 USD`
 
-اگر Free Space کمتر از 3 دلار باشد، Entry جدید Reversal/Pullback بررسی نمی‌شود. این Rule تایید مفهومی شده اما باید قبل از Freeze نهایی MVP در تست هدفمند Validate شود؛ Grid Search انجام نمی‌شود.
+اگر Free Space کمتر از 3 دلار باشد، Entry جدید Reversal/Pullback Block می‌شود و هیچ درخواست Order ارسال نمی‌شود. فاصله دقیقاً 3 دلار مجاز است (`FreeSpace >= 3.00`). این مرز در Python و MQL با تست‌های قطعی Validate شده است.
 
 ---
 

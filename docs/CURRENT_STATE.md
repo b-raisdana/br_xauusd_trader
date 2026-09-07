@@ -4,9 +4,9 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: 23-day MQL lifecycle and signal-priority attribution PASS; Trend/FreeSpace controls, priority PnL attribution and Python↔MT5 multi-day parity remain before Freeze
+- Current activity: 23-day MQL lifecycle and active-rule regressions PASS; MQL Breakout candidate-to-entry wiring remains before Freeze
 - Strategy target: MVP v2 Consolidated Rulebook
-- Rule status: Core Python strategy and guarded MQL signal/request/Native lifecycle, TP extension/restore and same-day restart are implemented and tested for one real-tick day; multi-day equivalence remains
+- Rule status: Core Python strategy and guarded MQL Reversal/Pullback request/Native lifecycle, TP extension/restore and same-day restart are implemented; Breakout execution wiring remains
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
 - Last verified Git checkpoint entering this continuation: `751feec` — guarded Strategy Tester lifecycle
 - Last verified date: 2026-09-08
@@ -71,8 +71,8 @@
 - `scripts/export_mt5_ticks.py` pins the MT5 Python bridge, accepts only explicit UTC ranges, writes only under ignored `data/cache/`, exports no account identity, and was runtime-validated on a 15-minute window: 6,487 ticks, 290,594 bytes, SHA-256 `498d87fa9c8359207284207537c91e85eee9f6a3c11f070d2e1cfb0a04c03d04`. The cache itself is not committed.
 - `load_mt5_tick_bars` preserves source row order for equal-millisecond ticks, rejects backward time, requires an explicit whole-minute offset, and creates internally consistent M15 Bid candles. The ignored 6,487-tick sample mechanically normalized/replayed as one bar.
 - `scripts/match_mt5_time_basis.py` fail-closes unless an ordered multi-tick probe uniquely matches one whole-30-minute UTC offset in the terminal history. A five-tick local correlation produced one unique match; the probe values, resolved Broker-specific offset and account identity are intentionally not persisted or committed.
-- Current test baseline: 139 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by repository checks. MetaEditor remains 0 errors/0 warnings. The 23-day local-only MQL run passed with 302 attempts, 188 accepts, max3, two cancels/two session closes, TP 10/3/2, zero unknown rejects, SL-loosen, final exposure or lifecycle failure. One-day Python/MQL signal-count parity remains exact; multi-day cross-engine parity remains.
-- Attribution counters on the same 23-day run: Reversal Normal `86/86/0`, Reversal High `26/26/0`, Pullback Normal `146/56/90`, Pullback High `44/20/24` (attempt/accepted/rejected). QA 2026-07-29 passed technically with `16/9/7`, net `+16.33` and zero failure; leader-known signal ledger comparison and per-priority PnL remain.
+- Current test baseline: 139 passed; legacy Python AST parse: 9/9; PowerShell parsing is covered by repository checks. MetaEditor remains 0 errors/0 warnings. The 23-day local-only MQL run passed with 302 attempts, 188 accepts, max3, two cancels/two session closes, TP 10/3/2, zero unknown rejects, SL-loosen, final exposure or lifecycle failure. One-day Python/MQL signal-count parity remains exact; multi-day cross-engine parity is not an MVP gate.
+- Informational counters on the same 23-day run: Reversal Normal `86/86/0`, Reversal High `26/26/0`, Pullback Normal `146/56/90`, Pullback High `44/20/24` (attempt/accepted/rejected). QA 2026-07-29 passed technically with `16/9/7`, net `+16.33` and zero failure. External signal-ledger and per-priority PnL comparisons are not MVP gates.
 - Template و Handoff به‌صورت محتوایی Merge شدند و Workflow محلی CI حفظ شد.
 - Repository روی Branch `main` ایجاد و Baseline در Git ثبت شد.
 - `FINAL_PROJECT_HANDOFF_2026-09-06.md` طبق تصمیم Project Leader وارد Repository نشد.
@@ -89,7 +89,7 @@
 
 ## موارد تأییدنشده اجرایی
 
-- Python↔MT5 multi-day lifecycle parity and Trend/Normal/FreeSpace attribution remain. MQL-only 23-day lifecycle evidence now includes naturally activated TP Market Close and Session close branches.
+- MQL-only 23-day lifecycle evidence includes naturally activated TP Market Close and Session close branches. Sticky/priority-PnL/external-fixture/multi-day Native parity are not MVP gates; FreeSpace15 is Post-MVP.
 - اتصال Evidenceهای تاریخی به Dataset/Config/Artifact/Commit.
 - رفتار دقیق Broker Symbol/Session و Cost model در محیط هدف.
 - نتیجه Regression Ruleهای جدید در برابر Finalist قدیمی.
@@ -162,6 +162,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید Trend/FreeSpace control، PnL مستقل Priority، تکمیل ledger روز QA و Python↔MT5 multi-day parity را پیش ببرد. MQL 23-day lifecycle و attribution شمارشی ثبت‌اند. Live trading تا Gate رهبر غیرممکن می‌ماند.
+Codex باید MQL Breakout candidate را به همان مسیر protected entry/audit/attempt موجود متصل و تست کند، سپس Rulebook/Code/Evidence را Freeze کند. Live trading تا Gate رهبر غیرممکن می‌ماند.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

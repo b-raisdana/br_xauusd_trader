@@ -71,16 +71,16 @@ Configها به‌ترتیب `tester_200.ini` و `tester_300.ini`، با Real Ti
 
 ## 6) Gateهای باقی‌مانده
 
-- Regression هدفمند و Multi-day lifecycle parity.
-- Metrics کامل عملکرد مانند Drawdown و توزیع Trade، در صورت تولید توسط اجرای نهایی.
+- اتصال و اجرای Entry مسیر Breakout در MQL، چون Evidence فعلی Breakout هنوز Candidate/lineage است.
+- Freeze نهایی Rulebook، Code و Evidence پس از بسته‌شدن آخرین کار فنی.
 
 Full Quality Gate در 2026-09-08 پاس شد: Ruff، format، mypy، 139 تست Python، `git diff --check`، کامپایل MT5 با صفر خطا/هشدار، سه اجرای پذیرش تک‌روزه، اجرای ۲۳روزه و Evidence ساختاریافته حاضر.
 
 اجرای مهندسی ۲۳روزه 2026-07-29 تا 2026-08-28 نیز PASS شد: 302 attempt، 188 accepted، 114 invalid-price reject، max position=3، cancel/session-close=`2/2`، protection modify=164، TP extend/restore/market-close=`10/3/2` و صفر lifecycle failure، TP reject، SL-loosen و exposure نهایی. این اجرا robustness فنی است و مقایسه کامل Python/MT5 یا ادعای سودآوری نیست.
 
-Attribution همان اجرا: Reversal Normal=`86/86/0` و High=`26/26/0`، Pullback Normal=`146/56/90` و High=`44/20/24` به‌ترتیب attempt/accepted/rejected. QA روز 2026-07-29 نیز با `16/9/7`، net=`+16.33 USD` و صفر failure پاس شد. PnL مستقل هر Priority هنوز ثبت نشده است.
+Attribution همان اجرا: Reversal Normal=`86/86/0` و High=`26/26/0`، Pullback Normal=`146/56/90` و High=`44/20/24` به‌ترتیب attempt/accepted/rejected. QA روز 2026-07-29 نیز با `16/9/7`، net=`+16.33 USD` و صفر failure پاس شد. هر دو Priority جزء ثابت Strategy هستند و PnL تفکیکی Gate MVP نیست.
 
-A/B ازپیش‌محدود TP روی همان روز/Config نشان داد شمار Entryها ثابت ماند و Net هر دو Profile فقط `+0.14 USD` تغییر کرد؛ این یک attribution مهندسی یک‌روزه است، نه شواهد سودآوری. Strict Trend و Safety regression پاس‌اند؛ Trend/Normal/FreeSpace attribution و multi-day parity باقی‌اند.
+A/B ازپیش‌محدود TP روی همان روز/Config نشان داد شمار Entryها ثابت ماند و Net هر دو Profile فقط `+0.14 USD` تغییر کرد؛ این یک attribution مهندسی یک‌روزه است، نه شواهد سودآوری. Strict Trend و Safety regression پاس‌اند. Sticky و PnL تفکیکی Priority از Scope حذف و FreeSpace15 به Post-MVP منتقل شده است؛ QA خارجی و multi-day Native parity نیز به‌دلیل نبود مرجع مستقل Gate نیستند.
 
 ## 7) محدودیت تفسیر
 

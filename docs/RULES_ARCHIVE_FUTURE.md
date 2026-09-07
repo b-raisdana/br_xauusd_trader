@@ -92,10 +92,10 @@
 - شناسه قدیمی: `b-29`, `SEC-RISK-01`.
 
 ### Free Space ثابت 15 دلار
-- وضعیت: برای Baseline جدید جایگزین شده و نیازمند Validation است.
+- وضعیت: `POST-MVP`؛ برای Baseline جدید جایگزین شده و Gate Freeze نیست.
 - توضیح روان: Finalist قبلی از `FreeSpace >= 15 USD` استفاده می‌کرد.
 - قانون هدف جدید: `FREE_SPACE_MINIMUM = 0.5 × BASE_R_USD = 3 USD`.
-- علت: قانون ثانویه جدید اولویت دارد؛ اما به علت Evidence مثبت Space15، مقایسه هدفمند و بدون Grid Search قبل Freeze لازم است.
+- علت: قانون ثانویه جدید اولویت دارد؛ هر مقایسه هدفمند با Space15 فقط پس از MVP و بدون Grid Search انجام می‌شود.
 - شناسه‌های تاریخی: `EXP-ZONE-CONTEXT-01`, `MVP-BL-01`, `SEC-FS-01`.
 
 ### TP Runnerهای قدیمی
@@ -232,7 +232,7 @@
 ## 3) آزمایش‌های تاریخی که بسته شده‌اند ولی نتیجه‌شان باید حفظ شود
 
 ### Trend Initialization Screen (`EXP-TREND-01`)
-Sticky قدیمی در تست قبلی بهتر از Progressive بود؛ 18 Reversal مثبت حذف نشدند. با وجود این، قانون ثانویه جدید Bootstrap روزانه را تایید کرده است، بنابراین Regression جدید اجباری است و نتیجه تاریخی صرفاً هشدار است.
+Sticky قدیمی در تست قبلی بهتر از Progressive بود؛ 18 Reversal مثبت حذف نشدند. با وجود این، قانون ثانویه جدید Bootstrap روزانه را تایید و Sticky را رد کرده است؛ نتیجه تاریخی فقط آرشیوی است و Regression جدید Gate MVP نیست.
 
 ### Pullback Window (`EXP-PB-WINDOW-01`)
 N=5 حفظ شد. N3 در All بهتر به نظر می‌رسید ولی Forward ضعیف بود؛ N7/N9 نیز بدتر شدند.

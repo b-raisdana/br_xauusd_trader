@@ -11,7 +11,13 @@ from xauusd.audit import (
     AuditPersistenceError,
     SignalFamily,
 )
-from xauusd.execution import ExecutionLedger, ExecutionRequest, ExecutionStatus
+from xauusd.execution import (
+    ExecutionLedger,
+    ExecutionRequest,
+    ExecutionStatus,
+    execution_transition,
+    protection_modification_valid,
+)
 from xauusd.signals import OrderType, TradeDirection
 
 DAY = date(2026, 9, 6)
@@ -373,3 +379,61 @@ def test_recovery_rejects_audit_modify_that_loosens_stop() -> None:
         recovered.recover((*journal.events, invalid_modify))
     with pytest.raises(ValueError, match="Unknown"):
         recovered.record("REQ1")
+
+
+def test_execution_transition_is_explicit_and_order_type_aware() -> None:
+    assert (
+        execution_transition(
+            ExecutionStatus.SUBMITTED,
+            AuditEventKind.CANCEL,
+            OrderType.PENDING_STOP,
+        )
+        is ExecutionStatus.CANCELLED
+    )
+    assert (
+        execution_transition(
+            ExecutionStatus.SUBMITTED,
+            AuditEventKind.CANCEL,
+            OrderType.MARKET,
+        )
+        is None
+    )
+    assert (
+        execution_transition(
+            ExecutionStatus.FILLED,
+            AuditEventKind.MODIFY_REJECT,
+            OrderType.MARKET,
+        )
+        is ExecutionStatus.FILLED
+    )
+
+
+def test_protection_modification_contract_covers_buy_and_sell() -> None:
+    assert protection_modification_valid(
+        direction=TradeDirection.BUY,
+        entry="100",
+        current_stop="96",
+        proposed_stop="97",
+        proposed_tp="110",
+    )
+    assert not protection_modification_valid(
+        direction=TradeDirection.BUY,
+        entry="100",
+        current_stop="96",
+        proposed_stop="95",
+        proposed_tp="110",
+    )
+    assert protection_modification_valid(
+        direction=TradeDirection.SELL,
+        entry="100",
+        current_stop="104",
+        proposed_stop="103",
+        proposed_tp="90",
+    )
+    assert not protection_modification_valid(
+        direction=TradeDirection.SELL,
+        entry="100",
+        current_stop="104",
+        proposed_stop="105",
+        proposed_tp="90",
+    )

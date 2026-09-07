@@ -22,6 +22,32 @@ enum XauTrend
    XAU_TREND_DOWN = 2
   };
 
+enum XauExecutionStatus
+  {
+   XAU_EXECUTION_SUBMITTED = 0,
+   XAU_EXECUTION_FILLED = 1,
+   XAU_EXECUTION_REJECTED = 2,
+   XAU_EXECUTION_CLOSED = 3,
+   XAU_EXECUTION_CANCELLED = 4
+  };
+
+enum XauExecutionEvent
+  {
+   XAU_EXECUTION_FILL = 0,
+   XAU_EXECUTION_REJECT = 1,
+   XAU_EXECUTION_CLOSE = 2,
+   XAU_EXECUTION_MODIFY = 3,
+   XAU_EXECUTION_MODIFY_REJECT = 4,
+   XAU_EXECUTION_CANCEL = 5,
+   XAU_EXECUTION_CANCEL_REJECT = 6
+  };
+
+enum XauOrderType
+  {
+   XAU_ORDER_MARKET = 0,
+   XAU_ORDER_PENDING_STOP = 1
+  };
+
 struct XauZone
   {
    string id;
@@ -289,6 +315,37 @@ XauTpFailureAction PullbackTpFailureAction(const XauDirection direction,
 bool RestartSameDayLocked(const string broker_day,const string persisted_last_activation_day)
   {
    return broker_day != "" && broker_day == persisted_last_activation_day;
+  }
+
+bool ExecutionTransition(const XauExecutionStatus status,const XauExecutionEvent event_kind,
+                         const XauOrderType order_type,XauExecutionStatus &next_status)
+  {
+   if(status == XAU_EXECUTION_SUBMITTED && event_kind == XAU_EXECUTION_FILL)
+      next_status=XAU_EXECUTION_FILLED;
+   else if(status == XAU_EXECUTION_SUBMITTED && event_kind == XAU_EXECUTION_REJECT)
+      next_status=XAU_EXECUTION_REJECTED;
+   else if(status == XAU_EXECUTION_FILLED && event_kind == XAU_EXECUTION_CLOSE)
+      next_status=XAU_EXECUTION_CLOSED;
+   else if(status == XAU_EXECUTION_FILLED &&
+           (event_kind == XAU_EXECUTION_MODIFY || event_kind == XAU_EXECUTION_MODIFY_REJECT))
+      next_status=XAU_EXECUTION_FILLED;
+   else if(status == XAU_EXECUTION_SUBMITTED && event_kind == XAU_EXECUTION_CANCEL_REJECT)
+      next_status=XAU_EXECUTION_SUBMITTED;
+   else if(status == XAU_EXECUTION_SUBMITTED && event_kind == XAU_EXECUTION_CANCEL &&
+           order_type == XAU_ORDER_PENDING_STOP)
+      next_status=XAU_EXECUTION_CANCELLED;
+   else
+      return false;
+   return true;
+  }
+
+bool ProtectionModificationValid(const XauDirection direction,const double entry,
+                                 const double current_stop,const double proposed_stop,
+                                 const double proposed_tp)
+  {
+   if(direction == XAU_BUY)
+      return proposed_stop >= current_stop && proposed_stop < proposed_tp && proposed_tp > entry;
+   return proposed_stop <= current_stop && proposed_tp < proposed_stop && proposed_tp < entry;
   }
 
 #endif

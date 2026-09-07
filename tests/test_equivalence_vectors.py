@@ -4,6 +4,12 @@ from pathlib import Path
 from typing import Any
 
 from scripts.generate_mql_vectors import render_header
+from xauusd.audit import AuditEventKind
+from xauusd.execution import (
+    ExecutionStatus,
+    execution_transition,
+    protection_modification_valid,
+)
 from xauusd.momentum import (
     PreZoneTriggerTracker,
     PullbackTpState,
@@ -19,7 +25,13 @@ from xauusd.safety import (
     evaluate_portfolio_risk,
     session_end_actions,
 )
-from xauusd.signals import BreakoutSignal, BreakoutTracker, ReversalTracker, TradeDirection
+from xauusd.signals import (
+    BreakoutSignal,
+    BreakoutTracker,
+    OrderType,
+    ReversalTracker,
+    TradeDirection,
+)
 from xauusd.trend import Candle, DailyTrendTracker, TrendState
 from xauusd.zones import RawZone, Zone, ZoneEngagementTracker, ZonePriority, build_daily_zones
 
@@ -65,6 +77,8 @@ def test_frozen_core_vectors_match_python_contracts() -> None:
         "pullback-high-window-t5",
         "tp-strict-failure-before-initial",
         "restart-same-day-lock",
+        "execution-cancel-reject-preserves-pending",
+        "modify-buy-no-sl-loosen",
     ]
 
     breakout_vector = vectors[0]
@@ -318,6 +332,30 @@ def test_frozen_core_vectors_match_python_contracts() -> None:
         ),
     )
     assert {"locked": restart_state.locked} == restart_vector["expected"]
+
+    execution_vector = vectors[16]
+    execution_input = execution_vector["input"]
+    next_status = execution_transition(
+        ExecutionStatus(execution_input["status"]),
+        AuditEventKind(execution_input["event"]),
+        OrderType(execution_input["order_type"]),
+    )
+    assert {
+        "allowed": next_status is not None,
+        "status": next_status.value if next_status is not None else None,
+    } == execution_vector["expected"]
+
+    modification_vector = vectors[17]
+    modification_input = modification_vector["input"]
+    assert {
+        "valid": protection_modification_valid(
+            direction=TradeDirection(modification_input["direction"]),
+            entry=modification_input["entry"],
+            current_stop=modification_input["current_stop"],
+            proposed_stop=modification_input["proposed_stop"],
+            proposed_tp=modification_input["proposed_tp"],
+        )
+    } == modification_vector["expected"]
 
 
 def test_generated_mql_header_matches_canonical_json() -> None:

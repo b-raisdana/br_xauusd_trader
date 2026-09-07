@@ -134,6 +134,24 @@
       "contract": "RESTART_FAIL_CLOSED",
       "input": {"broker_day": "2026-09-06", "persisted_last_activation_day": "2026-09-06"},
       "expected": {"locked": true}
+    },
+    {
+      "id": "execution-cancel-reject-preserves-pending",
+      "contract": "EXECUTION_TRANSITION",
+      "input": {"status": "submitted", "event": "cancel_reject", "order_type": "pending_stop"},
+      "expected": {"allowed": true, "status": "submitted"}
+    },
+    {
+      "id": "modify-buy-no-sl-loosen",
+      "contract": "PROTECTION_MODIFICATION",
+      "input": {
+        "direction": "buy",
+        "entry": "100",
+        "current_stop": "96",
+        "proposed_stop": "97",
+        "proposed_tp": "110"
+      },
+      "expected": {"valid": true}
     }
   ]
 }

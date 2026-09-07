@@ -104,7 +104,23 @@ bool RunCoreVectorSmoke()
    if(PullbackTpFailureAction(XAU_BUY,true,false,VEC_TP_INITIAL,
                               VEC_TP_CURRENT_BID,VEC_TP_CURRENT_ASK) != XAU_TP_RESTORE)
       return false;
-   return RestartSameDayLocked(VEC_RESTART_DAY,VEC_RESTART_LAST_DAY);
+   if(!RestartSameDayLocked(VEC_RESTART_DAY,VEC_RESTART_LAST_DAY))
+      return false;
+
+   XauExecutionStatus next_status=XAU_EXECUTION_CANCELLED;
+   bool transition_allowed=ExecutionTransition(
+      (XauExecutionStatus)VEC_EXECUTION_STATUS,
+      (XauExecutionEvent)VEC_EXECUTION_EVENT,
+      (XauOrderType)VEC_EXECUTION_ORDER_TYPE,
+      next_status);
+   if(transition_allowed != (VEC_EXECUTION_EXPECTED_ALLOWED != 0) ||
+      next_status != (XauExecutionStatus)VEC_EXECUTION_EXPECTED_STATUS)
+      return false;
+   return ProtectionModificationValid(
+      (XauDirection)VEC_MODIFICATION_DIRECTION,
+      VEC_MODIFICATION_ENTRY,VEC_MODIFICATION_CURRENT_SL,VEC_MODIFICATION_PROPOSED_SL,
+      VEC_MODIFICATION_PROPOSED_TP) ==
+      (VEC_MODIFICATION_EXPECTED_VALID != 0);
   }
 
 bool RunNativeAdapterSmoke()
@@ -180,7 +196,7 @@ int OnInit()
       Print("Core contract vector smoke failed.");
       return INIT_FAILED;
      }
-   Print("CORE_VECTOR_SMOKE_PASS vectors=16 mode=inert");
+   Print("CORE_VECTOR_SMOKE_PASS vectors=18 mode=inert");
    if(!RunNativeAdapterSmoke())
       return INIT_FAILED;
    if(!RunVisualPayloadSmoke())

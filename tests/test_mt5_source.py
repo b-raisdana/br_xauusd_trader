@@ -36,9 +36,12 @@ def test_current_mt5_baseline_is_strict_vector_driven_and_live_inert() -> None:
         "PullbackUsageAllowed",
         "PullbackTpFailureAction",
         "RestartSameDayLocked",
+        "ExecutionTransition",
+        "ProtectionModificationValid",
     ):
         assert contract in contracts
     assert "PARITY_PRICE_TOLERANCE = 1e-9" in contracts
+    assert "CORE_VECTOR_SMOKE_PASS vectors=18 mode=inert" in source
 
 
 def test_native_adapter_is_read_only_and_uses_broker_apis() -> None:

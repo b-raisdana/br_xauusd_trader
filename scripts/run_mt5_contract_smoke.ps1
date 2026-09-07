@@ -50,7 +50,7 @@ if ($pass.Count -eq 0) {
     throw "Runtime success marker not found after terminal exit code $($process.ExitCode)."
 }
 $executionPass = @($newLogs | Select-String -SimpleMatch `
-        "EXECUTION_PROJECTOR_SMOKE_PASS lifecycle/protection/correlation/persistence mode=inert")
+        "EXECUTION_PROJECTOR_SMOKE_PASS lifecycle/protection/correlation/persistence/orchestration mode=inert")
 if ($executionPass.Count -eq 0) {
     throw "Execution projector success marker not found after terminal exit code $($process.ExitCode)."
 }

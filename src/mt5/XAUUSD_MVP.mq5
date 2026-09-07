@@ -270,6 +270,30 @@ bool RunStateOrderingSmoke()
          return false;
    if(!pending_must_cancel || pullback.active)
       return false;
+   XauZone initial_target,next_target;
+   initial_target.id="R3"; initial_target.low=110.0; initial_target.high=111.0;
+   next_target.id="R4"; next_target.low=116.0; next_target.high=117.0;
+   XauPreZoneTriggerState trigger_state;
+   XauPullbackTpState tp_state;
+   double requested_tp=0.0;
+   string target_zone_id="";
+   if(!PreZoneCrossOnce(trigger_state,"POS1",XAU_BUY,initial_target,108.0,109.0) ||
+      PreZoneCrossOnce(trigger_state,"POS1",XAU_BUY,initial_target,108.0,110.0) ||
+      !BlocksOppositeReversal(true,true) || BlocksOppositeReversal(false,true) ||
+      !InitializePullbackTp(tp_state,"POS1",XAU_BUY,initial_target) ||
+      !ProposePullbackTpExtension(tp_state,initial_target,next_target,true,true,
+                                  requested_tp,target_zone_id) ||
+      !NearlyEqual(requested_tp,116.0) || target_zone_id != "R4" ||
+      !RecordPullbackTpExtension(tp_state,requested_tp,target_zone_id,true) ||
+      !tp_state.extended || ProposePullbackTpExtension(tp_state,initial_target,next_target,
+                                                       true,true,requested_tp,target_zone_id))
+      return false;
+   if(EvaluatePullbackTpFailure(tp_state,false,109.0,109.1,requested_tp) != XAU_TP_RESTORE ||
+      !NearlyEqual(requested_tp,110.0))
+      return false;
+   RecordPullbackTpRestore(tp_state,true);
+   if(tp_state.extended || !NearlyEqual(tp_state.current_tp,110.0))
+      return false;
    Print("STATE_ORDER_SMOKE_PASS tick/trend/bar-close mode=inert");
    return true;
   }

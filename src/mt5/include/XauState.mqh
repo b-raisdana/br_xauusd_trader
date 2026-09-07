@@ -30,6 +30,111 @@ struct XauPullbackWindowState
    int sequence;
   };
 
+struct XauPreZoneTriggerState
+  {
+   string position_id;
+   string target_zone_id;
+   bool triggered;
+  };
+
+struct XauPullbackTpState
+  {
+   string position_id;
+   XauDirection direction;
+   string initial_target_zone_id;
+   double initial_tp;
+   string current_target_zone_id;
+   double current_tp;
+   bool extended;
+  };
+
+bool PreZoneCrossOnce(XauPreZoneTriggerState &state,const string position_id,
+                      const XauDirection direction,const XauZone &target_zone,
+                      const double previous_price,const double current_price)
+  {
+   if(position_id == "" || target_zone.id == "")
+      return false;
+   if(state.position_id != position_id || state.target_zone_id != target_zone.id)
+     {
+      state.position_id=position_id;
+      state.target_zone_id=target_zone.id;
+      state.triggered=false;
+     }
+   if(state.triggered ||
+      !PreZoneCrossed(direction,target_zone,previous_price,current_price))
+      return false;
+   state.triggered=true;
+   return true;
+  }
+
+bool InitializePullbackTp(XauPullbackTpState &state,const string position_id,
+                          const XauDirection direction,const XauZone &initial_target)
+  {
+   if(position_id == "" || initial_target.id == "")
+      return false;
+   const double target=(direction == XAU_BUY ? initial_target.low : initial_target.high);
+   state.position_id=position_id;
+   state.direction=direction;
+   state.initial_target_zone_id=initial_target.id;
+   state.initial_tp=target;
+   state.current_target_zone_id=initial_target.id;
+   state.current_tp=target;
+   state.extended=false;
+   return true;
+  }
+
+bool ProposePullbackTpExtension(const XauPullbackTpState &state,
+                                const XauZone &approached_zone,const XauZone &next_zone,
+                                const bool has_next_zone,const bool strict_valid,
+                                double &requested_tp,string &target_zone_id)
+  {
+   requested_tp=0.0;
+   target_zone_id="";
+   if(state.extended || !strict_valid || !has_next_zone ||
+      approached_zone.id != state.initial_target_zone_id)
+      return false;
+   requested_tp=(state.direction == XAU_BUY ? next_zone.low : next_zone.high);
+   target_zone_id=next_zone.id;
+   return target_zone_id != "";
+  }
+
+bool RecordPullbackTpExtension(XauPullbackTpState &state,const double requested_tp,
+                               const string target_zone_id,const bool broker_accepted)
+  {
+   if(requested_tp <= 0.0 || target_zone_id == "")
+      return false;
+   if(broker_accepted)
+     {
+      state.current_tp=requested_tp;
+      state.current_target_zone_id=target_zone_id;
+      state.extended=true;
+     }
+   return true;
+  }
+
+XauTpFailureAction EvaluatePullbackTpFailure(const XauPullbackTpState &state,
+                                             const bool strict_valid,
+                                             const double current_bid,
+                                             const double current_ask,double &requested_tp)
+  {
+   requested_tp=0.0;
+   const XauTpFailureAction action=PullbackTpFailureAction(
+      state.direction,state.extended,strict_valid,state.initial_tp,current_bid,current_ask);
+   if(action == XAU_TP_RESTORE)
+      requested_tp=state.initial_tp;
+   return action;
+  }
+
+void RecordPullbackTpRestore(XauPullbackTpState &state,const bool broker_accepted)
+  {
+   if(broker_accepted)
+     {
+      state.current_tp=state.initial_tp;
+      state.current_target_zone_id=state.initial_target_zone_id;
+      state.extended=false;
+     }
+  }
+
 bool CreatePullbackWindow(XauPullbackWindowState &window,const string parent_breakout_id,
                           const XauZone &zone,const XauDirection direction)
   {

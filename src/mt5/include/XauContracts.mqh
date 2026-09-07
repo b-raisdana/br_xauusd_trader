@@ -216,6 +216,11 @@ bool PreZoneCrossed(const XauDirection direction,const XauZone &target_zone,
    return previous_price > trigger && current_price <= trigger;
   }
 
+bool BlocksOppositeReversal(const bool actual_zone_touch,const bool strict_trend_valid)
+  {
+   return actual_zone_touch && strict_trend_valid;
+  }
+
 bool InitialStop(const XauDirection direction,const double entry,const XauZone &zones[],
                  double &stop_loss,string &stop_zone_id)
   {

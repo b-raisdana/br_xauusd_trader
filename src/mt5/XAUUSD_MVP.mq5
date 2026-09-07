@@ -117,6 +117,15 @@ bool RunCoreVectorSmoke()
    if(transition_allowed != (VEC_EXECUTION_EXPECTED_ALLOWED != 0) ||
       next_status != (XauExecutionStatus)VEC_EXECUTION_EXPECTED_STATUS)
       return false;
+   XauZone causal_zone;
+   causal_zone.low=VEC_CAUSAL_ZONE_LOW;
+   causal_zone.high=VEC_CAUSAL_ZONE_HIGH;
+   XauTrend causal_trend=XAU_TREND_NONE;
+   if(!CausalTrendThenReversal(causal_zone,XAU_SELL,XAU_TREND_NONE,1,
+                               VEC_CAUSAL_REFERENCE_HIGH,VEC_CAUSAL_REFERENCE_LOW,
+                               VEC_CAUSAL_PREVIOUS,VEC_CAUSAL_BID,causal_trend) ||
+      causal_trend != XAU_TREND_UP)
+      return false;
    return ProtectionModificationValid(
       (XauDirection)VEC_MODIFICATION_DIRECTION,
       VEC_MODIFICATION_ENTRY,VEC_MODIFICATION_CURRENT_SL,VEC_MODIFICATION_PROPOSED_SL,
@@ -287,7 +296,7 @@ int OnInit()
       Print("Core contract vector smoke failed.");
       return INIT_FAILED;
      }
-   Print("CORE_VECTOR_SMOKE_PASS vectors=18 mode=inert");
+   Print("CORE_VECTOR_SMOKE_PASS vectors=19 mode=inert");
    if(!RunExecutionProjectorSmoke())
       return INIT_FAILED;
    if(!RunNativeAdapterSmoke())

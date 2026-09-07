@@ -152,6 +152,20 @@
         "proposed_tp": "110"
       },
       "expected": {"valid": true}
+    },
+    {
+      "id": "causal-trend-before-reversal",
+      "contract": "TICK_EVENT_ORDER",
+      "input": {
+        "zone": {"low": "101", "high": "102", "priority": "normal"},
+        "current_trend": "none",
+        "reference_count": 1,
+        "reference_high": "100",
+        "reference_low": "90",
+        "previous_bid": "99",
+        "bid": "101"
+      },
+      "expected": {"trend": "up", "sell_reversal": true}
     }
   ]
 }

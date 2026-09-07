@@ -146,6 +146,17 @@ bool ReversalDirectionalTouch(const XauZone &zone,const XauDirection direction,
    return trend == XAU_TREND_DOWN && previous_bid > zone.high && current_bid <= zone.high;
   }
 
+bool CausalTrendThenReversal(const XauZone &zone,const XauDirection direction,
+                             const XauTrend current_trend,const int reference_count,
+                             const double reference_high,const double reference_low,
+                             const double previous_bid,const double current_bid,
+                             XauTrend &updated_trend)
+  {
+   updated_trend=UpdateTrend(current_trend,reference_count,reference_high,reference_low,
+                             current_bid);
+   return ReversalDirectionalTouch(zone,direction,updated_trend,previous_bid,current_bid,false);
+  }
+
 XauTrend UpdateTrend(const XauTrend current_state,const int reference_count,
                      const double reference_high,const double reference_low,const double bid)
   {

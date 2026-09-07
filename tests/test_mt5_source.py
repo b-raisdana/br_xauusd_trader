@@ -40,10 +40,11 @@ def test_current_mt5_baseline_is_strict_vector_driven_and_live_inert() -> None:
         "RestartSameDayLocked",
         "ExecutionTransition",
         "ProtectionModificationValid",
+        "CausalTrendThenReversal",
     ):
         assert contract in contracts
     assert "PARITY_PRICE_TOLERANCE = 1e-9" in contracts
-    assert "CORE_VECTOR_SMOKE_PASS vectors=18 mode=inert" in source
+    assert "CORE_VECTOR_SMOKE_PASS vectors=19 mode=inert" in source
 
 
 def test_execution_projector_is_inert_and_uses_shared_contracts() -> None:

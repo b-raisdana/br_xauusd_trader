@@ -32,6 +32,7 @@ def render_header(payload: dict[str, Any]) -> str:
     restart = vectors["restart-same-day-lock"]["input"]
     execution = vectors["execution-cancel-reject-preserves-pending"]
     modification = vectors["modify-buy-no-sl-loosen"]
+    causal = vectors["causal-trend-before-reversal"]["input"]
     risk_zones = risk["input"]["zones"]
     status_values = ["submitted", "filled", "rejected", "closed", "cancelled"]
     event_values = ["fill", "reject", "close", "modify", "modify_reject", "cancel", "cancel_reject"]
@@ -136,6 +137,12 @@ def render_header(payload: dict[str, Any]) -> str:
             f"#define VEC_MODIFICATION_PROPOSED_SL {modification['input']['proposed_stop']}",
             f"#define VEC_MODIFICATION_PROPOSED_TP {modification['input']['proposed_tp']}",
             f"#define VEC_MODIFICATION_EXPECTED_VALID {modification_valid}",
+            f"#define VEC_CAUSAL_ZONE_LOW {causal['zone']['low']}",
+            f"#define VEC_CAUSAL_ZONE_HIGH {causal['zone']['high']}",
+            f"#define VEC_CAUSAL_REFERENCE_HIGH {causal['reference_high']}",
+            f"#define VEC_CAUSAL_REFERENCE_LOW {causal['reference_low']}",
+            f"#define VEC_CAUSAL_PREVIOUS {causal['previous_bid']}",
+            f"#define VEC_CAUSAL_BID {causal['bid']}",
         )
     )
     return "\n".join(lines) + "\n"

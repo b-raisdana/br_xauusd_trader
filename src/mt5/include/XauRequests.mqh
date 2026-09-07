@@ -12,6 +12,39 @@ struct XauPreparedEntry
    string target_zone_id;
   };
 
+bool EntryBarAvailable(const string &attempted_bars[],const string bar_id)
+  {
+   for(int i=0;i<ArraySize(attempted_bars);i++)
+      if(attempted_bars[i] == bar_id)
+         return false;
+   return bar_id != "";
+  }
+
+bool CandidateAttemptAvailable(const XauMarketCoordinator &state,
+                               const XauSignalCandidate &candidate)
+  {
+   if(!EntryBarAvailable(state.attempted_bars,candidate.bar_id))
+      return false;
+   const int zone_index=FindDailyZoneState(state.zones,candidate.zone_id);
+   if(zone_index < 0)
+      return false;
+   if(candidate.family == XAU_SIGNAL_REVERSAL)
+     {
+      const int limit=(state.zones[zone_index].zone.priority == 1 ? 2 : 1);
+      return state.zones[zone_index].reversal_usage < limit;
+     }
+   if(candidate.family == XAU_SIGNAL_PULLBACK)
+     {
+      const int window_index=FindCoordinatorPullback(state,candidate.zone_id,
+                                                     candidate.direction);
+      return window_index >= 0 && state.pullbacks[window_index].active &&
+             !state.pullbacks[window_index].pending_active &&
+             PullbackUsageAllowed(state.zones[zone_index].zone.priority,
+                                  state.zones[zone_index].pullback_fills);
+     }
+   return false;
+  }
+
 bool PrepareCandidateEntry(const XauSignalCandidate &candidate,const XauZone &zones[],
                            const bool daily_locked,const double strategy_capital,
                            const double realized_gross_loss,const double open_risk,

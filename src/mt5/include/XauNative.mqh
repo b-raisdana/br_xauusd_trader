@@ -39,33 +39,42 @@ bool ClassifyNativeDealEntry(const ENUM_DEAL_ENTRY entry,XauExecutionEvent &even
    return false;
   }
 
-bool LoadNativeDealOutcome(const MqlTradeTransaction &transaction,const string expected_symbol,
-                           const long expected_magic,XauNativeDealOutcome &outcome)
+bool LoadNativeDealTicketOutcome(const ulong deal_ticket,const ulong order_ticket,
+                                 const string expected_symbol,const long expected_magic,
+                                 XauNativeDealOutcome &outcome)
   {
-   if(expected_symbol == "" || expected_magic <= 0 ||
-      transaction.type != TRADE_TRANSACTION_DEAL_ADD || transaction.deal == 0 ||
-      transaction.symbol != expected_symbol)
+   if(expected_symbol == "" || expected_magic <= 0 || deal_ticket == 0)
       return false;
-   if(!HistoryDealSelect(transaction.deal) ||
-      HistoryDealGetInteger(transaction.deal,DEAL_MAGIC) != expected_magic)
+   if(!HistoryDealSelect(deal_ticket) ||
+      HistoryDealGetString(deal_ticket,DEAL_SYMBOL) != expected_symbol ||
+      HistoryDealGetInteger(deal_ticket,DEAL_MAGIC) != expected_magic)
       return false;
 
    XauExecutionEvent event_kind=XAU_EXECUTION_REJECT;
-   ENUM_DEAL_ENTRY entry=(ENUM_DEAL_ENTRY)HistoryDealGetInteger(transaction.deal,DEAL_ENTRY);
+   ENUM_DEAL_ENTRY entry=(ENUM_DEAL_ENTRY)HistoryDealGetInteger(deal_ticket,DEAL_ENTRY);
    if(!ClassifyNativeDealEntry(entry,event_kind))
       return false;
-   const double deal_price=HistoryDealGetDouble(transaction.deal,DEAL_PRICE);
-   const long deal_time=HistoryDealGetInteger(transaction.deal,DEAL_TIME);
+   const double deal_price=HistoryDealGetDouble(deal_ticket,DEAL_PRICE);
+   const long deal_time=HistoryDealGetInteger(deal_ticket,DEAL_TIME);
    if(deal_price <= 0.0 || deal_time <= 0)
       return false;
 
-   outcome.deal_ticket=transaction.deal;
-   outcome.order_ticket=transaction.order;
-   outcome.position_id=(ulong)HistoryDealGetInteger(transaction.deal,DEAL_POSITION_ID);
+   outcome.deal_ticket=deal_ticket;
+   outcome.order_ticket=order_ticket;
+   outcome.position_id=(ulong)HistoryDealGetInteger(deal_ticket,DEAL_POSITION_ID);
    outcome.event_kind=event_kind;
    outcome.price=deal_price;
    outcome.broker_time=(datetime)deal_time;
    return outcome.position_id != 0;
+  }
+
+bool LoadNativeDealOutcome(const MqlTradeTransaction &transaction,const string expected_symbol,
+                           const long expected_magic,XauNativeDealOutcome &outcome)
+  {
+   if(transaction.type != TRADE_TRANSACTION_DEAL_ADD || transaction.symbol != expected_symbol)
+      return false;
+   return LoadNativeDealTicketOutcome(transaction.deal,transaction.order,expected_symbol,
+                                      expected_magic,outcome);
   }
 
 bool LoadNativeSymbol(const string symbol,XauNativeSymbol &result)

@@ -103,7 +103,7 @@ if ($eventLoopReady.Count -eq 0) {
     throw "Current event-loop runtime marker not found after terminal exit code $($process.ExitCode)."
 }
 $eventLoopDone = @($newLogs | Select-String -Pattern `
-        "CURRENT_EVENT_LOOP_DONE breakout=\d+ reversal=\d+ pullback=\d+ failed=0 mode=inert")
+        "CURRENT_EVENT_LOOP_DONE breakout=\d+ reversal=\d+ pullback=\d+ attempts=0 accepted=0 rejected=0 failed=0 mode=inert")
 if ($eventLoopDone.Count -eq 0) {
     throw "Successful current event-loop completion marker not found after terminal exit code $($process.ExitCode)."
 }

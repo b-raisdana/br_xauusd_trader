@@ -11,6 +11,7 @@
 #include "include/XauState.mqh"
 #include "include/XauCoordinator.mqh"
 #include "include/XauRequests.mqh"
+#include "include/XauTesterBroker.mqh"
 #include "include/XauVisual.mqh"
 
 input bool InpEnableTrading=false;
@@ -18,6 +19,7 @@ input bool InpEmitTimeBasisProbe=false;
 input bool InpObserveNativeOutcomes=false;
 input long InpStrategyMagic=0;
 input bool InpRunCurrentEventLoop=false;
+input bool InpEnableTesterExecution=false;
 
 int g_time_basis_probe_count=0;
 XauExecutionProjection g_execution_projections[];
@@ -635,6 +637,12 @@ int OnInit()
    if(InpObserveNativeOutcomes && InpStrategyMagic<=0)
      {
       Print("Native outcome observation requires an explicit positive strategy Magic.");
+      return INIT_FAILED;
+     }
+   if(InpEnableTesterExecution &&
+      (!(bool)MQLInfoInteger(MQL_TESTER) || InpStrategyMagic<=0))
+     {
+      Print("Tester execution requires Strategy Tester and an explicit positive Magic.");
       return INIT_FAILED;
      }
    if(!RunCoreVectorSmoke())

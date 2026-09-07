@@ -13,6 +13,61 @@ struct XauNativeSymbol
    double volume_step;
   };
 
+struct XauNativeDealOutcome
+  {
+   ulong deal_ticket;
+   ulong order_ticket;
+   ulong position_id;
+   XauExecutionEvent event_kind;
+   double price;
+   datetime broker_time;
+  };
+
+bool ClassifyNativeDealEntry(const ENUM_DEAL_ENTRY entry,XauExecutionEvent &event_kind)
+  {
+   if(entry == DEAL_ENTRY_IN)
+     {
+      event_kind=XAU_EXECUTION_FILL;
+      return true;
+     }
+   if(entry == DEAL_ENTRY_OUT || entry == DEAL_ENTRY_OUT_BY)
+     {
+      event_kind=XAU_EXECUTION_CLOSE;
+      return true;
+     }
+   // INOUT is compound and cannot safely project to one lifecycle event.
+   return false;
+  }
+
+bool LoadNativeDealOutcome(const MqlTradeTransaction &transaction,const string expected_symbol,
+                           const long expected_magic,XauNativeDealOutcome &outcome)
+  {
+   if(expected_symbol == "" || expected_magic <= 0 ||
+      transaction.type != TRADE_TRANSACTION_DEAL_ADD || transaction.deal == 0 ||
+      transaction.symbol != expected_symbol)
+      return false;
+   if(!HistoryDealSelect(transaction.deal) ||
+      HistoryDealGetInteger(transaction.deal,DEAL_MAGIC) != expected_magic)
+      return false;
+
+   XauExecutionEvent event_kind=XAU_EXECUTION_REJECT;
+   ENUM_DEAL_ENTRY entry=(ENUM_DEAL_ENTRY)HistoryDealGetInteger(transaction.deal,DEAL_ENTRY);
+   if(!ClassifyNativeDealEntry(entry,event_kind))
+      return false;
+   const double deal_price=HistoryDealGetDouble(transaction.deal,DEAL_PRICE);
+   const long deal_time=HistoryDealGetInteger(transaction.deal,DEAL_TIME);
+   if(deal_price <= 0.0 || deal_time <= 0)
+      return false;
+
+   outcome.deal_ticket=transaction.deal;
+   outcome.order_ticket=transaction.order;
+   outcome.position_id=(ulong)HistoryDealGetInteger(transaction.deal,DEAL_POSITION_ID);
+   outcome.event_kind=event_kind;
+   outcome.price=deal_price;
+   outcome.broker_time=(datetime)deal_time;
+   return outcome.position_id != 0;
+  }
+
 bool LoadNativeSymbol(const string symbol,XauNativeSymbol &result)
   {
    long digits=0;

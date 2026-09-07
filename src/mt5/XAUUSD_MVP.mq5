@@ -4,6 +4,7 @@
 
 #include "generated/CoreVectors.mqh"
 #include "include/XauContracts.mqh"
+#include "include/XauExecution.mqh"
 #include "include/XauNative.mqh"
 #include "include/XauVisual.mqh"
 
@@ -123,8 +124,53 @@ bool RunCoreVectorSmoke()
       (VEC_MODIFICATION_EXPECTED_VALID != 0);
   }
 
+bool RunExecutionProjectorSmoke()
+  {
+   const datetime submitted_at=StringToTime("2026.09.06 10:00:00");
+   XauExecutionProjection position;
+   if(!InitializeExecutionProjection(position,"REQ-M",XAU_ORDER_MARKET,XAU_BUY,
+                                     100.0,96.0,108.0,submitted_at))
+      return false;
+   if(!ProjectExecutionOutcome(position,XAU_EXECUTION_FILL,submitted_at+1,100.1) ||
+      position.status != XAU_EXECUTION_FILLED || !NearlyEqual(position.fill_price,100.1))
+      return false;
+   if(!ProjectExecutionOutcome(position,XAU_EXECUTION_MODIFY_REJECT,submitted_at+2,
+                               0.0,97.0,110.0) || !NearlyEqual(position.stop_loss,96.0))
+      return false;
+   if(!ProjectExecutionOutcome(position,XAU_EXECUTION_MODIFY,submitted_at+3,
+                               0.0,97.0,110.0) || !NearlyEqual(position.stop_loss,97.0) ||
+      !NearlyEqual(position.take_profit,110.0))
+      return false;
+   if(!ProjectExecutionOutcome(position,XAU_EXECUTION_CLOSE,submitted_at+4,109.0) ||
+      position.status != XAU_EXECUTION_CLOSED || !NearlyEqual(position.close_price,109.0))
+      return false;
+   if(ProjectExecutionOutcome(position,XAU_EXECUTION_CLOSE,submitted_at+5,109.0))
+      return false;
+
+   XauExecutionProjection pending;
+   if(!InitializeExecutionProjection(pending,"REQ-P",XAU_ORDER_PENDING_STOP,XAU_BUY,
+                                     100.0,96.0,108.0,submitted_at))
+      return false;
+   if(!ProjectExecutionOutcome(pending,XAU_EXECUTION_CANCEL_REJECT,submitted_at+1) ||
+      pending.status != XAU_EXECUTION_SUBMITTED)
+      return false;
+   if(!ProjectExecutionOutcome(pending,XAU_EXECUTION_CANCEL,submitted_at+2) ||
+      pending.status != XAU_EXECUTION_CANCELLED)
+      return false;
+   Print("EXECUTION_PROJECTOR_SMOKE_PASS lifecycle/protection mode=inert");
+   return true;
+  }
+
 bool RunNativeAdapterSmoke()
   {
+   XauExecutionEvent native_event=XAU_EXECUTION_REJECT;
+   if(!ClassifyNativeDealEntry(DEAL_ENTRY_IN,native_event) ||
+      native_event != XAU_EXECUTION_FILL ||
+      !ClassifyNativeDealEntry(DEAL_ENTRY_OUT,native_event) ||
+      native_event != XAU_EXECUTION_CLOSE ||
+      ClassifyNativeDealEntry(DEAL_ENTRY_INOUT,native_event))
+      return false;
+
    XauNativeSymbol specification;
    if(!LoadNativeSymbol(_Symbol,specification))
      {
@@ -159,7 +205,7 @@ bool RunNativeAdapterSmoke()
       Print("Native adapter smoke failed: trade session.");
       return false;
      }
-   Print("NATIVE_ADAPTER_SMOKE_PASS symbol/session/risk/margin mode=read-only");
+   Print("NATIVE_ADAPTER_SMOKE_PASS symbol/session/risk/margin/deal-map mode=read-only");
    return true;
   }
 
@@ -197,6 +243,8 @@ int OnInit()
       return INIT_FAILED;
      }
    Print("CORE_VECTOR_SMOKE_PASS vectors=18 mode=inert");
+   if(!RunExecutionProjectorSmoke())
+      return INIT_FAILED;
    if(!RunNativeAdapterSmoke())
       return INIT_FAILED;
    if(!RunVisualPayloadSmoke())

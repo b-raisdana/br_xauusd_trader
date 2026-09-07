@@ -33,7 +33,7 @@
 
 ## 2) بازسازی مهندسی کد
 
-- [ ] ساخت EA جدید ماژولار — Python causal Signal و full fixture-driven protected execution lifecycle با recovery پیاده شد؛ MQL current core هنوز inert است و lifecycle parity، Native outcome acquisition و full orchestration باقی است.
+- [ ] ساخت EA جدید ماژولار — Python causal Signal و full fixture-driven protected execution lifecycle با recovery پیاده شد؛ MQL current core هنوز inert است، lifecycle projector و read-only Native deal mapping دارد و durable ticket correlation/full orchestration باقی است.
 - [x] ماژول Zone/Trend — Load/Merge/Priority، Engagement و Trend bootstrap روزانه مستقل پیاده و Contract-tested شد.
 - [x] ماژول Signalها — Breakout، Reversal و Pullback با State مشترک Order Slot و Lineage روشن پیاده و Contract-tested شدند.
 - [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.

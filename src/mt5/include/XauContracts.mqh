@@ -8,6 +8,7 @@ const double PULLBACK_PENETRATION_USD = 0.20;
 const double PRE_ZONE_TRIGGER_DISTANCE_USD = 1.0;
 const double DAILY_REALIZED_LOSS_FRACTION = 0.20;
 const double PARITY_PRICE_TOLERANCE = 1e-9;
+const double MINIMUM_FREE_SPACE_USD = 3.0;
 
 enum XauDirection
   {
@@ -62,7 +63,9 @@ enum XauEntryRejection
    XAU_ENTRY_GROSS_RISK = 2,
    XAU_ENTRY_CONCURRENCY = 3,
    XAU_ENTRY_MARGIN = 4,
-   XAU_ENTRY_INVALID_PROTECTION = 5
+   XAU_ENTRY_INVALID_PROTECTION = 5,
+   XAU_ENTRY_FREE_SPACE = 6,
+   XAU_ENTRY_INITIAL_RISK = 7
   };
 
 struct XauOperationalSafety
@@ -272,6 +275,42 @@ bool InitialStop(const XauDirection direction,const double entry,const XauZone &
    stop_loss=(direction == XAU_BUY ? MathMax(nearest,entry-BASE_R_USD)
                                    : MathMin(nearest,entry+BASE_R_USD));
    return true;
+  }
+
+bool DirectionalFreeSpace(const string zone_id,const XauDirection direction,
+                          const XauZone &zones[],double &free_space)
+  {
+   free_space=0.0;
+   int index=-1;
+   for(int i=0;i<ArraySize(zones);i++)
+      if(zones[i].id == zone_id)
+        {
+         index=i;
+         break;
+        }
+   if(index < 0)
+      return false;
+   if(direction == XAU_BUY)
+     {
+      if(index+1 >= ArraySize(zones))
+         return false;
+      free_space=zones[index+1].low-zones[index].high;
+     }
+   else
+     {
+      if(index == 0)
+         return false;
+      free_space=zones[index].low-zones[index-1].high;
+     }
+   return true;
+  }
+
+bool HasMinimumFreeSpace(const string zone_id,const XauDirection direction,
+                         const XauZone &zones[])
+  {
+   double free_space=0.0;
+   return DirectionalFreeSpace(zone_id,direction,zones,free_space) &&
+          free_space+PARITY_PRICE_TOLERANCE >= MINIMUM_FREE_SPACE_USD;
   }
 
 bool InitialTarget(const XauDirection direction,const double entry,const XauZone &zones[],

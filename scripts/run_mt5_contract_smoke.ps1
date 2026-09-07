@@ -74,6 +74,11 @@ $safetyPass = @($newLogs | Select-String -SimpleMatch `
 if ($safetyPass.Count -eq 0) {
     throw "Safety/request success marker not found after terminal exit code $($process.ExitCode)."
 }
+$preparedPass = @($newLogs | Select-String -SimpleMatch `
+        "PREPARED_REQUEST_SMOKE_PASS space/risk/safety/audit/attempt mode=inert")
+if ($preparedPass.Count -eq 0) {
+    throw "Prepared-request success marker not found after terminal exit code $($process.ExitCode)."
+}
 $auditPass = @($newLogs | Select-String -SimpleMatch `
         "AUDIT_REQUEST_SMOKE_PASS durable-before-state mode=inert")
 if ($auditPass.Count -eq 0) {

@@ -82,4 +82,89 @@ bool SubmitTesterPreparedEntry(const bool enabled,const long magic,const string 
    return true;
   }
 
+bool CancelTesterPendingOrders(const bool enabled,const long magic,const string symbol,
+                               ulong &cancelled_tickets[])
+  {
+   ArrayResize(cancelled_tickets,0);
+   if(!TesterExecutionAllowed(enabled) || magic <= 0 || symbol == "")
+      return false;
+   for(int i=OrdersTotal()-1;i>=0;i--)
+     {
+      const ulong ticket=OrderGetTicket(i);
+      if(ticket == 0 || OrderGetString(ORDER_SYMBOL) != symbol ||
+         OrderGetInteger(ORDER_MAGIC) != magic)
+         continue;
+      MqlTradeRequest request={};
+      MqlTradeResult result={};
+      request.action=TRADE_ACTION_REMOVE;
+      request.order=ticket;
+      request.symbol=symbol;
+      request.magic=(ulong)magic;
+      if(!OrderSend(request,result) || !TesterRetcodeAccepted(result.retcode))
+         return false;
+      const int index=ArraySize(cancelled_tickets);
+      if(ArrayResize(cancelled_tickets,index+1) != index+1)
+         return false;
+      cancelled_tickets[index]=ticket;
+     }
+   return true;
+  }
+
+bool CloseTesterPositions(const bool enabled,const long magic,const string symbol,
+                          int &closed_positions)
+  {
+   closed_positions=0;
+   if(!TesterExecutionAllowed(enabled) || magic <= 0 || symbol == "")
+      return false;
+   for(int i=PositionsTotal()-1;i>=0;i--)
+     {
+      const ulong ticket=PositionGetTicket(i);
+      if(ticket == 0 || PositionGetString(POSITION_SYMBOL) != symbol ||
+         PositionGetInteger(POSITION_MAGIC) != magic)
+         continue;
+      MqlTick tick;
+      if(!SymbolInfoTick(symbol,tick))
+         return false;
+      const ENUM_POSITION_TYPE position_type=
+         (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
+      MqlTradeRequest request={};
+      MqlTradeResult result={};
+      request.action=TRADE_ACTION_DEAL;
+      request.position=ticket;
+      request.symbol=symbol;
+      request.magic=(ulong)magic;
+      request.volume=PositionGetDouble(POSITION_VOLUME);
+      request.type=(position_type == POSITION_TYPE_BUY ? ORDER_TYPE_SELL : ORDER_TYPE_BUY);
+      request.price=(position_type == POSITION_TYPE_BUY ? tick.bid : tick.ask);
+      request.deviation=20;
+      request.type_filling=NativeFillingPolicy(symbol);
+      request.comment="XAUUSD_FLAT";
+      if(!OrderSend(request,result) || !TesterRetcodeAccepted(result.retcode))
+         return false;
+      closed_positions++;
+     }
+   return true;
+  }
+
+bool ModifyTesterProtection(const bool enabled,const long magic,const string symbol,
+                            const ulong position_ticket,const double stop_loss,
+                            const double take_profit,bool &accepted)
+  {
+   accepted=false;
+   if(!TesterExecutionAllowed(enabled) || magic <= 0 || symbol == "" ||
+      position_ticket == 0 || stop_loss <= 0.0 || take_profit <= 0.0)
+      return false;
+   MqlTradeRequest request={};
+   MqlTradeResult result={};
+   request.action=TRADE_ACTION_SLTP;
+   request.position=position_ticket;
+   request.symbol=symbol;
+   request.magic=(ulong)magic;
+   request.sl=stop_loss;
+   request.tp=take_profit;
+   const bool sent=OrderSend(request,result);
+   accepted=sent && TesterRetcodeAccepted(result.retcode);
+   return true;
+  }
+
 #endif

@@ -41,6 +41,19 @@ long g_tester_reject_count=0;
 long g_request_sequence=0;
 long g_event_sequence=0;
 bool g_daily_loss_locked=false;
+bool g_operational_lock=false;
+long g_session_cancel_count=0;
+long g_session_close_count=0;
+bool g_session_zero_exposure=false;
+int g_max_open_positions=0;
+long g_gate_rejections[8];
+double g_final_net_realized=0.0;
+double g_final_gross_loss=0.0;
+long g_invalid_price_rejections=0;
+long g_other_broker_rejections=0;
+long g_protection_modifies=0;
+long g_protection_modify_rejects=0;
+long g_sl_loosen_violations=0;
 
 struct XauRuntimeRequest
   {
@@ -587,6 +600,8 @@ bool InitializeCurrentEventLoop(const MqlTick &tick,const datetime bar_time)
    g_current_bar_time=bar_time;
    g_event_loop_ready=true;
    g_daily_loss_locked=false;
+   g_operational_lock=false;
+   g_session_zero_exposure=false;
    PrintFormat("CURRENT_EVENT_LOOP_READY zones=%d history_bars=%d mode=inert",
                ArraySize(merged_zones),g_market_state.trend.count);
    return true;
@@ -614,12 +629,28 @@ bool ApplyProjectOwnedNativeOutcome(const XauNativeDealOutcome &outcome)
   {
    string request_id="";
    if(!ResolveExecutionRequest(g_execution_bindings,outcome.event_kind,
-                               outcome.order_ticket,outcome.position_id,request_id) ||
-      !PersistThenPublishCorrelatedNativeOutcome(
+                               outcome.order_ticket,outcome.position_id,request_id))
+     {
+      PrintFormat("NATIVE_OUTCOME_FAIL step=resolve kind=%d order=%I64u position=%I64u",
+                  (int)outcome.event_kind,outcome.order_ticket,outcome.position_id);
+      return false;
+     }
+   const int existing_index=FindExecutionProjection(g_execution_projections,request_id);
+   if(existing_index >= 0 &&
+      ((outcome.event_kind == XAU_EXECUTION_FILL &&
+        g_execution_projections[existing_index].status == XAU_EXECUTION_FILLED) ||
+       (outcome.event_kind == XAU_EXECUTION_CLOSE &&
+        g_execution_projections[existing_index].status == XAU_EXECUTION_CLOSED)))
+      return true;
+   if(!PersistThenPublishCorrelatedNativeOutcome(
          g_execution_projections,g_execution_bindings,outcome.event_kind,
          outcome.order_ticket,outcome.position_id,outcome.broker_time,outcome.price,
          EXECUTION_BINDINGS_FILE))
+     {
+      PrintFormat("NATIVE_OUTCOME_FAIL step=persist_publish request=%s kind=%d order=%I64u position=%I64u",
+                  request_id,(int)outcome.event_kind,outcome.order_ticket,outcome.position_id);
       return false;
+     }
    if(outcome.event_kind == XAU_EXECUTION_FILL)
      {
       const int runtime_index=FindRuntimeRequest(request_id);
@@ -631,18 +662,172 @@ bool ApplyProjectOwnedNativeOutcome(const XauNativeDealOutcome &outcome)
             g_runtime_requests[runtime_index].candidate.direction);
          const int zone_index=FindDailyZoneState(
             g_market_state.zones,g_runtime_requests[runtime_index].candidate.zone_id);
-         if(window_index < 0 || zone_index < 0 ||
-            !RecordPullbackFill(g_market_state.pullbacks[window_index],
-                                g_market_state.zones[zone_index]))
+          if(window_index < 0 || zone_index < 0 ||
+             !RecordPullbackFill(g_market_state.pullbacks[window_index],
+                                 g_market_state.zones[zone_index]))
+           {
+            PrintFormat("NATIVE_OUTCOME_FAIL step=pullback_fill request=%s window=%d zone=%d",
+                        request_id,window_index,zone_index);
             return false;
+           }
         }
+     }
+   return true;
+  }
+
+bool RecoverTesterPositionBinding(const ulong position_id,const datetime broker_now)
+  {
+   if(position_id == 0 || !HistorySelect(0,broker_now))
+      return false;
+   for(int i=0;i<HistoryDealsTotal();i++)
+     {
+      const ulong deal=HistoryDealGetTicket(i);
+      if(deal == 0 || HistoryDealGetString(deal,DEAL_SYMBOL) != _Symbol ||
+         HistoryDealGetInteger(deal,DEAL_MAGIC) != InpStrategyMagic ||
+         (ulong)HistoryDealGetInteger(deal,DEAL_POSITION_ID) != position_id ||
+         (ENUM_DEAL_ENTRY)HistoryDealGetInteger(deal,DEAL_ENTRY) != DEAL_ENTRY_IN)
+         continue;
+      const ulong order_ticket=(ulong)HistoryDealGetInteger(deal,DEAL_ORDER);
+      string request_id="";
+      if(!ResolveExecutionOrderTicket(g_execution_bindings,order_ticket,request_id) ||
+         !BindExecutionPosition(g_execution_bindings,order_ticket,position_id) ||
+         !SaveExecutionBindingsAtomically(EXECUTION_BINDINGS_FILE,g_execution_bindings))
+         return false;
+      return true;
+     }
+   return false;
+  }
+
+bool ApplyTesterPendingCancellation(const ulong order_ticket,const datetime broker_time)
+  {
+   string request_id="";
+   if(!ResolveExecutionOrderTicket(g_execution_bindings,order_ticket,request_id))
+      return false;
+   const int projection_index=FindExecutionProjection(g_execution_projections,request_id);
+   if(projection_index < 0 ||
+      !ProjectExecutionOutcome(g_execution_projections[projection_index],
+                               XAU_EXECUTION_CANCEL,broker_time))
+      return false;
+   const int runtime_index=FindRuntimeRequest(request_id);
+   if(runtime_index >= 0 &&
+      g_runtime_requests[runtime_index].candidate.family == XAU_SIGNAL_PULLBACK)
+     {
+      const int window_index=FindCoordinatorPullback(
+         g_market_state,g_runtime_requests[runtime_index].candidate.zone_id,
+         g_runtime_requests[runtime_index].candidate.direction);
+      if(window_index < 0 ||
+         !RecordPullbackPendingRemoved(g_market_state.pullbacks[window_index]))
+         return false;
+     }
+   return true;
+  }
+
+bool ExecuteTesterOperationalSafety(const MqlTick &tick)
+  {
+   if(!InpEnableTesterExecution || g_operational_lock)
+      return true;
+   datetime session_from=0,session_to=0;
+   if(!NativeContainingTradeSession(_Symbol,tick.time,session_from,session_to))
+      return false;
+   if(!SessionEndActive(tick.time,session_to))
+      return true;
+   const XauOperationalSafety actions=EvaluateOperationalSafety(true,false);
+   if(!actions.locked || !actions.cancel_pending || !actions.close_positions)
+      return false;
+   ulong cancelled[];
+   if(!CancelTesterPendingOrders(true,InpStrategyMagic,_Symbol,cancelled))
+      return false;
+   for(int i=0;i<ArraySize(cancelled);i++)
+      if(!ApplyTesterPendingCancellation(cancelled[i],tick.time))
+         return false;
+   int closed=0;
+   if(!CloseTesterPositions(true,InpStrategyMagic,_Symbol,closed))
+      return false;
+   XauTesterRiskSnapshot after_flatten;
+   MqlDateTime day_parts;
+   if(!TimeToStruct(tick.time,day_parts))
+      return false;
+   day_parts.hour=0;
+   day_parts.min=0;
+   day_parts.sec=0;
+   if(!LoadTesterRiskSnapshot(true,InpStrategyMagic,_Symbol,StructToTime(day_parts),
+                              tick.time,after_flatten) ||
+      after_flatten.open_positions != 0 || after_flatten.pending_orders != 0)
+      return false;
+   g_final_net_realized=after_flatten.net_realized_pnl;
+   g_final_gross_loss=after_flatten.realized_gross_loss;
+   for(int i=0;i<ArraySize(g_market_state.pullbacks);i++)
+     {
+      g_market_state.pullbacks[i].active=false;
+      g_market_state.pullbacks[i].pending_active=false;
+     }
+   g_session_cancel_count+=ArraySize(cancelled);
+   g_session_close_count+=closed;
+   g_operational_lock=true;
+   g_session_zero_exposure=true;
+   PrintFormat("TESTER_SESSION_FLAT cancellations=%d closes=%d mode=tester",
+               ArraySize(cancelled),closed);
+   return true;
+  }
+
+bool ManageTesterProfitProtection(const MqlTick &tick)
+  {
+   if(!InpEnableTesterExecution || g_operational_lock)
+      return true;
+   for(int i=PositionsTotal()-1;i>=0;i--)
+     {
+      const ulong position_ticket=PositionGetTicket(i);
+      if(position_ticket == 0 || PositionGetString(POSITION_SYMBOL) != _Symbol ||
+         PositionGetInteger(POSITION_MAGIC) != InpStrategyMagic)
+         continue;
+      const ulong position_id=(ulong)PositionGetInteger(POSITION_IDENTIFIER);
+      string request_id="";
+      if(!ResolveExecutionRequest(g_execution_bindings,XAU_EXECUTION_CLOSE,0,position_id,
+                                  request_id) &&
+         (!RecoverTesterPositionBinding(position_id,tick.time) ||
+          !ResolveExecutionRequest(g_execution_bindings,XAU_EXECUTION_CLOSE,0,position_id,
+                                   request_id)))
+        { Print("PROTECTION_FAIL step=resolve"); return false; }
+      const int projection_index=FindExecutionProjection(g_execution_projections,request_id);
+      if(projection_index < 0)
+        { Print("PROTECTION_FAIL step=projection"); return false; }
+      const XauDirection direction=g_execution_projections[projection_index].direction;
+      const double entry=PositionGetDouble(POSITION_PRICE_OPEN);
+      const double current_stop=PositionGetDouble(POSITION_SL);
+      const double current_tp=PositionGetDouble(POSITION_TP);
+      double risk_free=0.0,proposed_stop=0.0;
+      if(!TesterPositionRiskFree(true,InpStrategyMagic,_Symbol,position_id,direction,entry,
+                                 PositionGetDouble(POSITION_VOLUME),tick.time,risk_free))
+        { Print("PROTECTION_FAIL step=risk_free"); return false; }
+      if(!ProfitProtectionStop(direction,entry,risk_free,tick.bid,tick.ask,current_stop,
+                               proposed_stop))
+         continue;
+      if(!ProtectionModificationValid(direction,entry,current_stop,proposed_stop,current_tp))
+        {
+         g_sl_loosen_violations++;
+         Print("PROTECTION_FAIL step=validation");
+         return false;
+        }
+      bool accepted=false;
+      if(!ModifyTesterProtection(true,InpStrategyMagic,_Symbol,position_ticket,
+                                 proposed_stop,current_tp,accepted))
+        { Print("PROTECTION_FAIL step=submit"); return false; }
+      const XauExecutionEvent event_kind=(accepted ? XAU_EXECUTION_MODIFY :
+                                          XAU_EXECUTION_MODIFY_REJECT);
+      if(!ProjectExecutionOutcome(g_execution_projections[projection_index],event_kind,
+                                  tick.time,0.0,proposed_stop,current_tp))
+        { Print("PROTECTION_FAIL step=project"); return false; }
+      if(accepted)
+         g_protection_modifies++;
+      else
+         g_protection_modify_rejects++;
      }
    return true;
   }
 
 bool ProcessTesterCandidates(const MqlTick &tick,const XauSignalCandidate &candidates[])
   {
-   if(!InpEnableTesterExecution)
+   if(!InpEnableTesterExecution || g_operational_lock)
       return true;
    MqlDateTime day_parts;
    if(!TimeToStruct(tick.time,day_parts))
@@ -657,7 +842,9 @@ bool ProcessTesterCandidates(const MqlTick &tick,const XauSignalCandidate &candi
          continue;
       XauTesterRiskSnapshot risk;
       if(!LoadTesterRiskSnapshot(true,InpStrategyMagic,_Symbol,day_start,tick.time,risk))
-         return false;
+        { Print("TESTER_CANDIDATE_FAIL step=risk_snapshot"); return false; }
+      if(risk.open_positions > g_max_open_positions)
+         g_max_open_positions=risk.open_positions;
       g_daily_loss_locked=DailyLossLocked(InpStrategyCapital,risk.net_realized_pnl,
                                          g_daily_loss_locked);
       double stop_loss=0.0,take_profit=0.0;
@@ -675,19 +862,24 @@ bool ProcessTesterCandidates(const MqlTick &tick,const XauSignalCandidate &candi
                                          ORDER_TYPE_BUY : ORDER_TYPE_SELL);
       double proposed_risk=0.0,required_margin=0.0;
       if(!NativeCashRisk(native_type,_Symbol,0.01,candidates[i].entry_price,stop_loss,
-                         proposed_risk) ||
+                          proposed_risk) ||
          !NativeRequiredMargin(native_type,_Symbol,0.01,candidates[i].entry_price,
-                               required_margin))
-         return false;
+                                required_margin))
+        { Print("TESTER_CANDIDATE_FAIL step=native_measurement"); return false; }
       XauPreparedEntry prepared;
       if(!PrepareCandidateEntry(candidates[i],zones,g_daily_loss_locked,
                                 InpStrategyCapital,risk.realized_gross_loss,
                                 risk.open_position_risk,risk.pending_order_risk,
-                                risk.open_positions,proposed_risk,required_margin,
-                                risk.free_margin,prepared))
-         return false;
+                                 risk.open_positions,proposed_risk,required_margin,
+                                 risk.free_margin,prepared))
+        { Print("TESTER_CANDIDATE_FAIL step=prepare"); return false; }
       if(prepared.decision != XAU_ENTRY_ALLOWED)
+        {
+         const int rejection_index=(int)prepared.decision;
+         if(rejection_index >= 0 && rejection_index < ArraySize(g_gate_rejections))
+            g_gate_rejections[rejection_index]++;
          continue;
+        }
       const string request_id="REQ-"+IntegerToString((int)++g_request_sequence);
       const string event_id=g_market_state.broker_day+":E"+
                             IntegerToString((int)++g_event_sequence);
@@ -696,27 +888,46 @@ bool ProcessTesterCandidates(const MqlTick &tick,const XauSignalCandidate &candi
          !AppendOrderThenProject(ORDER_AUDIT_FILE,prepared.decision,audit,
                                  g_execution_projections) ||
          !AppendRuntimeRequest(request_id,prepared.candidate))
+        {
+         PrintFormat("TESTER_CANDIDATE_FAIL step=durable_prepare request=%s",request_id);
          return false;
+        }
       XauTesterSubmission submission;
       if(!SubmitTesterPreparedEntry(true,InpStrategyMagic,_Symbol,prepared,submission) ||
          !submission.attempted ||
          !CommitPreparedEntryAttempt(g_market_state,prepared,submission.accepted))
+        {
+         PrintFormat("TESTER_CANDIDATE_FAIL step=submit_commit request=%s attempted=%d accepted=%d",
+                     request_id,(int)submission.attempted,(int)submission.accepted);
          return false;
+        }
       g_tester_attempt_count++;
       if(!submission.accepted)
         {
          g_tester_reject_count++;
+         if(submission.retcode == TRADE_RETCODE_INVALID_PRICE)
+            g_invalid_price_rejections++;
+         else
+            g_other_broker_rejections++;
+         PrintFormat("TESTER_BROKER_REJECT retcode=%u mode=tester",submission.retcode);
          const int projection_index=FindExecutionProjection(g_execution_projections,request_id);
-         if(projection_index < 0 ||
-            !ProjectExecutionOutcome(g_execution_projections[projection_index],
-                                     XAU_EXECUTION_REJECT,tick.time))
+          if(projection_index < 0 ||
+             !ProjectExecutionOutcome(g_execution_projections[projection_index],
+                                      XAU_EXECUTION_REJECT,tick.time))
+           {
+            PrintFormat("TESTER_CANDIDATE_FAIL step=project_reject request=%s",request_id);
             return false;
+           }
          continue;
         }
       if(submission.order_ticket == 0 ||
          !BindExecutionOrder(g_execution_bindings,request_id,submission.order_ticket) ||
          !SaveExecutionBindingsAtomically(EXECUTION_BINDINGS_FILE,g_execution_bindings))
+        {
+         PrintFormat("TESTER_CANDIDATE_FAIL step=bind_order request=%s order=%I64u",
+                     request_id,submission.order_ticket);
          return false;
+        }
       g_tester_accept_count++;
       if(submission.deal_ticket != 0)
         {
@@ -724,7 +935,11 @@ bool ProcessTesterCandidates(const MqlTick &tick,const XauSignalCandidate &candi
          if(!LoadNativeDealTicketOutcome(submission.deal_ticket,submission.order_ticket,
                                          _Symbol,InpStrategyMagic,immediate) ||
             !ApplyProjectOwnedNativeOutcome(immediate))
+           {
+            PrintFormat("TESTER_CANDIDATE_FAIL step=immediate_fill request=%s order=%I64u deal=%I64u",
+                        request_id,submission.order_ticket,submission.deal_ticket);
             return false;
+           }
         }
      }
    return true;
@@ -772,6 +987,17 @@ bool ProcessCurrentEventLoopTick(const MqlTick &tick)
         }
      }
 
+   if(!ExecuteTesterOperationalSafety(tick))
+     {
+      Print("CURRENT_EVENT_LOOP_STAGE_FAIL stage=operational_safety");
+      return false;
+     }
+   if(!ManageTesterProfitProtection(tick))
+     {
+      Print("CURRENT_EVENT_LOOP_STAGE_FAIL stage=profit_protection");
+      return false;
+     }
+
    XauSignalCandidate candidates[];
    if(!ProcessCoordinatorTick(g_market_state,tick.time,tick.bid,tick.ask,candidates))
       return false;
@@ -780,7 +1006,12 @@ bool ProcessCurrentEventLoopTick(const MqlTick &tick)
          g_reversal_candidate_count++;
       else if(candidates[i].family == XAU_SIGNAL_PULLBACK)
          g_pullback_candidate_count++;
-   return ProcessTesterCandidates(tick,candidates);
+   if(!ProcessTesterCandidates(tick,candidates))
+     {
+      Print("CURRENT_EVENT_LOOP_STAGE_FAIL stage=tester_candidates");
+      return false;
+     }
+   return true;
   }
 
 int OnInit()
@@ -875,10 +1106,30 @@ void OnDeinit(const int reason)
   {
    if(InpRunCurrentEventLoop)
       PrintFormat("CURRENT_EVENT_LOOP_DONE breakout=%I64d reversal=%I64d pullback=%I64d "
-                  "attempts=%I64d accepted=%I64d rejected=%I64d failed=%d mode=%s",
+                  "attempts=%I64d accepted=%I64d rejected=%I64d cancellations=%I64d "
+                  "session_closes=%I64d session_flattened=%d failed=%d mode=%s",
                   g_breakout_candidate_count,
                   g_reversal_candidate_count,g_pullback_candidate_count,
                   g_tester_attempt_count,g_tester_accept_count,g_tester_reject_count,
+                  g_session_cancel_count,g_session_close_count,
+                  (int)g_session_zero_exposure,
                   (int)g_event_loop_failure_reported,
                   (InpEnableTesterExecution ? "tester" : "inert"));
+   if(InpEnableTesterExecution)
+      PrintFormat("TESTER_RISK_DONE net=%.2f gross_loss=%.2f max_positions=%d "
+                  "daily_blocks=%I64d gross_blocks=%I64d concurrency_blocks=%I64d "
+                  "margin_blocks=%I64d protection_blocks=%I64d space_blocks=%I64d "
+                  "initial_blocks=%I64d invalid_price_rejects=%I64d "
+                  "other_broker_rejects=%I64d protection_modifies=%I64d "
+                  "modify_rejects=%I64d sl_loosen=%I64d mode=tester",
+                  g_final_net_realized,g_final_gross_loss,g_max_open_positions,
+                  g_gate_rejections[XAU_ENTRY_DAILY_LOSS],
+                  g_gate_rejections[XAU_ENTRY_GROSS_RISK],
+                  g_gate_rejections[XAU_ENTRY_CONCURRENCY],
+                  g_gate_rejections[XAU_ENTRY_MARGIN],
+                  g_gate_rejections[XAU_ENTRY_INVALID_PROTECTION],
+                  g_gate_rejections[XAU_ENTRY_FREE_SPACE],
+                  g_gate_rejections[XAU_ENTRY_INITIAL_RISK],g_invalid_price_rejections,
+                  g_other_broker_rejections,g_protection_modifies,
+                  g_protection_modify_rejects,g_sl_loosen_violations);
   }

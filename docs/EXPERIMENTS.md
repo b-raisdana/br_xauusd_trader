@@ -52,3 +52,13 @@
 - Result: Python و MQL برای `88` کندل روی Breakout=`28`، Reversal=`62` و Pullback candidate=`410904` دقیقاً برابر بودند؛ صفر اختلاف شمارشی.
 - Interpretation limit: شمار زیاد Pullback ناشی از حالت audit-only بدون broker attempt است؛ Rule می‌گوید candidate بدون request ظرفیت کندل/pending را مصرف نمی‌کند. این نتیجه فقط ترتیب علّی و parity شمارشی را پشتیبانی می‌کند.
 - Reproduce: اجرای inert `scripts/run_mt5_contract_smoke.ps1` برای summary MQL، export با `scripts/export_mt5_ticks.py`، سپس `scripts/compare_signal_parity.py` با offset و سه count مورد انتظار.
+
+### EXP-MT5-LIFECYCLE-20260828
+
+- Scope: پذیرش مهندسی bounded برای request، Broker acceptance/rejection، Native binding/outcome، Deal-history risk، profit protection و Session flatten؛ بدون ادعای سودآوری یا مجوز Live.
+- Input/config: `XAUUSD` در 2026-08-28، Every Tick Based on Real Ticks، M15، volume ثابت 0.01، profileهای versioned سرمایه 200/max3 و 300/max5؛ local tester only و live/remote/cloud خاموش.
+- Result 200: 14 attempt، 12 accepted، 2 invalid-price reject، net realized `-4.25`، gross loss `28.68`، max positions `1`، protection modify=`8`، margin/other/modify reject=`0`، SL loosen=`0`، final zero exposure و lifecycle `failed=0`.
+- Result 300: 16 attempt، 14 accepted، 2 invalid-price reject، net realized `-16.17`، gross loss `40.60`، max positions `1`، protection modify=`8`، margin/other/modify reject=`0`، SL loosen=`0`، final zero exposure و lifecycle `failed=0`.
+- Defect found/fixed: stop سربه‌سر یا بهتر ابتدا در exposure snapshot نامعتبر محسوب می‌شد؛ اکنون با ریسک باز صفر ثبت می‌شود و regression source test آن را قفل می‌کند.
+- Interpretation limit: این فقط یک Broker Day است؛ نتایج PnL برای سنجش عملکرد کافی نیستند. TP-extension، same-day restart runtime، multi-day parity و Visual acceptance جدا باقی‌اند.
+- Reproduce: ابتدا `scripts/compile_mt5.ps1`، سپس `scripts/run_mt5_tester_acceptance.ps1 -ConfigPath .\\config\\mt5\\tester_200.ini` و همان فرمان با `tester_300.ini`.

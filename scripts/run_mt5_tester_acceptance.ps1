@@ -38,15 +38,45 @@ if ((Get-FileHash -LiteralPath $source).Hash -ne (Get-FileHash -LiteralPath $tar
     throw "Compiled EA copy failed hash verification."
 }
 
+$testerRoot = Join-Path $DataRoot "Tester"
+$beforeLineCounts = @{}
+Get-ChildItem -LiteralPath $testerRoot -Filter "*.log" -Recurse -File `
+    -ErrorAction SilentlyContinue | ForEach-Object {
+        $beforeLineCounts[$_.FullName] = @(Get-Content -LiteralPath $_.FullName).Count
+    }
 $started = Get-Date
 $process = Start-Process -FilePath $TerminalPath `
     -ArgumentList "/config:`"$config`"" -WindowStyle Hidden -Wait -PassThru
-$newLogs = @(Get-ChildItem -LiteralPath (Join-Path $DataRoot "Tester") -Filter "*.log" `
-        -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -ge $started })
-$done = @($newLogs | Select-String -Pattern `
-        "CURRENT_EVENT_LOOP_DONE breakout=\d+ reversal=\d+ pullback=\d+ attempts=([1-9]\d*) accepted=(\d+) rejected=(\d+) failed=0 mode=tester")
+$newLogLines = @(Get-ChildItem -LiteralPath $testerRoot -Filter "*.log" -Recurse -File `
+        -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -ge $started } | ForEach-Object {
+            $allLines = @(Get-Content -LiteralPath $_.FullName)
+            $skip = if ($beforeLineCounts.ContainsKey($_.FullName) -and
+                $beforeLineCounts[$_.FullName] -lt $allLines.Count) {
+                $beforeLineCounts[$_.FullName]
+            } else { 0 }
+            $allLines | Select-Object -Skip $skip
+        })
+$done = @($newLogLines | Select-String -Pattern `
+        "CURRENT_EVENT_LOOP_DONE breakout=\d+ reversal=\d+ pullback=\d+ attempts=([1-9]\d*) accepted=(\d+) rejected=(\d+) cancellations=(\d+) session_closes=(\d+) session_flattened=1 failed=0 mode=tester")
 if ($done.Count -eq 0) {
     throw "Successful tester lifecycle completion marker not found (exit $($process.ExitCode))."
 }
 $marker = $done[-1].Matches[0].Value
+$riskDone = @($newLogLines | Select-String -Pattern `
+        "TESTER_RISK_DONE net=(-?\d+\.\d+) gross_loss=(\d+\.\d+) max_positions=(\d+) daily_blocks=(\d+) gross_blocks=(\d+) concurrency_blocks=(\d+) margin_blocks=(\d+) protection_blocks=(\d+) space_blocks=(\d+) initial_blocks=(\d+) invalid_price_rejects=(\d+) other_broker_rejects=(\d+) protection_modifies=(\d+) modify_rejects=(\d+) sl_loosen=(\d+) mode=tester")
+if ($riskDone.Count -eq 0) {
+    throw "Tester risk completion marker not found."
+}
+$riskMatch = $riskDone[-1].Matches[0]
+$maxPositions = [int]$riskMatch.Groups[3].Value
+$marginBlocks = [int]$riskMatch.Groups[7].Value
+$otherBrokerRejects = [int]$riskMatch.Groups[12].Value
+$slLoosen = [int]$riskMatch.Groups[15].Value
+$is300 = Select-String -LiteralPath $config -SimpleMatch "InpStrategyCapital=300.0"
+$allowedPositions = if ($is300) { 5 } else { 3 }
+if ($maxPositions -gt $allowedPositions -or $marginBlocks -ne 0 -or `
+        $otherBrokerRejects -ne 0 -or $slLoosen -ne 0) {
+    throw "Tester risk acceptance failed: max_positions=$maxPositions margin_blocks=$marginBlocks other_rejects=$otherBrokerRejects sl_loosen=$slLoosen."
+}
 "MT5 Strategy Tester acceptance PASS: $marker"
+"MT5 Strategy Tester risk PASS: $($riskMatch.Value)"

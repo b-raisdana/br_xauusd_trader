@@ -10,6 +10,7 @@
 #include "include/XauNative.mqh"
 #include "include/XauState.mqh"
 #include "include/XauCoordinator.mqh"
+#include "include/XauRequests.mqh"
 #include "include/XauVisual.mqh"
 
 input bool InpEnableTrading=false;
@@ -389,6 +390,46 @@ bool RunSafetyRequestSmoke()
    return true;
   }
 
+bool RunPreparedRequestSmoke()
+  {
+   XauZone zones[3];
+   zones[0].id="2026-09-06:R1"; zones[0].low=90.0; zones[0].high=91.0; zones[0].priority=0;
+   zones[1].id="2026-09-06:R2"; zones[1].low=100.0; zones[1].high=101.0; zones[1].priority=0;
+   zones[2].id="2026-09-06:R3"; zones[2].low=108.0; zones[2].high=109.0; zones[2].priority=1;
+   XauSignalCandidate candidate;
+   candidate.candidate_id="BAR:R:R2:0";
+   candidate.parent_breakout_id="";
+   candidate.bar_id="2026-09-06T10:00";
+   candidate.zone_id=zones[1].id;
+   candidate.family=XAU_SIGNAL_REVERSAL;
+   candidate.direction=XAU_BUY;
+   candidate.order_type=XAU_ORDER_MARKET;
+   candidate.signal_time=StringToTime("2026.09.06 10:01:00");
+   candidate.entry_price=101.0;
+   XauPreparedEntry prepared;
+   if(!PrepareCandidateEntry(candidate,zones,false,200.0,0.0,0.0,0.0,0,6.0,10.0,
+                             200.0,prepared) ||
+      prepared.decision != XAU_ENTRY_ALLOWED || !NearlyEqual(prepared.stop_loss,95.0) ||
+      !NearlyEqual(prepared.take_profit,108.0))
+      return false;
+   XauOrderAuditEvent event;
+   XauExecutionProjection projections[];
+   const string audit_file="XAUUSD_Current\\prepared_request_smoke.jsonl";
+   if(!BuildPreparedOrderAudit(prepared,"2026-09-06:E000002","REQ-PREP",event) ||
+      !AppendOrderThenProject(audit_file,prepared.decision,event,projections) ||
+      ArraySize(projections) != 1)
+      return false;
+   FileDelete(audit_file);
+   XauMarketCoordinator state;
+   if(!BeginCoordinatorDay(state,"2026-09-06",zones) ||
+      !CommitPreparedEntryAttempt(state,prepared,false) ||
+      state.zones[1].reversal_usage != 1 || ArraySize(state.attempted_bars) != 1 ||
+      CommitPreparedEntryAttempt(state,prepared,true))
+      return false;
+   Print("PREPARED_REQUEST_SMOKE_PASS space/risk/safety/audit/attempt mode=inert");
+   return true;
+  }
+
 bool RunAuditRequestSmoke()
   {
    const string audit_file="XAUUSD_Current\\audit_smoke.jsonl";
@@ -611,6 +652,8 @@ int OnInit()
    if(!RunCoordinatorSmoke())
       return INIT_FAILED;
    if(!RunSafetyRequestSmoke())
+      return INIT_FAILED;
+   if(!RunPreparedRequestSmoke())
       return INIT_FAILED;
    if(!RunAuditRequestSmoke())
       return INIT_FAILED;

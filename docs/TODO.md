@@ -33,7 +33,7 @@
 
 ## 2) بازسازی مهندسی کد
 
-- [ ] ساخت EA جدید ماژولار — Python full lifecycle و MQL causal signal event loop روی یک روز real-tick parity دارد؛ اتصال candidate به protected request/outcome و مدیریت Position باقی است.
+- [ ] ساخت EA جدید ماژولار — Python full lifecycle و MQL causal signal event loop روی یک روز real-tick parity دارد؛ prepared request تا durable audit/attempt state متصل است و tester broker outcome/Position باقی است.
 - [x] ماژول Zone/Trend — Load/Merge/Priority، Engagement و Trend bootstrap روزانه مستقل پیاده و Contract-tested شد.
 - [x] ماژول Signalها — Breakout، Reversal و Pullback با State مشترک Order Slot و Lineage روشن پیاده و Contract-tested شدند.
 - [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.

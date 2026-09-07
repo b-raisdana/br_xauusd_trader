@@ -48,6 +48,7 @@ def test_current_mt5_baseline_is_strict_vector_driven_and_live_inert() -> None:
         "NativeMarginAllowsEntry",
         "EvaluateProtectedEntry",
         "EvaluateOperationalSafety",
+        "HasMinimumFreeSpace",
     ):
         assert contract in contracts
     assert "PARITY_PRICE_TOLERANCE = 1e-9" in contracts
@@ -271,3 +272,22 @@ def test_mql_audit_appends_before_execution_projection() -> None:
     assert "FileFlush" in source
     assert "AccountInfo" not in source
     assert "OrderSend" not in source
+
+
+def test_mql_prepared_request_connects_candidate_risk_safety_audit_and_attempt() -> None:
+    root = Path(__file__).parents[1]
+    source = (root / "src" / "mt5" / "include" / "XauRequests.mqh").read_text(encoding="utf-8")
+
+    for contract in (
+        "PrepareCandidateEntry",
+        "HasMinimumFreeSpace",
+        "InitialStop",
+        "InitialTarget",
+        "PortfolioRiskAllows",
+        "EvaluateProtectedEntry",
+        "BuildPreparedOrderAudit",
+        "CommitPreparedEntryAttempt",
+    ):
+        assert contract in source
+    assert "OrderSend" not in source
+    assert "AccountInfo" not in source

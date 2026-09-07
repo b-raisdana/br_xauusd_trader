@@ -19,6 +19,7 @@ def test_current_mt5_baseline_is_strict_vector_driven_and_live_inert() -> None:
     assert "input bool InpObserveNativeOutcomes=false" in source
     assert "input long InpStrategyMagic=0" in source
     assert "input bool InpRunCurrentEventLoop=false" in source
+    assert "input bool InpEnableTesterExecution=false" in source
     assert "trade.Buy" not in source
     assert "trade.Sell" not in source
     for contract in (
@@ -228,6 +229,7 @@ def test_contract_smoke_configuration_is_local_and_trading_disabled() -> None:
     assert "InpObserveNativeOutcomes=false" in config
     assert "InpStrategyMagic=0" in config
     assert "InpRunCurrentEventLoop=true" in config
+    assert "InpEnableTesterExecution=false" in config
 
 
 def test_current_event_loop_loads_canonical_zones_and_remains_inert() -> None:
@@ -291,3 +293,18 @@ def test_mql_prepared_request_connects_candidate_risk_safety_audit_and_attempt()
         assert contract in source
     assert "OrderSend" not in source
     assert "AccountInfo" not in source
+
+
+def test_mql_broker_submission_is_hard_locked_to_strategy_tester() -> None:
+    root = Path(__file__).parents[1]
+    source = (root / "src" / "mt5" / "include" / "XauTesterBroker.mqh").read_text(encoding="utf-8")
+    ea = (root / "src" / "mt5" / "XAUUSD_MVP.mq5").read_text(encoding="utf-8")
+
+    assert "MQLInfoInteger(MQL_TESTER)" in source
+    assert "prepared.decision != XAU_ENTRY_ALLOWED" in source
+    assert source.index("TesterExecutionAllowed(enabled)") < source.index(
+        "OrderSend(request,result)"
+    )
+    assert "InpEnableTesterExecution &&" in ea
+    assert "(!(bool)MQLInfoInteger(MQL_TESTER)" in ea
+    assert "OrderSend" not in ea

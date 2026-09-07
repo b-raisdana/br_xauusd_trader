@@ -63,3 +63,11 @@
 - Same-day restart runtime: صفر attempt، صفر position، صفر exposure و `failed=0`؛ Symbol specification و Session روز مرجع نیز ثبت شد.
 - Interpretation limit: این فقط یک Broker Day است؛ نتایج PnL برای سنجش عملکرد کافی نیستند. Multi-day parity و targeted regression جدا باقی‌اند؛ گزارش جامع Stage 7 ثبت شده است.
 - Reproduce: ابتدا `scripts/compile_mt5.ps1`، سپس `scripts/run_mt5_tester_acceptance.ps1 -ConfigPath .\\config\\mt5\\tester_200.ini` و همان فرمان با `tester_300.ini`.
+
+### EXP-TP-01-20260828
+
+- Hypothesis: TP Extension یک‌مرحله‌ای فقط lifecycle خروج را مطابق Rule تغییر دهد و شمار Entry، Safety gate یا SL monotonicity را تغییر ندهد.
+- Locked comparison: همان Dataset/روز 2026-08-28، Configهای 200/300، Real Ticks و هزینه Native؛ Control از Evidence ذخیره‌شده پیش از wiring TP و Variant از اجرای فعلی گرفته شد.
+- Result: attempt/accepted/rejected در هر دو Profile ثابت ماند؛ net realized در 200 از `-4.25` به `-4.11` و در 300 از `-16.17` به `-16.03` رسید (اثر `+0.14 USD` در هر Profile). هر اجرا extension=1 و restore=1 داشت؛ market-close=0 و TP reject=0 بود.
+- Safety: max position، gross loss، final exposure، broker reject و SL-loosen تغییر نامطلوب نداشتند؛ restart مستقل نیز با صفر attempt/position/exposure پاس شد.
+- Interpretation limit: این A/B یک‌روزه فقط attribution مهندسی است، نه شاهد سودآوری یا robustness؛ شاخه Market Close در این روز فعال نشد.

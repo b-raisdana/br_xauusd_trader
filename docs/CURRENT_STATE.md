@@ -4,7 +4,7 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: Stage 7 reusable final-report evidence PASS; targeted regressions and multi-day equivalence remain before Freeze
+- Current activity: Stage 7 reusable final-report evidence PASS; Strict/TP/Safety regressions PASS; Trend/Normal/FreeSpace attribution and multi-day equivalence remain before Freeze
 - Strategy target: MVP v2 Consolidated Rulebook
 - Rule status: Core Python strategy and guarded MQL signal/request/Native lifecycle, TP extension/restore and same-day restart are implemented and tested for one real-tick day; multi-day equivalence remains
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
@@ -161,6 +161,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex باید regressionهای Stage 4 و multi-day lifecycle parity مرحله 5 را پیش ببرد؛ Evidence و گزارش جامع مرحله 7 اکنون ثبت و همگام است. Live trading تا Gate رهبر غیرممکن می‌ماند.
+Codex باید Trend/Normal/FreeSpace و QA-day regressionهای باقی‌مانده Stage 4 و multi-day lifecycle parity مرحله 5 را پیش ببرد؛ Strict/TP/Safety regression و گزارش جامع Stage 7 اکنون ثبت‌اند. Live trading تا Gate رهبر غیرممکن می‌ماند.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

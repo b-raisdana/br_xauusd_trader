@@ -76,6 +76,8 @@ Configها به‌ترتیب `tester_200.ini` و `tester_300.ini`، با Real Ti
 
 Full Quality Gate در 2026-09-07 پاس شد: Ruff، format، mypy، 138 تست Python، `git diff --check`، کامپایل MT5 با صفر خطا/هشدار، سه اجرای پذیرش و Evidence ساختاریافته حاضر.
 
+A/B ازپیش‌محدود TP روی همان روز/Config نشان داد شمار Entryها ثابت ماند و Net هر دو Profile فقط `+0.14 USD` تغییر کرد؛ این یک attribution مهندسی یک‌روزه است، نه شواهد سودآوری. Strict Trend و Safety regression پاس‌اند؛ Trend/Normal/FreeSpace attribution و multi-day parity باقی‌اند.
+
 ## 7) محدودیت تفسیر
 
 نتایج عددی فعلی فقط یک Broker Day را پوشش می‌دهند و Evidence مهندسی هستند؛ از آنها نباید سودآوری، پایداری آماری یا آمادگی Live نتیجه‌گیری شود. هیچ مقدار ناموجودی در گزارش‌های بعدی تخمین زده نمی‌شود. بررسی بصری Chart و تأیید چشمی رهبر پروژه Gate فعال MVP نیست.

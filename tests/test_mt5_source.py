@@ -324,6 +324,17 @@ def test_mql_tester_risk_snapshot_is_project_filtered_and_tester_locked() -> Non
     assert "NativeCashRisk" in source
     assert "ACCOUNT_LOGIN" not in source
     assert "ACCOUNT_NAME" not in source
+    assert "TesterPositionRiskFree" in source
+
+
+def test_mql_tester_risk_treats_break_even_or_better_stop_as_zero_open_risk() -> None:
+    root = Path(__file__).parents[1]
+    source = (root / "src" / "mt5" / "include" / "XauTesterRisk.mqh").read_text(encoding="utf-8")
+
+    assert "const bool protected_stop=" in source
+    assert "stop >= entry" in source
+    assert "stop <= entry" in source
+    assert "if(!protected_stop && !NativeCashRisk" in source
 
 
 def test_tester_candidate_flow_is_audit_before_send_and_binding_after_acceptance() -> None:
@@ -339,6 +350,22 @@ def test_tester_candidate_flow_is_audit_before_send_and_binding_after_acceptance
     )
     assert "BindExecutionOrder" in source
     assert "ApplyProjectOwnedNativeOutcome" in source
+    assert "TESTER_RISK_DONE net=" in source
+
+
+def test_tester_session_end_cancels_and_flattens_only_project_state() -> None:
+    root = Path(__file__).parents[1]
+    ea = (root / "src" / "mt5" / "XAUUSD_MVP.mq5").read_text(encoding="utf-8")
+    broker = (root / "src" / "mt5" / "include" / "XauTesterBroker.mqh").read_text(encoding="utf-8")
+
+    assert "NativeContainingTradeSession" in ea
+    assert "SessionEndActive" in ea
+    assert "CancelTesterPendingOrders" in ea
+    assert "CloseTesterPositions" in ea
+    assert "ApplyTesterPendingCancellation" in ea
+    assert "ORDER_MAGIC" in broker and "POSITION_MAGIC" in broker
+    assert "MQLInfoInteger(MQL_TESTER)" in broker
+    assert "ModifyTesterProtection" in broker
 
 
 def test_200_profile_acceptance_config_cannot_enable_live_trading() -> None:

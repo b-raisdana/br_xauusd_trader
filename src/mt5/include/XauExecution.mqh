@@ -91,6 +91,21 @@ bool ResolveExecutionRequest(const XauExecutionBinding &bindings[],
    return false;
   }
 
+bool ResolveExecutionOrderTicket(const XauExecutionBinding &bindings[],
+                                 const ulong order_ticket,string &request_id)
+  {
+   request_id="";
+   if(order_ticket == 0)
+      return false;
+   for(int i=0;i<ArraySize(bindings);i++)
+      if(bindings[i].order_ticket == order_ticket)
+        {
+         request_id=bindings[i].request_id;
+         return request_id != "";
+        }
+   return false;
+  }
+
 bool SameExecutionBindings(const XauExecutionBinding &left[],
                            const XauExecutionBinding &right[])
   {

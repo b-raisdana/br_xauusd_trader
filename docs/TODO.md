@@ -33,7 +33,7 @@
 
 ## 2) بازسازی مهندسی کد
 
-- [ ] ساخت EA جدید ماژولار — Python full lifecycle و MQL real-tick signal/request/binding/Fill/Close برای profileهای 200/300 اجرا شد؛ operational position/pending management و TP state runtime باقی است.
+- [ ] ساخت EA جدید ماژولار — Python full lifecycle و MQL real-tick signal/request/binding/Fill/Close/profit-protection/session-flatten برای profileهای 200/300 اجرا شد؛ TP extension و restart runtime باقی است.
 - [x] ماژول Zone/Trend — Load/Merge/Priority، Engagement و Trend bootstrap روزانه مستقل پیاده و Contract-tested شد.
 - [x] ماژول Signalها — Breakout، Reversal و Pullback با State مشترک Order Slot و Lineage روشن پیاده و Contract-tested شدند.
 - [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.
@@ -109,10 +109,10 @@ Gate: صفر اختلاف توضیح‌نشده.
 ## 6) Final MT5 Acceptance
 
 - [ ] Broker/Symbol specification — Contract size، Tick size/value، Stops/Freeze level، Session و Cost model ثبت شود.
-- [ ] سناریوی 200 دلار — اجرای اولیه 0.01/max3 با 7 attempt، 6 accepted، 1 rejected و failed=0؛ attribution رد و operational gates باقی است.
-- [ ] سناریوی 300 دلار — اجرای اولیه 0.01/max5 با 13 attempt، 11 accepted، 2 rejected و failed=0؛ attribution رد و operational gates باقی است.
-- [ ] Technical QA — صفر SL-loosen، صفر exposure ناخواسته بعد Session، صفر same-day restart fill.
-- [ ] Deal PnL audit — نتیجه نهایی از Deal History و هزینه Native محاسبه شود.
+- [x] سناریوی 200 دلار — real ticks، 0.01/max3: 14 attempt، 12 accepted، 2 invalid-price reject، max position=1 و failed=0.
+- [x] سناریوی 300 دلار — real ticks، 0.01/max5: 16 attempt، 14 accepted، 2 invalid-price reject، max position=1 و failed=0.
+- [ ] Technical QA — صفر SL-loosen و صفر exposure بعد Session PASS؛ same-day restart runtime هنوز باقی است.
+- [x] Deal PnL audit — نتیجه bounded یک‌روزه از Deal History و هزینه Native محاسبه شد؛ این Evidence ادعای سودآوری نیست.
 
 Gate: Technical Acceptance PASS.
 

@@ -8,7 +8,7 @@
 |---|---|---|---|
 | Migration integrity | Rule/Decision/Experiment separation | PASS | Template/Handoff Merge شد؛ Legacy از Active Rules جدا و تصمیم‌های نهایی Leader ثبت شد. |
 | Package structure smoke | Required root, Source-of-Truth files and canonical ranges | PASS | Canonical SHA-256 and required structure remain covered by pytest. |
-| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | Local gate on 2026-09-07; 131 tests PASS, including full Python lifecycle/replay and guarded MQL signal/request/outcome components. |
+| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | Local gate on 2026-09-07; 133 tests PASS, including full Python lifecycle/replay and guarded MQL signal/request/outcome/operational components. |
 | Legacy static integrity | Historical sources/manifests without promotion | PASS | Python AST 9/9; PowerShell parser 12/12; MQL5 strict + balanced braces 3/3; Git-staged core manifest 16/16 across byte-preserved attributes. Not compile/runtime evidence. |
 | Zone/Trend/orchestration slice | Rule → causal ticks → bar close → deterministic tests | PASS | 21 focused tests; strict tick-chain/final-close validation and Breakout-before-Trend-roll PASS; 23 canonical days → 421 merged Zones; 444/444 source rows retained. |
 | Breakout/Reversal signal slice | Strict qualification, touch and accounting contracts | PASS | 9 focused/integration tests; strict buffer/lineage, same-Tick Trend, directional Market touch, gap/wick, duplicate, daily usage and shared bar slot PASS. |
@@ -19,16 +19,16 @@
 | Operational Safety slice | Broker session boundary and restart lock | PASS | 4 focused tests; inclusive pre-close action set, time-basis validation, persisted same-day detection and next-day release PASS. |
 | Audit payload slice | Immutable trace records, durable JSONL and leader marker DTOs | PASS | 23 focused/integration tests; typed/atomic recovery and linked ORDER/FILL/REJECT/CLOSE/MODIFY/CANCEL projection PASS. Reject preserves protection/Pending state and accepted Modify cannot loosen SL. |
 | Equivalence-vector scaffold | Shared versioned Decimal-string inputs/outputs | PASS for Python + MQL runtime | 19 vectors execute in Python, including lifecycle transition/protection validity and causal Trend-before-Reversal Tick order; generated-header drift and MQL runtime PASS. |
-| Rule traceability | Rule name → code → test → journal | PASS for Python lifecycle / inert MQL signal/request/outcome components | MQL signal event loop ran one real-tick day; candidate→FreeSpace/risk/safety/audit/attempt wiring passed synthetic smoke and callback is guarded. Tester broker request and opt-in project-owned Native callback evidence remain NOT_RUN. |
+| Rule traceability | Rule name → code → test → journal | PASS through bounded MQL Native lifecycle/protection/session management | MQL signal event loop ran one real-tick day; candidate→risk/safety/audit/send/binding/outcome, Deal-history risk, RF protection and final flatten passed with exact project filters. TP-extension and restart runtime remain. |
 | Current MQL real-tick signal parity | 2026-08-28, 541,333 native Ticks, 88 M15 bars, canonical Zones, UTC+00 | PASS | Python=MQL counts: Breakout 28, Reversal 62, Pullback 410,904; MQL completion `failed=0`. Candidate-only evidence; no outcome, cost or PnL claim. |
-| MT5 Tester profile 200 | 2026-08-28, real ticks, 0.01 lot, max3, local-only | PARTIAL PASS | 7 attempts, 6 accepted, 1 rejected, lifecycle `failed=0`; final operational-management and cost/deal audit gates remain. |
-| MT5 Tester profile 300 | 2026-08-28, real ticks, 0.01 lot, max5, local-only | PARTIAL PASS | 13 attempts, 11 accepted, 2 rejected, lifecycle `failed=0`; final operational-management and cost/deal audit gates remain. |
+| MT5 Tester profile 200 | 2026-08-28, real ticks, 0.01 lot, max3, local-only | PASS for bounded one-day lifecycle | 14 attempts/12 accepted/2 invalid-price rejects; net -4.25, gross loss 28.68, max positions 1, 8 protection modifies, zero SL-loosen/other reject/failure and final zero exposure. |
+| MT5 Tester profile 300 | 2026-08-28, real ticks, 0.01 lot, max5, local-only | PASS for bounded one-day lifecycle | 16 attempts/14 accepted/2 invalid-price rejects; net -16.17, gross loss 40.60, max positions 1, 8 protection modifies, zero SL-loosen/other reject/failure and final zero exposure. |
 | Contract tests | همه موارد بخش 3 `TODO.md` | PASS at Python domain boundary | All listed fast contracts PASS; external Native/MT5 parity and durable side effects remain separate gates. |
 | MT5 tick acquisition | Read-only UTC raw input, ignored cache | PASS for bounded smoke | Bridge 5.0.6180 exported 6,487 ticks/290,594 bytes; explicit-offset normalization replayed all rows as one M15 bar. An ordered five-tick probe uniquely correlated local server time to UTC; no cache, probe values, resolved Broker-specific offset or account identity are committed. |
 | Targeted regression | Trend/Normal/FreeSpace/Strict/TP/Safety | NOT_RUN | Current replay engine applies explicit full lifecycle fixtures through shared usage and Audit State; MQL/Native evidence and full historical input remain missing. |
-| Python ↔ MT5 equivalence | Frozen core vectors | PASS for 19 pure contracts plus lifecycle/projector/correlated synthetic outcomes; Native lifecycle NOT_RUN | Shared vectors PASS in Python and isolated MQL runtime at `1e-9`; causal Tick order and correlated synthetic Native Fill/Close pass, while real-tick comparison remains. |
+| Python ↔ MT5 equivalence | Frozen core vectors | PASS for 19 pure contracts plus one-day signal counts and guarded Native lifecycle | Shared vectors PASS at `1e-9`; causal signal counts match on 541,333 ticks and project-owned Native lifecycle passes both capital profiles. Multi-day lifecycle parity remains. |
 | MT5 compile/runtime smoke | `#property strict`, zero errors, inert startup | PASS for current inert core + State/Execution/Native/Visual boundaries | Build 6151: 0 errors/0 warnings; Strategy Tester validated 19 vectors, causal/daily/Pullback/TP state, Daily/GROSS15/Concurrency/Margin/Operational safety, synthetic execution, Native adapters and audit payload. |
-| MT5 real-tick acceptance | 200/300 USD scenarios | NOT_RUN | Broker profile و `.set` جاری موجود نیست. |
+| MT5 real-tick acceptance | 200/300 USD scenarios | PASS for bounded technical run | Versioned local-only INI profiles pass on 2026-08-28 with real ticks, live/remote/cloud disabled; broader regression, restart and visual gates remain. |
 | Visual QA | Chart + Journal + Rule IDs | NOT_RUN | بعد از Technical PASS. |
 | MVP Freeze | Rulebook/Code/Evidence immutable version | NOT_RUN | همه Gateهای قبلی لازم‌اند. |
 | Shadow/Demo | Broker acceptance | NOT_RUN | پس از MVP Freeze. |
@@ -50,9 +50,9 @@
 | Free Space | Buy/Sell formula و minimum 3 USD | PASS |
 | Initial risk | Stop Zone/cap6، first target ≥6، missing-Zone reject | PASS |
 | Profit protection | Native RF، X-step، no SL loosening | PASS |
-| Execution | SL/TP at creation، native costs، one order/bar، 0.01 lot، max3/max5 | PASS at Python contract + inert MQL projection boundary — read-only Native deal loader compiles; project-owned real-deal evidence remains. |
+| Execution | SL/TP at creation، native costs، one order/bar، 0.01 lot، max3/max5 | PASS at Python contract + bounded MQL Native lifecycle; exact Symbol/Magic Deal-history evidence exists for both profiles. |
 | Risk budgets | Daily realized 20% و GROSS15 reservation | PASS |
-| Safety | Session-5min flatten و restart fail-closed | PASS at Python contract boundary — Broker session adapter compiles; runtime validation and persistence remain. |
+| Safety | Session-5min flatten و restart fail-closed | PARTIAL PASS — session flatten/cancel and final zero exposure pass in both runtime profiles; restart contract passes in Python but same-day MQL restart runtime remains. |
 | Audit/Visual | Event/Rule/Zone/BO lineage، reject reasons، chart markers/tooltips | NOT_RUN — Python full lifecycle durable events/recovery and MQL render-only primitives/payload PASS; chart-object visual inspection remains. |
 
 ## Evidence تاریخی در انتظار بازیابی

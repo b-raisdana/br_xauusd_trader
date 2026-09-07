@@ -9,6 +9,7 @@ struct XauTesterRiskSnapshot
    double pending_order_risk;
    double free_margin;
    int open_positions;
+   int pending_orders;
   };
 
 int FindRiskPosition(const ulong &position_ids[],const ulong position_id)
@@ -75,6 +76,7 @@ bool LoadTesterExposureRisk(const long magic,const string symbol,
    snapshot.open_position_risk=0.0;
    snapshot.pending_order_risk=0.0;
    snapshot.open_positions=0;
+   snapshot.pending_orders=0;
    for(int i=0;i<PositionsTotal();i++)
      {
       const ulong ticket=PositionGetTicket(i);
@@ -85,12 +87,16 @@ bool LoadTesterExposureRisk(const long magic,const string symbol,
       const double stop=PositionGetDouble(POSITION_SL);
       const double volume=PositionGetDouble(POSITION_VOLUME);
       const ENUM_POSITION_TYPE position_type=(ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
-      const ENUM_ORDER_TYPE order_type=(position_type == POSITION_TYPE_BUY ? ORDER_TYPE_BUY :
-                                        ORDER_TYPE_SELL);
-      double risk=0.0;
-      if(stop <= 0.0 || !NativeCashRisk(order_type,symbol,volume,entry,stop,risk))
-         return false;
-      snapshot.open_position_risk+=risk;
+       const ENUM_ORDER_TYPE order_type=(position_type == POSITION_TYPE_BUY ? ORDER_TYPE_BUY :
+                                         ORDER_TYPE_SELL);
+       double risk=0.0;
+       if(stop <= 0.0)
+          return false;
+       const bool protected_stop=(position_type == POSITION_TYPE_BUY ? stop >= entry :
+                                                                    stop <= entry);
+       if(!protected_stop && !NativeCashRisk(order_type,symbol,volume,entry,stop,risk))
+          return false;
+       snapshot.open_position_risk+=risk;
       snapshot.open_positions++;
      }
    for(int i=0;i<OrdersTotal();i++)
@@ -107,6 +113,7 @@ bool LoadTesterExposureRisk(const long magic,const string symbol,
                          OrderGetDouble(ORDER_PRICE_OPEN),OrderGetDouble(ORDER_SL),risk))
          return false;
       snapshot.pending_order_risk+=risk;
+      snapshot.pending_orders++;
      }
    return true;
   }
@@ -124,6 +131,38 @@ bool LoadTesterRiskSnapshot(const bool enabled,const long magic,const string sym
       return false;
    snapshot.free_margin=AccountInfoDouble(ACCOUNT_MARGIN_FREE);
    return snapshot.free_margin >= 0.0;
+  }
+
+bool TesterPositionRiskFree(const bool enabled,const long magic,const string symbol,
+                            const ulong position_id,const XauDirection direction,
+                            const double entry,const double volume,const datetime broker_now,
+                            double &risk_free)
+  {
+   risk_free=0.0;
+   if(!TesterExecutionAllowed(enabled) || position_id == 0 || entry <= 0.0 || volume <= 0.0 ||
+      !HistorySelect(0,broker_now))
+      return false;
+   double native_cost=0.0;
+   for(int i=0;i<HistoryDealsTotal();i++)
+     {
+      const ulong deal=HistoryDealGetTicket(i);
+      if(deal == 0 || HistoryDealGetString(deal,DEAL_SYMBOL) != symbol ||
+         HistoryDealGetInteger(deal,DEAL_MAGIC) != magic ||
+         (ulong)HistoryDealGetInteger(deal,DEAL_POSITION_ID) != position_id)
+         continue;
+      native_cost-=HistoryDealGetDouble(deal,DEAL_COMMISSION)+
+                   HistoryDealGetDouble(deal,DEAL_FEE)+HistoryDealGetDouble(deal,DEAL_SWAP);
+     }
+   native_cost=MathMax(native_cost,0.0);
+   double cash_per_unit=0.0;
+   const ENUM_ORDER_TYPE order_type=(direction == XAU_BUY ? ORDER_TYPE_BUY : ORDER_TYPE_SELL);
+   const double unit_exit=(direction == XAU_BUY ? entry+1.0 : entry-1.0);
+   if(!OrderCalcProfit(order_type,symbol,volume,entry,unit_exit,cash_per_unit) ||
+      MathAbs(cash_per_unit) <= 0.0)
+      return false;
+   const double offset=native_cost/MathAbs(cash_per_unit);
+   risk_free=(direction == XAU_BUY ? entry+offset : entry-offset);
+   return true;
   }
 
 #endif

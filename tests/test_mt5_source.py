@@ -16,7 +16,8 @@ def test_current_mt5_baseline_is_strict_vector_driven_and_live_inert() -> None:
     assert "TIME_BASIS_PROBE index=" in source
     assert "input bool InpEnableTrading=false" in source
     assert "if(InpEnableTrading)" in source
-    assert "OnTradeTransaction" not in source
+    assert "input bool InpObserveNativeOutcomes=false" in source
+    assert "input long InpStrategyMagic=0" in source
     assert "trade.Buy" not in source
     assert "trade.Sell" not in source
     for contract in (
@@ -95,6 +96,22 @@ def test_native_outcome_orchestration_is_correlated_before_projection() -> None:
     assert "ResolveExecutionRequest" in source
     assert "FindExecutionProjection" in source
     assert "projections[index]=projected" in source
+
+
+def test_native_callback_is_opt_in_correlated_and_persists_before_publish() -> None:
+    root = Path(__file__).parents[1]
+    ea = (root / "src" / "mt5" / "XAUUSD_MVP.mq5").read_text(encoding="utf-8")
+    execution = (root / "src" / "mt5" / "include" / "XauExecution.mqh").read_text(encoding="utf-8")
+
+    assert "OnTradeTransaction" in ea
+    assert "if(!InpObserveNativeOutcomes)" in ea
+    assert "LoadNativeDealOutcome(transaction,_Symbol,InpStrategyMagic,outcome)" in ea
+    assert "PersistThenPublishCorrelatedNativeOutcome" in ea
+    assert execution.index("SaveExecutionBindingsAtomically(bindings_file,candidate_bindings)") < (
+        execution.index("CopyExecutionProjections(candidate_projections,projections)")
+    )
+    assert "OrderSend" not in ea
+    assert "CTrade" not in ea
 
 
 def test_mql_state_orders_breakout_before_candle_roll() -> None:
@@ -187,6 +204,8 @@ def test_contract_smoke_configuration_is_local_and_trading_disabled() -> None:
     assert "Visual=0" in config
     assert "InpEnableTrading=false" in config
     assert "InpEmitTimeBasisProbe=true" in config
+    assert "InpObserveNativeOutcomes=false" in config
+    assert "InpStrategyMagic=0" in config
 
 
 def test_visual_adapter_is_audit_derived_and_contains_no_trading_path() -> None:

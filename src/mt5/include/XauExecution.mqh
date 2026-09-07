@@ -104,6 +104,26 @@ bool SameExecutionBindings(const XauExecutionBinding &left[],
    return true;
   }
 
+bool CopyExecutionBindings(const XauExecutionBinding &source[],
+                           XauExecutionBinding &destination[])
+  {
+   if(ArrayResize(destination,ArraySize(source)) != ArraySize(source))
+      return false;
+   for(int i=0;i<ArraySize(source);i++)
+      destination[i]=source[i];
+   return true;
+  }
+
+bool CopyExecutionProjections(const XauExecutionProjection &source[],
+                              XauExecutionProjection &destination[])
+  {
+   if(ArrayResize(destination,ArraySize(source)) != ArraySize(source))
+      return false;
+   for(int i=0;i<ArraySize(source);i++)
+      destination[i]=source[i];
+   return true;
+  }
+
 bool LoadExecutionBindings(const string file_name,XauExecutionBinding &bindings[])
   {
    XauExecutionBinding recovered[];
@@ -270,6 +290,25 @@ bool ProjectCorrelatedNativeOutcome(XauExecutionProjection &projections[],
       !BindExecutionPosition(bindings,order_ticket,position_id))
       return false;
    projections[index]=projected;
+   return true;
+  }
+
+bool PersistThenPublishCorrelatedNativeOutcome(
+   XauExecutionProjection &projections[],XauExecutionBinding &bindings[],
+   const XauExecutionEvent event_kind,const ulong order_ticket,const ulong position_id,
+   const datetime broker_time,const double price,const string bindings_file)
+  {
+   XauExecutionProjection candidate_projections[];
+   XauExecutionBinding candidate_bindings[];
+   if(!CopyExecutionProjections(projections,candidate_projections) ||
+      !CopyExecutionBindings(bindings,candidate_bindings) ||
+      !ProjectCorrelatedNativeOutcome(candidate_projections,candidate_bindings,event_kind,
+                                      order_ticket,position_id,broker_time,price) ||
+      !SaveExecutionBindingsAtomically(bindings_file,candidate_bindings))
+      return false;
+   if(!CopyExecutionProjections(candidate_projections,projections) ||
+      !CopyExecutionBindings(candidate_bindings,bindings))
+      return false;
    return true;
   }
 

@@ -54,6 +54,11 @@ $executionPass = @($newLogs | Select-String -SimpleMatch `
 if ($executionPass.Count -eq 0) {
     throw "Execution projector success marker not found after terminal exit code $($process.ExitCode)."
 }
+$callbackPass = @($newLogs | Select-String -SimpleMatch `
+        "NATIVE_CALLBACK_SMOKE_PASS opt-in/correlation/persist-before-state mode=inert")
+if ($callbackPass.Count -eq 0) {
+    throw "Guarded Native callback success marker not found after terminal exit code $($process.ExitCode)."
+}
 $statePass = @($newLogs | Select-String -SimpleMatch `
         "STATE_ORDER_SMOKE_PASS tick/trend/bar-close mode=inert")
 if ($statePass.Count -eq 0) {

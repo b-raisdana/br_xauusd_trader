@@ -79,6 +79,7 @@ def test_frozen_core_vectors_match_python_contracts() -> None:
         "restart-same-day-lock",
         "execution-cancel-reject-preserves-pending",
         "modify-buy-no-sl-loosen",
+        "causal-trend-before-reversal",
     ]
 
     breakout_vector = vectors[0]
@@ -356,6 +357,38 @@ def test_frozen_core_vectors_match_python_contracts() -> None:
             proposed_tp=modification_input["proposed_tp"],
         )
     } == modification_vector["expected"]
+
+    causal_vector = vectors[18]
+    causal_input = causal_vector["input"]
+    causal_zone = make_zones(day, [causal_input["zone"]])[0]
+    causal_trend = DailyTrendTracker()
+    causal_trend.begin_day(day)
+    causal_trend.record_closed_candle(
+        Candle.from_values(
+            broker_day=day,
+            open="95",
+            high=causal_input["reference_high"],
+            low=causal_input["reference_low"],
+            close="99",
+        )
+    )
+    updated_trend = causal_trend.update(causal_input["bid"]).current
+    causal_reversals = ReversalTracker()
+    causal_reversals.begin_day(day)
+    causal_candidates = causal_reversals.detect(
+        previous_bid=causal_input["previous_bid"],
+        bid=causal_input["bid"],
+        trend=updated_trend,
+        zones=[causal_zone],
+        bar_id="t1",
+        multi_zone_tick_gap=False,
+    )
+    assert {
+        "trend": updated_trend.value,
+        "sell_reversal": any(
+            candidate.direction is TradeDirection.SELL for candidate in causal_candidates
+        ),
+    } == causal_vector["expected"]
 
 
 def test_generated_mql_header_matches_canonical_json() -> None:

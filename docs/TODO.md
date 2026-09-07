@@ -97,7 +97,7 @@ Gate: اختلاف اجرایی بدون توضیح = صفر.
 
 ## 5) Python ↔ MT5 Equivalence
 
-- [x] Freeze test vectors — schema و 18 vector، شامل transition چرخه Execution و اعتبار Modify محافظتی، در Python و isolated MQL Strategy Tester با tolerance صریح و generated-header drift gate PASS شد.
+- [x] Freeze test vectors — schema و 19 vector، شامل lifecycle و causal Tick order، در Python و isolated MQL Strategy Tester با tolerance صریح و generated-header drift gate PASS شد.
 - [ ] Python replay — causal runner، UTC export/normalization، time-basis correlation، Zone-day attachment و fixture-driven Market/Pending Fill/Reject/Close/Modify/Cancel با atomic recovery PASS شد؛ full historical tick input و Native evidence باقی است.
 - [ ] MT5 Real Tick comparison — Finalist روی همان روزها با Every Tick Based on Real Ticks اجرا شود.
 - [ ] اختلاف‌ها طبقه‌بندی شوند — فقط `RULE / CODE / DATA / TEST_CONFIG`؛ مشکل فنی بدون نیاز Business Logic به رهبر برنگردد.

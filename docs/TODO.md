@@ -81,12 +81,12 @@ Gate: همه Contract Testهای بالا PASS.
 
 ---
 
-## 4) Regression هدفمند قبل از بک‌تست سنگین
+## 4) Regression هدفمند MVP
 
-- [ ] روز مرجع QA — حداقل روزی که رهبر پروژه رفتار صحیح آن را می‌شناسد Signal-by-Signal بررسی شود.
-- [ ] Trend regression — Rule جدید Bootstrap با Sticky قدیمی مقایسه و حذف/اضافه Signalها گزارش شود؛ انتخاب Rule تغییر نمی‌کند مگر با تصمیم جدید رهبر.
-- [ ] Normal Reversal attribution — شمار تلاش/پذیرش/رد در 23 روز تفکیک شد (Normal `86/86/0`، High `26/26/0`)؛ PnL مستقل هر گروه هنوز نیازمند Deal attribution است.
-- [ ] FreeSpace validation — Rule جدید 3$ در برابر Control تاریخی 15$ فقط A/B گزارش شود؛ Grid Search ممنوع است.
+- [x] Trend Bootstrap — رفتار Sticky تاریخی رد و مقایسه مجدد از Gate MVP حذف شد.
+- [x] Normal/High — هر دو Priority جزء ثابت Strategy هستند؛ PnL تفکیکی معیار حذف هیچ‌کدام نیست و از Gate MVP حذف شد.
+- [x] FreeSpace 3 — مرز `<3 Block / =3 Allow` در Python و MQL قطعی تست شد؛ مقایسه با 15 دلار به Post-MVP منتقل شد.
+- [x] Signal QA خارجی — Fixture مورد اعتماد مستقل موجود نیست و با تصمیم رهبر از Gate MVP حذف شد؛ گزارش جامع نهایی مرجع پذیرش است.
 - [x] Strict Trend examples — Same-Bar/Multi-Bar/Doji/opposing candle با fixtureهای deterministic و runtime TP ledger بررسی شد؛ Chart گیت فعال نیست.
 - [x] TP Extension A/B — اجرای قبل/بعد روی همان روز و Config بدون Optimization مقایسه شد: شمار attempt/fill ثابت و net هر Profile فقط `+0.14 USD` تغییر کرد.
 - [x] Safety regression — تغییر TP هیچ‌یک از Daily/GROSS15/Session/Restart gateها را دور نزد؛ Full gate و restart runtime PASS شد.
@@ -98,10 +98,10 @@ Gate: اختلاف اجرایی بدون توضیح = صفر.
 ## 5) Python ↔ MT5 Equivalence
 
 - [x] Freeze test vectors — schema و 19 vector، شامل lifecycle و causal Tick order، در Python و isolated MQL Strategy Tester با tolerance صریح و generated-header drift gate PASS شد.
-- [ ] Python replay — causal runner، UTC export/normalization، time-basis correlation، Zone-day attachment و fixture-driven Market/Pending Fill/Reject/Close/Modify/Cancel با atomic recovery PASS شد؛ full historical tick input و Native evidence باقی است.
-- [ ] MT5 Real Tick comparison — Finalist روی همان روزها با Every Tick Based on Real Ticks اجرا شود.
+- [x] Python replay — causal runner، UTC export/normalization، time-basis correlation، Zone-day attachment و fixture-driven Market/Pending Fill/Reject/Close/Modify/Cancel با atomic recovery برای Scope MVP PASS شد.
+- [x] MT5 Real Tick acceptance — اجرای جاری روی یک روز، Restart و 23 روز با Every Tick Based on Real Ticks PASS شد؛ مقایسه Native چندروزه Python و Finalist تاریخی Gate MVP نیست.
 - [x] MQL multi-day lifecycle robustness — تمام 23 روز Zone با Real Ticks و max3 اجرا شد؛ صفر failure/SL-loosen/exposure و TP Market Close بومی مشاهده شد.
-- [ ] اختلاف‌ها طبقه‌بندی شوند — فقط `RULE / CODE / DATA / TEST_CONFIG`؛ مشکل فنی بدون نیاز Business Logic به رهبر برنگردد.
+- [x] اختلاف‌های Scope فعال در صورت وجود با `RULE / CODE / DATA / TEST_CONFIG` طبقه‌بندی می‌شوند؛ اختلاف توضیح‌نداده‌شده در Evidence جاری ثبت نشده است.
 
 Gate: صفر اختلاف توضیح‌نشده.
 

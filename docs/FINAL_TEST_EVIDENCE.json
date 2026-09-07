@@ -176,8 +176,8 @@
     }
   },
   "pending_final_evidence": [
-    "Python-vs-MT5 multi-day lifecycle parity and remaining Trend/Normal/FreeSpace regressions",
-    "Final performance metrics including drawdown and trade distribution when available"
+    "MQL Breakout candidate-to-protected-entry runtime acceptance",
+    "Final Rulebook/Code/Evidence freeze checkpoint"
   ],
   "interpretation_limits": [
     "The stored PnL values cover one Broker Day and are engineering evidence, not profitability evidence.",

@@ -39,7 +39,7 @@
 | EXP-STRICT-01 | Strict Trend state machine | Same-Bar/Multi-Bar/Doji/opposing candle دقیق اجرا شوند. | همه Contract fixtureها PASS. |
 | EXP-TP-01 | One-step TP Extension | Extension/Restore/Market Close مطابق Rule باشد. | صفر State transition نادرست. |
 | EXP-PARITY-02 | Python ↔ MT5 | دو Engine روی Vector مشترک هم‌رفتار باشند. | صفر اختلاف توضیح‌نشده. |
-| EXP-QA-29JUL | QA روز 2026-07-29 | نقاط شناخته‌شده BO/PB/R با Rule جدید تطبیق یابند. | Ledger کامل Signal-by-Signal. |
+| EXP-QA-29JUL | QA روز 2026-07-29 | اجرای فنی ثبت‌شده حفظ شود؛ مقایسه با Fixture بیرونی فاقد مرجع از Scope MVP حذف شد. | CLOSED FOR MVP؛ نتیجه فنی در گزارش نهایی. |
 
 ## نتایج جاری قابل‌بازتولید
 
@@ -83,4 +83,4 @@
 
 - Same-run counters (attempt/accepted/rejected): Reversal Normal `86/86/0`، Reversal High `26/26/0`، Pullback Normal `146/56/90` و Pullback High `44/20/24`.
 - QA 2026-07-29: `16/9/7`، net realized `+16.33`، Reversal Normal `5/5/0` و Pullback Normal `11/4/7`؛ High در این روز attempt نداشت.
-- Limit: این داده attribution شمارشی است. PnL گروهی بدون اتصال Deal→Request→Priority گزارش نمی‌شود و مقایسه signal-by-signal با مرجع شناخته‌شده رهبر به fixture بیرونی نیاز دارد.
+- Limit: این داده attribution شمارشی است. PnL گروهی و مقایسه signal-by-signal با Fixture بیرونی طبق D-062 معیار پذیرش MVP نیستند.

@@ -25,13 +25,13 @@
 | MT5 Tester profile 300 | 2026-08-28, real ticks, 0.01 lot, max5, local-only | PASS for bounded one-day lifecycle | 16 attempts/14 accepted/2 invalid-price rejects; net -16.03, gross loss 40.60, max positions 1, 9 protection modifies, TP 1 extend/1 restore/0 reject, zero SL-loosen/other reject/failure and final zero exposure. |
 | Contract tests | همه موارد بخش 3 `TODO.md` | PASS at Python domain boundary | All listed fast contracts PASS; external Native/MT5 parity and durable side effects remain separate gates. |
 | MT5 tick acquisition | Read-only UTC raw input, ignored cache | PASS for bounded smoke | Bridge 5.0.6180 exported 6,487 ticks/290,594 bytes; explicit-offset normalization replayed all rows as one M15 bar. An ordered five-tick probe uniquely correlated local server time to UTC; no cache, probe values, resolved Broker-specific offset or account identity are committed. |
-| Targeted regression | Trend/Normal/FreeSpace/Strict/TP/Safety | NOT_RUN | Current replay engine applies explicit full lifecycle fixtures through shared usage and Audit State; MQL/Native evidence and full historical input remain missing. |
-| Python ↔ MT5 equivalence | Frozen core vectors | PASS for 19 pure contracts plus one-day signal counts and guarded Native lifecycle | Shared vectors PASS at `1e-9`; causal signal counts match on 541,333 ticks and project-owned Native lifecycle passes both capital profiles. Multi-day lifecycle parity remains. |
+| Targeted regression | Active MVP Rules | PASS for required scope | Bootstrap and both Zone priorities are fixed Rules; FreeSpace `<3 Block / =3 Allow`، Strict/TP/Safety deterministic tests PASS. Sticky/priority-PnL/external-fixture comparisons are not MVP gates; FreeSpace15 is Post-MVP. |
+| Python ↔ MT5 equivalence | Frozen core vectors | PASS for MVP scope | Shared vectors PASS at `1e-9`; causal signal counts match on 541,333 ticks and project-owned Native lifecycle passes both capital profiles. Multi-day Native parity is not an MVP gate because no independent Python Native fixture exists. |
 | MT5 compile/runtime smoke | `#property strict`, zero errors, inert startup | PASS for current inert core + State/Execution/Native/Audit boundaries | Build 6151: 0 errors/0 warnings; Strategy Tester validated 19 vectors, causal/daily/Pullback/TP state, Daily/GROSS15/Concurrency/Margin/Operational safety, synthetic execution, Native adapters and audit payload. |
 | MT5 real-tick acceptance | 200/300 USD scenarios | PASS for bounded technical run | Versioned local-only INI profiles and restart profile pass on 2026-08-28 with real ticks, live/remote/cloud disabled; broader regression remains. |
 | MT5 multi-day lifecycle | 23 Zone days, capital 200, real ticks | PASS engineering run | 302 attempts/188 accepted/114 invalid-price rejects; max3, cancel/session-close 2/2, TP extend/restore/market-close 10/3/2; zero unknown reject, SL-loosen, final exposure or failure. |
-| Signal priority attribution | Same 23-day MQL run | PARTIAL PASS | Reversal Normal 86/86/0 and High 26/26/0; Pullback Normal 146/56/90 and High 44/20/24. Per-priority Deal PnL remains. |
-| QA day 2026-07-29 | Real-tick technical ledger summary | PARTIAL PASS | 16 attempts/9 accepted/7 invalid-price rejects, net +16.33, zero failure; external leader-known signal-by-signal reference is unavailable. |
+| Signal priority attribution | Same 23-day MQL run | PASS informational | Reversal Normal 86/86/0 and High 26/26/0; Pullback Normal 146/56/90 and High 44/20/24. Per-priority PnL is intentionally not an MVP acceptance criterion. |
+| QA day 2026-07-29 | Real-tick technical ledger summary | PASS technical | 16 attempts/9 accepted/7 invalid-price rejects, net +16.33 and zero failure. External signal fixture is unavailable and not an MVP gate. |
 | Final reusable report | Structured evidence + comprehensive Markdown | PASS Stage 7 | Canonical JSON/report include hashes, profile counters, Symbol spec, TP and restart evidence; summaries must reuse them without rerunning MT5. |
 | MVP Freeze | Rulebook/Code/Evidence immutable version | NOT_RUN | همه Gateهای قبلی لازم‌اند. |
 | Shadow/Demo | Broker acceptance | NOT_RUN | پس از MVP Freeze. |
@@ -45,7 +45,7 @@
 | گروه Rule | تست‌های اجباری | وضعیت |
 |---|---|---|
 | Zone | Load/Normalize/Sort، line Zone، chain merge `<1.5`، Priority، no hard cap | PASS |
-| Trend | Day bootstrap، live threshold، sticky state، Tick event order | PASS |
+| Trend | Day bootstrap، live threshold، no prior-day carry، Tick event order | PASS |
 | Breakout | Engage، Trend at Close، strict ±1 buffer، lineage، close opposite Reversal | NOT_RUN — Engage/validation/lineage, opposite-direction closure instruction and generic protected Close lifecycle PASS; Breakout-to-position wiring remains. |
 | Reversal | directional Market touch، wick validity، Normal1/High2، duplicate guard | PASS |
 | Pullback | penetration 0.20، broken-edge entry/retry، t+1..t+5، multi-PB، Normal1/High∞ | PASS |

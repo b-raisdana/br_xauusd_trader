@@ -187,7 +187,22 @@ bool RunExecutionProjectorSmoke()
       SaveExecutionBindingsAtomically("..\\binding_escape.tsv",bindings))
       return false;
    FileDelete(corrupt_file);
-   Print("EXECUTION_PROJECTOR_SMOKE_PASS lifecycle/protection/correlation/persistence mode=inert");
+
+   XauExecutionProjection native_projections[1];
+   XauExecutionBinding native_bindings[];
+   if(!InitializeExecutionProjection(native_projections[0],"REQ-N",XAU_ORDER_MARKET,
+                                     XAU_BUY,100.0,96.0,108.0,submitted_at) ||
+      !BindExecutionOrder(native_bindings,"REQ-N",401) ||
+      !ProjectCorrelatedNativeOutcome(native_projections,native_bindings,
+                                      XAU_EXECUTION_FILL,401,501,submitted_at+1,100.2) ||
+      native_projections[0].status != XAU_EXECUTION_FILLED ||
+      !ProjectCorrelatedNativeOutcome(native_projections,native_bindings,
+                                      XAU_EXECUTION_CLOSE,0,501,submitted_at+2,107.5) ||
+      native_projections[0].status != XAU_EXECUTION_CLOSED ||
+      ProjectCorrelatedNativeOutcome(native_projections,native_bindings,
+                                     XAU_EXECUTION_CLOSE,0,999,submitted_at+3,107.5))
+      return false;
+   Print("EXECUTION_PROJECTOR_SMOKE_PASS lifecycle/protection/correlation/persistence/orchestration mode=inert");
    return true;
   }
 

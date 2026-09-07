@@ -234,4 +234,43 @@ bool ProjectExecutionOutcome(XauExecutionProjection &record,const XauExecutionEv
    return true;
   }
 
+int FindExecutionProjection(const XauExecutionProjection &projections[],
+                            const string request_id)
+  {
+   int match=-1;
+   for(int i=0;i<ArraySize(projections);i++)
+      if(projections[i].request_id == request_id)
+        {
+         if(match >= 0)
+            return -1;
+         match=i;
+        }
+   return match;
+  }
+
+bool ProjectCorrelatedNativeOutcome(XauExecutionProjection &projections[],
+                                    XauExecutionBinding &bindings[],
+                                    const XauExecutionEvent event_kind,
+                                    const ulong order_ticket,const ulong position_id,
+                                    const datetime broker_time,const double price)
+  {
+   if(event_kind != XAU_EXECUTION_FILL && event_kind != XAU_EXECUTION_CLOSE)
+      return false;
+   string request_id="";
+   if(!ResolveExecutionRequest(bindings,event_kind,order_ticket,position_id,request_id))
+      return false;
+   const int index=FindExecutionProjection(projections,request_id);
+   if(index < 0)
+      return false;
+
+   XauExecutionProjection projected=projections[index];
+   if(!ProjectExecutionOutcome(projected,event_kind,broker_time,price))
+      return false;
+   if(event_kind == XAU_EXECUTION_FILL &&
+      !BindExecutionPosition(bindings,order_ticket,position_id))
+      return false;
+   projections[index]=projected;
+   return true;
+  }
+
 #endif

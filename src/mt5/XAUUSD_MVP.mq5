@@ -167,7 +167,27 @@ bool RunExecutionProjectorSmoke()
       resolved_request != "REQ-M" || BindExecutionOrder(bindings,"REQ-X",101) ||
       BindExecutionPosition(bindings,101,202))
       return false;
-   Print("EXECUTION_PROJECTOR_SMOKE_PASS lifecycle/protection/correlation mode=inert");
+   const string bindings_file="XAUUSD_Current\\binding_smoke.tsv";
+   XauExecutionBinding recovered_bindings[];
+   if(!SaveExecutionBindingsAtomically(bindings_file,bindings) ||
+      !LoadExecutionBindings(bindings_file,recovered_bindings) ||
+      !SameExecutionBindings(bindings,recovered_bindings))
+      return false;
+   FileDelete(bindings_file);
+
+   const string corrupt_file="XAUUSD_Current\\binding_corrupt_smoke.tsv";
+   int corrupt_handle=FileOpen(corrupt_file,FILE_WRITE|FILE_TXT|FILE_ANSI);
+   if(corrupt_handle == INVALID_HANDLE)
+      return false;
+   FileWriteString(corrupt_handle,
+                   "XAU_EXECUTION_BINDINGS\t1\r\nREQ-A\t301\t0\r\nREQ-B\t301\t0\r\n");
+   FileClose(corrupt_handle);
+   if(LoadExecutionBindings(corrupt_file,recovered_bindings) ||
+      !SameExecutionBindings(bindings,recovered_bindings) ||
+      SaveExecutionBindingsAtomically("..\\binding_escape.tsv",bindings))
+      return false;
+   FileDelete(corrupt_file);
+   Print("EXECUTION_PROJECTOR_SMOKE_PASS lifecycle/protection/correlation/persistence mode=inert");
    return true;
   }
 

@@ -69,6 +69,18 @@ def test_execution_ticket_correlation_is_unique_and_inert() -> None:
     assert "OrderSend" not in source
 
 
+def test_execution_binding_persistence_is_atomic_and_fail_closed() -> None:
+    root = Path(__file__).parents[1]
+    source = (root / "src" / "mt5" / "include" / "XauExecution.mqh").read_text(encoding="utf-8")
+
+    assert "SaveExecutionBindingsAtomically" in source
+    assert "LoadExecutionBindings" in source
+    assert "SameExecutionBindings" in source
+    assert "FileFlush" in source
+    assert "FileMove(temporary,0,file_name,FILE_REWRITE)" in source
+    assert "XAU_EXECUTION_BINDINGS\\t1" in source
+
+
 def test_native_adapter_is_read_only_and_uses_broker_apis() -> None:
     root = Path(__file__).parents[1]
     source = (root / "src" / "mt5" / "include" / "XauNative.mqh").read_text(encoding="utf-8")

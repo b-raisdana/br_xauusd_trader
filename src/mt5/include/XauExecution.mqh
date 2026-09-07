@@ -22,10 +22,16 @@ struct XauExecutionBinding
    ulong position_id;
   };
 
+bool ExecutionRequestIdValid(const string request_id)
+  {
+   return request_id != "" && StringFind(request_id,"\t") < 0 &&
+          StringFind(request_id,"\r") < 0 && StringFind(request_id,"\n") < 0;
+  }
+
 bool BindExecutionOrder(XauExecutionBinding &bindings[],const string request_id,
                         const ulong order_ticket)
   {
-   if(request_id == "" || order_ticket == 0)
+   if(!ExecutionRequestIdValid(request_id) || order_ticket == 0)
       return false;
    for(int i=0;i<ArraySize(bindings);i++)
      {
@@ -83,6 +89,93 @@ bool ResolveExecutionRequest(const XauExecutionBinding &bindings[],
         }
      }
    return false;
+  }
+
+bool SameExecutionBindings(const XauExecutionBinding &left[],
+                           const XauExecutionBinding &right[])
+  {
+   if(ArraySize(left) != ArraySize(right))
+      return false;
+   for(int i=0;i<ArraySize(left);i++)
+      if(left[i].request_id != right[i].request_id ||
+         left[i].order_ticket != right[i].order_ticket ||
+         left[i].position_id != right[i].position_id)
+         return false;
+   return true;
+  }
+
+bool LoadExecutionBindings(const string file_name,XauExecutionBinding &bindings[])
+  {
+   XauExecutionBinding recovered[];
+   int handle=FileOpen(file_name,FILE_READ|FILE_TXT|FILE_ANSI);
+   if(handle == INVALID_HANDLE)
+      return false;
+   bool valid=true;
+   if(FileIsEnding(handle) || FileReadString(handle) != "XAU_EXECUTION_BINDINGS\t1")
+      valid=false;
+   while(valid && !FileIsEnding(handle))
+     {
+      const string line=FileReadString(handle);
+      if(line == "")
+         continue;
+      string fields[];
+      if(StringSplit(line,'\t',fields) != 3 || !ExecutionRequestIdValid(fields[0]))
+        {
+         valid=false;
+         break;
+        }
+      const long signed_order=StringToInteger(fields[1]);
+      const long signed_position=StringToInteger(fields[2]);
+      if(signed_order <= 0 || signed_position < 0 ||
+         !BindExecutionOrder(recovered,fields[0],(ulong)signed_order) ||
+         (signed_position > 0 &&
+          !BindExecutionPosition(recovered,(ulong)signed_order,(ulong)signed_position)))
+        {
+         valid=false;
+         break;
+        }
+     }
+   FileClose(handle);
+   if(!valid)
+      return false;
+   ArrayResize(bindings,ArraySize(recovered));
+   for(int i=0;i<ArraySize(recovered);i++)
+      bindings[i]=recovered[i];
+   return true;
+  }
+
+bool SaveExecutionBindingsAtomically(const string file_name,
+                                     const XauExecutionBinding &bindings[])
+  {
+   if(file_name == "" || StringFind(file_name,"..") >= 0)
+      return false;
+   const string temporary=file_name+".tmp";
+   int handle=FileOpen(temporary,FILE_WRITE|FILE_TXT|FILE_ANSI);
+   if(handle == INVALID_HANDLE)
+      return false;
+   bool valid=FileWriteString(handle,"XAU_EXECUTION_BINDINGS\t1\r\n") > 0;
+   for(int i=0;valid && i<ArraySize(bindings);i++)
+     {
+      if(!ExecutionRequestIdValid(bindings[i].request_id) || bindings[i].order_ticket == 0)
+        {
+         valid=false;
+         break;
+        }
+      const string line=StringFormat("%s\t%I64u\t%I64u\r\n",bindings[i].request_id,
+                                     bindings[i].order_ticket,bindings[i].position_id);
+      valid=FileWriteString(handle,line) == StringLen(line);
+     }
+   FileFlush(handle);
+   FileClose(handle);
+   XauExecutionBinding verified[];
+   valid=valid && LoadExecutionBindings(temporary,verified) &&
+         SameExecutionBindings(bindings,verified);
+   if(!valid || !FileMove(temporary,0,file_name,FILE_REWRITE))
+     {
+      FileDelete(temporary);
+      return false;
+     }
+   return true;
   }
 
 bool InitializeExecutionProjection(XauExecutionProjection &record,const string request_id,

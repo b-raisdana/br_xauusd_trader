@@ -8,7 +8,7 @@
 |---|---|---|---|
 | Migration integrity | Rule/Decision/Experiment separation | PASS | Template/Handoff Merge شد؛ Legacy از Active Rules جدا و تصمیم‌های نهایی Leader ثبت شد. |
 | Package structure smoke | Required root, Source-of-Truth files and canonical ranges | PASS | Canonical SHA-256 and required structure remain covered by pytest. |
-| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | Local gate on 2026-09-07; 118 tests PASS, including full Python lifecycle/replay and inert MQL daily signal/Pullback state. |
+| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | Local gate on 2026-09-07; 119 tests PASS, including full Python lifecycle/replay and inert MQL daily/Pullback/TP state. |
 | Legacy static integrity | Historical sources/manifests without promotion | PASS | Python AST 9/9; PowerShell parser 12/12; MQL5 strict + balanced braces 3/3; Git-staged core manifest 16/16 across byte-preserved attributes. Not compile/runtime evidence. |
 | Zone/Trend/orchestration slice | Rule → causal ticks → bar close → deterministic tests | PASS | 21 focused tests; strict tick-chain/final-close validation and Breakout-before-Trend-roll PASS; 23 canonical days → 421 merged Zones; 444/444 source rows retained. |
 | Breakout/Reversal signal slice | Strict qualification, touch and accounting contracts | PASS | 9 focused/integration tests; strict buffer/lineage, same-Tick Trend, directional Market touch, gap/wick, duplicate, daily usage and shared bar slot PASS. |
@@ -24,7 +24,7 @@
 | MT5 tick acquisition | Read-only UTC raw input, ignored cache | PASS for bounded smoke | Bridge 5.0.6180 exported 6,487 ticks/290,594 bytes; explicit-offset normalization replayed all rows as one M15 bar. An ordered five-tick probe uniquely correlated local server time to UTC; no cache, probe values, resolved Broker-specific offset or account identity are committed. |
 | Targeted regression | Trend/Normal/FreeSpace/Strict/TP/Safety | NOT_RUN | Current replay engine applies explicit full lifecycle fixtures through shared usage and Audit State; MQL/Native evidence and full historical input remain missing. |
 | Python ↔ MT5 equivalence | Frozen core vectors | PASS for 19 pure contracts plus lifecycle/projector/correlated synthetic outcomes; Native lifecycle NOT_RUN | Shared vectors PASS in Python and isolated MQL runtime at `1e-9`; causal Tick order and correlated synthetic Native Fill/Close pass, while real-tick comparison remains. |
-| MT5 compile/runtime smoke | `#property strict`, zero errors, inert startup | PASS for current inert core + State/Execution/Native/Visual boundaries | Build 6151: 0 errors/0 warnings; Strategy Tester validated 19 vectors, causal ordering, daily Engagement/usage/attempt state, Pullback lifecycle, synthetic execution, Native adapters, audit payload and time probe. |
+| MT5 compile/runtime smoke | `#property strict`, zero errors, inert startup | PASS for current inert core + State/Execution/Native/Visual boundaries | Build 6151: 0 errors/0 warnings; Strategy Tester validated 19 vectors, causal/daily/Pullback state, Strict conflict, reversible TP, synthetic execution, Native adapters, audit payload and time probe. |
 | MT5 real-tick acceptance | 200/300 USD scenarios | NOT_RUN | Broker profile و `.set` جاری موجود نیست. |
 | Visual QA | Chart + Journal + Rule IDs | NOT_RUN | بعد از Technical PASS. |
 | MVP Freeze | Rulebook/Code/Evidence immutable version | NOT_RUN | همه Gateهای قبلی لازم‌اند. |

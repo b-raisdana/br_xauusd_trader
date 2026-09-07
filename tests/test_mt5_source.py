@@ -135,6 +135,23 @@ def test_mql_pullback_window_uses_shared_daily_state() -> None:
     assert "RecordEntryAttempt" in source
 
 
+def test_mql_strict_conflict_and_tp_state_is_reversible() -> None:
+    root = Path(__file__).parents[1]
+    state = (root / "src" / "mt5" / "include" / "XauState.mqh").read_text(encoding="utf-8")
+    contracts = (root / "src" / "mt5" / "include" / "XauContracts.mqh").read_text(encoding="utf-8")
+
+    for contract in (
+        "PreZoneCrossOnce",
+        "InitializePullbackTp",
+        "ProposePullbackTpExtension",
+        "RecordPullbackTpExtension",
+        "EvaluatePullbackTpFailure",
+        "RecordPullbackTpRestore",
+    ):
+        assert contract in state
+    assert "BlocksOppositeReversal" in contracts
+
+
 def test_native_adapter_is_read_only_and_uses_broker_apis() -> None:
     root = Path(__file__).parents[1]
     source = (root / "src" / "mt5" / "include" / "XauNative.mqh").read_text(encoding="utf-8")

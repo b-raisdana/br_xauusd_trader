@@ -33,7 +33,7 @@
 
 ## 2) بازسازی مهندسی کد
 
-- [ ] ساخت EA جدید ماژولار — Python causal Signal و full execution lifecycle پیاده شد؛ MQL inert core اکنون causal Trend/Engagement/BO/usage/attempt/Pullback و lifecycle/Native binding دارد؛ Strict/TP/Safety/callback/full orchestration باقی است.
+- [ ] ساخت EA جدید ماژولار — Python causal Signal و full lifecycle پیاده شد؛ MQL inert core اکنون causal daily/Pullback/Strict/conflict/reversible-TP و lifecycle/Native binding دارد؛ Safety/request/callback/full orchestration باقی است.
 - [x] ماژول Zone/Trend — Load/Merge/Priority، Engagement و Trend bootstrap روزانه مستقل پیاده و Contract-tested شد.
 - [x] ماژول Signalها — Breakout، Reversal و Pullback با State مشترک Order Slot و Lineage روشن پیاده و Contract-tested شدند.
 - [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.

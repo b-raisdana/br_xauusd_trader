@@ -281,9 +281,9 @@ Reversal مخالف فقط **هنگام Touch واقعی مرز Zone بعدی** 
 
 ### حداقل Free Space (`FREE_SPACE_MINIMUM`)
 Rule ثانویه هدف MVP:
-`Minimum Free Space = 0.5 × BASE_R_USD = 3.00 USD`
+`Free Space must be strictly greater than 0.5 × BASE_R_USD = 3.00 USD`
 
-اگر Free Space کمتر از 3 دلار باشد، Entry جدید Reversal/Pullback Block می‌شود و هیچ درخواست Order ارسال نمی‌شود. فاصله دقیقاً 3 دلار مجاز است (`FreeSpace >= 3.00`). این مرز در Python و MQL با تست‌های قطعی Validate شده است.
+اگر Free Space کمتر از یا مساوی 3 دلار باشد، Entry جدید Reversal/Pullback Block می‌شود و هیچ درخواست Order ارسال نمی‌شود. فقط `FreeSpace > 3.00` از این Gate عبور می‌کند.
 
 ---
 
@@ -438,4 +438,4 @@ Session از اطلاعات Symbol/Broker خوانده می‌شود و ساعت
 
 ## 16) مواردی که عمداً در Active MVP نیستند
 
-Aggressive Pullback، تولید خودکار Zone، Dynamic Breakout Buffer، Indicator Filters، Dynamic Lot Sizing، Session-specific `BASE_R_USD`، Daily Profit Giveback، Recursive TP Extension، Strategy 2 و Strategy 3 در این فایل Rule فعال نیستند. جزئیاتشان در Archive/Future آمده است.
+Aggressive Pullback، تولید خودکار Zone، Dynamic Breakout Buffer، Indicator Filters، Dynamic Lot Sizing، Session-specific `BASE_R_USD`، Daily Profit Giveback، Recursive TP Extension، اثر Zone نهایی با عرض بزرگ‌تر از `BASE_R_USD`، Strategy 2 و Strategy 3 در این فایل Rule فعال نیستند. جزئیاتشان در Archive/Future آمده است.

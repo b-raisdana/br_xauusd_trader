@@ -94,7 +94,7 @@
 ### Free Space ثابت 15 دلار
 - وضعیت: `POST-MVP`؛ برای Baseline جدید جایگزین شده و Gate Freeze نیست.
 - توضیح روان: Finalist قبلی از `FreeSpace >= 15 USD` استفاده می‌کرد.
-- قانون هدف جدید: `FREE_SPACE_MINIMUM = 0.5 × BASE_R_USD = 3 USD`.
+- قانون هدف جدید: `FREE_SPACE > 0.5 × BASE_R_USD = 3 USD`؛ مقدار مساوی نیز Block است.
 - علت: قانون ثانویه جدید اولویت دارد؛ هر مقایسه هدفمند با Space15 فقط پس از MVP و بدون Grid Search انجام می‌شود.
 - شناسه‌های تاریخی: `EXP-ZONE-CONTEXT-01`, `MVP-BL-01`, `SEC-FS-01`.
 
@@ -216,6 +216,11 @@
 - وضعیت: Post-MVP.
 - توضیح: High/Normal و Free Space ساده اولویت دارند؛ scoreهای ترکیبی با sample کم می‌توانند overfit شوند.
 - شناسه: `EXP-SIGNAL-QUALITY-01`.
+
+### Zone نهایی با عرض بزرگ‌تر از Base R
+- وضعیت: Post-MVP.
+- توضیح: پس از Freeze بررسی شود اگر merge زنجیره‌ای، Zoneای با عرض بیشتر از `BASE_R_USD=6` بسازد، اثر آن بر Entry geometry، Initial Stop/Target، FreeSpace و نتایج چیست. این بررسی نباید Rule فعال MVP را تغییر دهد مگر با تصمیم جدید Leader.
+- شناسه: `POST-WIDE-MERGED-ZONE-01`.
 
 ### تحلیل Stacking چند Pullback
 - وضعیت: QA/Post-MVP؛ Rule معاملاتی فعال نیست.

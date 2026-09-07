@@ -310,7 +310,7 @@ bool HasMinimumFreeSpace(const string zone_id,const XauDirection direction,
   {
    double free_space=0.0;
    return DirectionalFreeSpace(zone_id,direction,zones,free_space) &&
-          free_space+PARITY_PRICE_TOLERANCE >= MINIMUM_FREE_SPACE_USD;
+          free_space > MINIMUM_FREE_SPACE_USD;
   }
 
 bool InitialTarget(const XauDirection direction,const double entry,const XauZone &zones[],

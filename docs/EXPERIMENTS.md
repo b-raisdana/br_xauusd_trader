@@ -40,3 +40,15 @@
 | EXP-TP-01 | One-step TP Extension | Extension/Restore/Market Close مطابق Rule باشد. | صفر State transition نادرست. |
 | EXP-PARITY-02 | Python ↔ MT5 | دو Engine روی Vector مشترک هم‌رفتار باشند. | صفر اختلاف توضیح‌نشده. |
 | EXP-QA-29JUL | QA روز 2026-07-29 | نقاط شناخته‌شده BO/PB/R با Rule جدید تطبیق یابند. | Ledger کامل Signal-by-Signal. |
+
+## نتایج جاری قابل‌بازتولید
+
+### EXP-PARITY-02-SIGNAL-20260828
+
+- Scope: فقط تولید candidate سیگنال؛ بدون Order outcome، هزینه، PnL یا ادعای Strategy acceptance.
+- Input: 541,333 Tick بومی `XAUUSD` در UTC/Broker Day `2026-08-28`؛ cache محلی و ignored با SHA-256 برابر `3715b7dc7161d81123725eb381a1d407423e1d23f86c0935892c75295cd665f9`.
+- Time basis: تطبیق مستقل پنج Tick، offset دقیق `UTC+00:00`؛ هویت حساب ذخیره یا ثبت نشد.
+- Config: M15، Zoneهای canonical با hash ثبت‌شده بالا، merge gap برابر 1.5، current Rules بدون execution outcome.
+- Result: Python و MQL برای `88` کندل روی Breakout=`28`، Reversal=`62` و Pullback candidate=`410904` دقیقاً برابر بودند؛ صفر اختلاف شمارشی.
+- Interpretation limit: شمار زیاد Pullback ناشی از حالت audit-only بدون broker attempt است؛ Rule می‌گوید candidate بدون request ظرفیت کندل/pending را مصرف نمی‌کند. این نتیجه فقط ترتیب علّی و parity شمارشی را پشتیبانی می‌کند.
+- Reproduce: اجرای inert `scripts/run_mt5_contract_smoke.ps1` برای summary MQL، export با `scripts/export_mt5_ticks.py`، سپس `scripts/compare_signal_parity.py` با offset و سه count مورد انتظار.

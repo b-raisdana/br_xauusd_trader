@@ -48,6 +48,13 @@ enum XauOrderType
    XAU_ORDER_PENDING_STOP = 1
   };
 
+enum XauSignalFamily
+  {
+   XAU_SIGNAL_BREAKOUT = 0,
+   XAU_SIGNAL_REVERSAL = 1,
+   XAU_SIGNAL_PULLBACK = 2
+  };
+
 enum XauEntryRejection
   {
    XAU_ENTRY_ALLOWED = 0,

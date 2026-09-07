@@ -64,6 +64,11 @@ $statePass = @($newLogs | Select-String -SimpleMatch `
 if ($statePass.Count -eq 0) {
     throw "State-ordering success marker not found after terminal exit code $($process.ExitCode)."
 }
+$coordinatorPass = @($newLogs | Select-String -SimpleMatch `
+        "COORDINATOR_SMOKE_PASS day/bar/tick/trend/engagement/signal/close mode=inert")
+if ($coordinatorPass.Count -eq 0) {
+    throw "Coordinator success marker not found after terminal exit code $($process.ExitCode)."
+}
 $safetyPass = @($newLogs | Select-String -SimpleMatch `
         "SAFETY_REQUEST_SMOKE_PASS daily/gross/concurrency/margin/operations mode=inert")
 if ($safetyPass.Count -eq 0) {
@@ -87,6 +92,15 @@ if ($visualPass.Count -eq 0) {
 $timeProbe = @($newLogs | Select-String -SimpleMatch "TIME_BASIS_PROBE index=")
 if ($timeProbe.Count -lt 5) {
     throw "Five time-basis probe markers not found after terminal exit code $($process.ExitCode)."
+}
+$eventLoopReady = @($newLogs | Select-String -SimpleMatch "CURRENT_EVENT_LOOP_READY zones=")
+if ($eventLoopReady.Count -eq 0) {
+    throw "Current event-loop runtime marker not found after terminal exit code $($process.ExitCode)."
+}
+$eventLoopDone = @($newLogs | Select-String -Pattern `
+        "CURRENT_EVENT_LOOP_DONE breakout=\d+ reversal=\d+ pullback=\d+ failed=0 mode=inert")
+if ($eventLoopDone.Count -eq 0) {
+    throw "Successful current event-loop completion marker not found after terminal exit code $($process.ExitCode)."
 }
 
 "MT5 runtime smoke PASS (19 vectors; execution/native/visual adapters; time probe; inert mode)."

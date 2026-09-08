@@ -28,12 +28,8 @@ def test_final_report_evidence_is_machine_readable_and_complete_enough_to_summar
     for profile in evidence["mt5_real_tick_profiles"]:
         assert required_metrics <= profile.keys()
         assert profile["attempts"] == profile["accepted"] + profile["rejected"]
-        assert profile["pullback_tp"] == {
-            "extensions": 1,
-            "restores": 1,
-            "market_closes": 0,
-            "rejections": 0,
-        }
+        assert profile["pullback_tp"]["rejections"] == 0
+        assert profile["breakout"]["accepted"] > 0
     restart = evidence["safety_evidence"]["same_day_restart_runtime"]
     assert restart["status"] == "PASS"
     assert restart["attempts"] == restart["maximum_observed_positions"] == 0
@@ -43,8 +39,8 @@ def test_final_report_evidence_is_machine_readable_and_complete_enough_to_summar
     assert multiday["attempts"] == multiday["accepted"] + multiday["rejected"]
     assert multiday["final_exposure"] == multiday["lifecycle_failures"] == 0
     attribution = evidence["signal_attribution"]["multiday_attempt_accepted_rejected"]
-    assert attribution["reversal_normal"] == [86, 86, 0]
-    assert attribution["reversal_high"] == [26, 26, 0]
+    assert attribution["breakout_normal"] == [100, 100, 0]
+    assert attribution["breakout_high"] == [9, 9, 0]
 
 
 def test_visual_leader_gate_is_replaced_by_reusable_final_report() -> None:

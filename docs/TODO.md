@@ -110,8 +110,8 @@ Gate: صفر اختلاف توضیح‌نشده.
 ## 6) Final MT5 Acceptance
 
 - [x] Broker/Symbol specification — Contract size، Tick size/value، Stops/Freeze level، Session و Cost model روز مرجع ثبت شد.
-- [x] سناریوی 200 دلار — real ticks، 0.01/max3: 14 attempt، 12 accepted، 2 invalid-price reject، max position=1 و failed=0.
-- [x] سناریوی 300 دلار — real ticks، 0.01/max5: 16 attempt، 14 accepted، 2 invalid-price reject، max position=1 و failed=0.
+- [x] سناریوی 200 دلار — real ticks، 0.01/max3: 10 attempt، 8 accepted، 2 known native reject، 3 Breakout accepted، max position=1 و failed=0.
+- [x] سناریوی 300 دلار — real ticks، 0.01/max5: 17 attempt، 15 accepted، 2 known native reject، 5 Breakout accepted، max position=1 و failed=0.
 - [x] Technical QA — صفر SL-loosen، صفر exposure بعد Session و same-day restart با صفر attempt/position/exposure PASS شد.
 - [x] Deal PnL audit — نتیجه bounded یک‌روزه از Deal History و هزینه Native محاسبه شد؛ این Evidence ادعای سودآوری نیست.
 
@@ -123,14 +123,14 @@ Gate: Technical Acceptance PASS.
 
 - [x] Evidence ساختاریافته هر اجرای Acceptance شامل نسخه Code/Config/Data و تمام Counterهای فنی و عددی ذخیره شد.
 - [x] `docs/FINAL_TEST_REPORT.md` نتایج همه Profile/Dayهای اجراشده، Gateها، اختلاف‌ها، محدودیت‌ها و روش بازتولید را یکجا ثبت کرد.
-- [x] گزارش با آخرین Compile، 138 تست Python، parity، restart، TP lifecycle و MT5 real-tick acceptance همگام شد.
+- [x] گزارش با آخرین Compile، 139 تست Python، parity، restart، Breakout/TP lifecycle و MT5 real-tick acceptance همگام شد.
 - [x] هر گزارش خلاصه بعدی فقط از Evidence ذخیره‌شده تولید می‌شود و MT5 را دوباره اجرا نمی‌کند.
 
 ---
 
 ## 8) Freeze MVP
 
-- [ ] Freeze Rulebook — نسخه تاییدشده بدون Overwrite قفل شود.
-- [ ] Freeze Code — سورس تاییدشده Versioned و Immutable شود.
-- [ ] Freeze Test Evidence — فقط خلاصه Evidence لازم برای بازتولید Acceptance نگه‌داری شود؛ خروجی‌های حجیم موقت Core Project نیستند.
-- [ ] آماده Shadow/Broker Acceptance — MVP پس از Freeze وارد مرحله اجرای محدود و جمع‌آوری داده جدید شود.
+- [x] Freeze Rulebook — نسخه تأییدشده با Tag نسخه MVP بدون Overwrite قفل شد.
+- [x] Freeze Code — سورس تأییدشده با Hash و Tag نسخه MVP قفل شد.
+- [x] Freeze Test Evidence — خلاصه Evidence بازتولیدپذیر نگه‌داری و خروجی حجیم خارج Git ماند.
+- [x] آماده Shadow/Broker Acceptance — بسته MVP فقط برای ورود به گیت جداگانه Demo/Shadow آماده است؛ هیچ Live فعال نیست.

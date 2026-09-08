@@ -61,10 +61,11 @@ long g_tp_restores=0;
 long g_tp_market_closes=0;
 long g_tp_modify_rejects=0;
 long g_tp_close_rejects=0;
+long g_breakout_conflict_closes=0;
 bool g_symbol_spec_emitted=false;
-long g_attribution_attempts[4];
-long g_attribution_accepts[4];
-long g_attribution_rejects[4];
+long g_attribution_attempts[6];
+long g_attribution_accepts[6];
+long g_attribution_rejects[6];
 
 struct XauRuntimeRequest
   {
@@ -682,7 +683,8 @@ int FindRuntimeRequest(const string request_id)
 
 int AttributionIndex(const XauSignalFamily family,const int priority)
   {
-   const int family_offset=(family == XAU_SIGNAL_PULLBACK ? 2 : 0);
+   const int family_offset=(family == XAU_SIGNAL_BREAKOUT ? 0 :
+                            (family == XAU_SIGNAL_REVERSAL ? 2 : 4));
    return family_offset+(priority == 1 ? 1 : 0);
   }
 
@@ -1021,6 +1023,46 @@ bool ManageTesterPullbackTp(const MqlTick &tick)
    return true;
   }
 
+bool CloseTesterOppositeReversals(const MqlTick &tick,
+                                  const XauSignalCandidate &breakouts[])
+  {
+   if(!InpEnableTesterExecution || g_operational_lock)
+      return true;
+   for(int b=0;b<ArraySize(breakouts);b++)
+      for(int i=PositionsTotal()-1;i>=0;i--)
+        {
+         const ulong ticket=PositionGetTicket(i);
+         if(ticket == 0 || PositionGetString(POSITION_SYMBOL) != _Symbol ||
+            PositionGetInteger(POSITION_MAGIC) != InpStrategyMagic)
+            continue;
+         const ulong position_id=(ulong)PositionGetInteger(POSITION_IDENTIFIER);
+         string request_id="";
+         if(!ResolveExecutionRequest(g_execution_bindings,XAU_EXECUTION_CLOSE,0,
+                                     position_id,request_id))
+            continue;
+         const int runtime_index=FindRuntimeRequest(request_id);
+         if(runtime_index < 0 ||
+            g_runtime_requests[runtime_index].candidate.family != XAU_SIGNAL_REVERSAL ||
+            g_runtime_requests[runtime_index].candidate.zone_id != breakouts[b].zone_id ||
+            g_runtime_requests[runtime_index].candidate.direction == breakouts[b].direction)
+            continue;
+         XauTesterSubmission submission;
+         if(!CloseTesterPosition(true,InpStrategyMagic,_Symbol,ticket,submission) ||
+            !submission.attempted || !submission.accepted)
+            return false;
+         g_breakout_conflict_closes++;
+         if(submission.deal_ticket != 0)
+           {
+            XauNativeDealOutcome outcome;
+            if(!LoadNativeDealTicketOutcome(submission.deal_ticket,submission.order_ticket,
+                                            _Symbol,InpStrategyMagic,outcome) ||
+               !ApplyProjectOwnedNativeOutcome(outcome))
+               return false;
+           }
+        }
+   return true;
+  }
+
 bool ManageTesterProfitProtection(const MqlTick &tick)
   {
    if(!InpEnableTesterExecution || g_operational_lock)
@@ -1161,7 +1203,8 @@ bool ProcessTesterCandidates(const MqlTick &tick,const XauSignalCandidate &candi
         {
          g_tester_reject_count++;
          g_attribution_rejects[attribution_index]++;
-         if(submission.retcode == TRADE_RETCODE_INVALID_PRICE)
+         if(submission.retcode == TRADE_RETCODE_INVALID_PRICE ||
+            submission.retcode == TRADE_RETCODE_INVALID_STOPS)
             g_invalid_price_rejections++;
          else
             g_other_broker_rejections++;
@@ -1204,6 +1247,7 @@ bool ProcessTesterCandidates(const MqlTick &tick,const XauSignalCandidate &candi
 
 bool ProcessCurrentEventLoopTick(const MqlTick &tick)
   {
+   XauSignalCandidate close_breakouts[];
    const datetime bar_time=iTime(_Symbol,PERIOD_M15,0);
    if(bar_time <= 0)
       return false;
@@ -1228,11 +1272,10 @@ bool ProcessCurrentEventLoopTick(const MqlTick &tick)
      }
    else if(bar_time != g_current_bar_time)
      {
-      XauSignalCandidate breakouts[];
       const double high=iHigh(_Symbol,PERIOD_M15,1);
       const double low=iLow(_Symbol,PERIOD_M15,1);
       const double close_bid=iClose(_Symbol,PERIOD_M15,1);
-      if(!CloseCoordinatorBar(g_market_state,bar_time,high,low,close_bid,breakouts))
+      if(!CloseCoordinatorBar(g_market_state,bar_time,high,low,close_bid,close_breakouts))
          return false;
       int pending_cancellations=0;
       const double open_bid=iOpen(_Symbol,PERIOD_M15,0);
@@ -1241,11 +1284,11 @@ bool ProcessCurrentEventLoopTick(const MqlTick &tick)
                               open_bid+MathMax(0.0,tick.ask-tick.bid),pending_cancellations))
          return false;
       g_current_bar_time=bar_time;
-      if(ArraySize(breakouts)>0 || pending_cancellations>0)
+      if(ArraySize(close_breakouts)>0 || pending_cancellations>0)
         {
-         g_breakout_candidate_count+=ArraySize(breakouts);
+         g_breakout_candidate_count+=ArraySize(close_breakouts);
          PrintFormat("CURRENT_EVENT_LOOP_CLOSE breakouts=%d cancellations=%d mode=inert",
-                     ArraySize(breakouts),pending_cancellations);
+                     ArraySize(close_breakouts),pending_cancellations);
         }
      }
 
@@ -1262,6 +1305,16 @@ bool ProcessCurrentEventLoopTick(const MqlTick &tick)
    if(!ManageTesterProfitProtection(tick))
      {
       Print("CURRENT_EVENT_LOOP_STAGE_FAIL stage=profit_protection");
+      return false;
+     }
+   if(!CloseTesterOppositeReversals(tick,close_breakouts))
+     {
+      Print("CURRENT_EVENT_LOOP_STAGE_FAIL stage=breakout_conflict_close");
+      return false;
+     }
+   if(!ProcessTesterCandidates(tick,close_breakouts))
+     {
+      Print("CURRENT_EVENT_LOOP_STAGE_FAIL stage=breakout_candidates");
       return false;
      }
 
@@ -1409,11 +1462,16 @@ void OnDeinit(const int reason)
                   "modify_rejects=%I64d close_rejects=%I64d mode=tester",
                   g_tp_extensions,g_tp_restores,g_tp_market_closes,
                   g_tp_modify_rejects,g_tp_close_rejects);
-      PrintFormat("TESTER_ATTRIBUTION rev_normal=%I64d/%I64d/%I64d rev_high=%I64d/%I64d/%I64d "
+      PrintFormat("TESTER_BREAKOUT_DONE conflict_closes=%I64d mode=tester",
+                  g_breakout_conflict_closes);
+      PrintFormat("TESTER_ATTRIBUTION bo_normal=%I64d/%I64d/%I64d bo_high=%I64d/%I64d/%I64d "
+                  "rev_normal=%I64d/%I64d/%I64d rev_high=%I64d/%I64d/%I64d "
                   "pb_normal=%I64d/%I64d/%I64d pb_high=%I64d/%I64d/%I64d mode=tester",
                   g_attribution_attempts[0],g_attribution_accepts[0],g_attribution_rejects[0],
                   g_attribution_attempts[1],g_attribution_accepts[1],g_attribution_rejects[1],
                   g_attribution_attempts[2],g_attribution_accepts[2],g_attribution_rejects[2],
-                  g_attribution_attempts[3],g_attribution_accepts[3],g_attribution_rejects[3]);
+                  g_attribution_attempts[3],g_attribution_accepts[3],g_attribution_rejects[3],
+                  g_attribution_attempts[4],g_attribution_accepts[4],g_attribution_rejects[4],
+                  g_attribution_attempts[5],g_attribution_accepts[5],g_attribution_rejects[5]);
      }
   }

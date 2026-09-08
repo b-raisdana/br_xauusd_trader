@@ -400,6 +400,13 @@ def test_pullback_tp_runtime_is_bound_to_project_position_and_tester_broker() ->
     assert "POSITION_MAGIC" in broker and "MQLInfoInteger(MQL_TESTER)" in broker
     assert "TESTER_TP_DONE" in ea
     assert "TESTER_ATTRIBUTION" in ea
+    requests = (root / "src" / "mt5" / "include" / "XauRequests.mqh").read_text(encoding="utf-8")
+    assert "candidate.family == XAU_SIGNAL_BREAKOUT" in requests
+    assert "BREAKOUT_VALIDATION,ZONE_ENGAGEMENT" in requests
+    assert "ProcessTesterCandidates(tick,close_breakouts)" in ea
+    assert "submission.retcode == TRADE_RETCODE_INVALID_STOPS" in ea
+    assert "CloseTesterOppositeReversals" in ea
+    assert "TESTER_BREAKOUT_DONE" in ea
     assert "TESTER_TP_STATE_RECOVERED" in ea
     assert "TESTER_PULLBACK_FILL_RECOVERED" in ea
     assert "status != XAU_EXECUTION_FILLED" in ea

@@ -59,6 +59,7 @@ def test_directional_free_space_uses_adjacent_zone_and_strict_minimum() -> None:
         zone_id=zones[0].zone_id, direction=TradeDirection.SELL, zones=zones
     )
 
+
 def test_initial_stop_uses_nearest_structural_zone_with_six_dollar_cap() -> None:
     zones = make_zones(("85", "86"), ("97", "98"), ("110", "111"), ("120", "121"))
     assert initial_stop(direction=TradeDirection.BUY, entry="100", zones=zones) == (

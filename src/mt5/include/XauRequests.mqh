@@ -28,6 +28,8 @@ bool CandidateAttemptAvailable(const XauMarketCoordinator &state,
    const int zone_index=FindDailyZoneState(state.zones,candidate.zone_id);
    if(zone_index < 0)
       return false;
+   if(candidate.family == XAU_SIGNAL_BREAKOUT)
+      return true;
    if(candidate.family == XAU_SIGNAL_REVERSAL)
      {
       const int limit=(state.zones[zone_index].zone.priority == 1 ? 2 : 1);
@@ -58,7 +60,8 @@ bool PrepareCandidateEntry(const XauSignalCandidate &candidate,const XauZone &zo
    prepared.take_profit=0.0;
    prepared.stop_zone_id="";
    prepared.target_zone_id="";
-   if(candidate.family != XAU_SIGNAL_REVERSAL && candidate.family != XAU_SIGNAL_PULLBACK)
+   if(candidate.family != XAU_SIGNAL_BREAKOUT &&
+      candidate.family != XAU_SIGNAL_REVERSAL && candidate.family != XAU_SIGNAL_PULLBACK)
      {
       prepared.decision=XAU_ENTRY_INITIAL_RISK;
       return false;
@@ -93,8 +96,10 @@ bool BuildPreparedOrderAudit(const XauPreparedEntry &prepared,const string event
    event.event_id=event_id;
    event.request_id=request_id;
    event.zone_id=prepared.candidate.zone_id;
-   event.rule_ids=(prepared.candidate.family == XAU_SIGNAL_REVERSAL ?
-                   "REVERSAL_DIRECTIONAL_TOUCH" : "PULLBACK_CONSERVATIVE");
+   event.rule_ids=(prepared.candidate.family == XAU_SIGNAL_BREAKOUT ?
+                   "BREAKOUT_VALIDATION,ZONE_ENGAGEMENT" :
+                   (prepared.candidate.family == XAU_SIGNAL_REVERSAL ?
+                    "REVERSAL_DIRECTIONAL_TOUCH" : "PULLBACK_CONSERVATIVE"));
    event.direction=prepared.candidate.direction;
    event.order_type=prepared.candidate.order_type;
    event.broker_time=prepared.candidate.signal_time;
@@ -113,6 +118,8 @@ bool CommitPreparedEntryAttempt(XauMarketCoordinator &state,
    const int zone_index=FindDailyZoneState(state.zones,prepared.candidate.zone_id);
    if(zone_index < 0)
       return false;
+   if(prepared.candidate.family == XAU_SIGNAL_BREAKOUT)
+      return RecordEntryAttempt(state.attempted_bars,prepared.candidate.bar_id);
    if(prepared.candidate.family == XAU_SIGNAL_REVERSAL)
      {
       const int limit=(state.zones[zone_index].zone.priority == 1 ? 2 : 1);

@@ -38,16 +38,17 @@ Checkpoint بالا والدِ تغییرات این گزارش است؛ Hashه�
 |---|---:|---:|
 | Lot ثابت | 0.01 | 0.01 |
 | سقف Position | 3 | 5 |
-| Entry attempt | 14 | 16 |
-| Accepted | 12 | 14 |
+| Entry attempt | 10 | 17 |
+| Accepted | 8 | 15 |
 | Rejected | 2 | 2 |
 | Invalid-price reject | 2 | 2 |
 | سایر Broker reject | 0 | 0 |
-| Net realized PnL | -4.11 USD | -16.03 USD |
-| Realized gross loss | 28.68 USD | 40.60 USD |
+| Net realized PnL | -12.27 USD | -5.47 USD |
+| Realized gross loss | 25.87 USD | 44.82 USD |
 | بیشترین Position هم‌زمان مشاهده‌شده | 1 | 1 |
-| Profit-protection modify | 9 | 9 |
-| TP extension / restore / market close | 1 / 1 / 0 | 1 / 1 / 0 |
+| Profit-protection modify | 4 | 10 |
+| Breakout accepted | 3 | 5 |
+| TP extension / restore / market close | 0 / 0 / 0 | 1 / 1 / 0 |
 | Modify reject | 0 | 0 |
 | SL-loosen violation | 0 | 0 |
 | Exposure نهایی | 0 | 0 |
@@ -67,18 +68,17 @@ Configها به‌ترتیب `tester_200.ini` و `tester_300.ini`، با Real Ti
 
 ## 5) TP Extension و Lifecycle
 
-قراردادهای pure مربوط به Pre-Zone crossing، Strict Momentum، Extension یک‌مرحله‌ای، Restore و Market Close پاس شده‌اند. در هر دو اجرای بومی، Extension=1 و Restore=1 و Market Close=0 ثبت شد؛ صفر Modify/Close reject رخ داد. صفر بودن Market Close یعنی مسیر در این روز فعال نشده، نه اینکه آن رفتار آماری اثبات شده باشد.
+قراردادهای pure مربوط به Pre-Zone crossing، Strict Momentum، Extension، Restore و Market Close پاس شده‌اند. پروفایل 300 یک Extension/Restore داشت و اجرای 23روزه Market Close را نیز فعال کرد؛ صفر Modify/Close reject رخ داد.
 
 ## 6) Gateهای باقی‌مانده
 
-- اتصال و اجرای Entry مسیر Breakout در MQL، چون Evidence فعلی Breakout هنوز Candidate/lineage است.
-- Freeze نهایی Rulebook، Code و Evidence پس از بسته‌شدن آخرین کار فنی.
+Gate فنی MVP باز باقی نمانده است. Demo/Shadow و هرگونه Live گیت‌های جداگانه با مجوز رهبر هستند.
 
 Full Quality Gate در 2026-09-08 پاس شد: Ruff، format، mypy، 139 تست Python، `git diff --check`، کامپایل MT5 با صفر خطا/هشدار، سه اجرای پذیرش تک‌روزه، اجرای ۲۳روزه و Evidence ساختاریافته حاضر.
 
-اجرای مهندسی ۲۳روزه 2026-07-29 تا 2026-08-28 نیز PASS شد: 302 attempt، 188 accepted، 114 invalid-price reject، max position=3، cancel/session-close=`2/2`، protection modify=164، TP extend/restore/market-close=`10/3/2` و صفر lifecycle failure، TP reject، SL-loosen و exposure نهایی. این اجرا robustness فنی است و مقایسه کامل Python/MT5 یا ادعای سودآوری نیست.
+اجرای نهایی ۲۳روزه PASS شد: 308 attempt، 244 accepted، 64 known native reject، 109 Breakout accepted، 14 بستن Reversal مخالف، max position=2، cancel/session-close=`2/3`، protection modify=167، TP=`8/2/2` و صفر failure، unknown reject، SL-loosen و exposure نهایی.
 
-Attribution همان اجرا: Reversal Normal=`86/86/0` و High=`26/26/0`، Pullback Normal=`146/56/90` و High=`44/20/24` به‌ترتیب attempt/accepted/rejected. QA روز 2026-07-29 نیز با `16/9/7`، net=`+16.33 USD` و صفر failure پاس شد. هر دو Priority جزء ثابت Strategy هستند و PnL تفکیکی Gate MVP نیست.
+Attribution همان اجرا: Breakout Normal=`100/100/0` و High=`9/9/0`، Reversal Normal=`70/69/1` و High=`19/19/0`، Pullback Normal=`91/39/52` و High=`19/8/11`. QA نهایی 2026-07-29 با `17/15/2`، net=`+67.87 USD` و صفر failure پاس شد.
 
 A/B ازپیش‌محدود TP روی همان روز/Config نشان داد شمار Entryها ثابت ماند و Net هر دو Profile فقط `+0.14 USD` تغییر کرد؛ این یک attribution مهندسی یک‌روزه است، نه شواهد سودآوری. Strict Trend و Safety regression پاس‌اند. Sticky و PnL تفکیکی Priority از Scope حذف و FreeSpace15 به Post-MVP منتقل شده است؛ QA خارجی و multi-day Native parity نیز به‌دلیل نبود مرجع مستقل Gate نیستند.
 

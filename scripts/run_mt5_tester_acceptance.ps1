@@ -88,8 +88,13 @@ if ($tpDone.Count -eq 0) {
     throw "Tester Pullback TP completion marker not found."
 }
 $tpMatch = $tpDone[-1].Matches[0]
+$breakoutDone = @($newLogLines | Select-String -Pattern `
+        "TESTER_BREAKOUT_DONE conflict_closes=\d+ mode=tester")
+if ($breakoutDone.Count -eq 0) {
+    throw "Tester Breakout completion marker not found."
+}
 $attribution = @($newLogLines | Select-String -Pattern `
-        "TESTER_ATTRIBUTION rev_normal=\d+/\d+/\d+ rev_high=\d+/\d+/\d+ pb_normal=\d+/\d+/\d+ pb_high=\d+/\d+/\d+ mode=tester")
+        "TESTER_ATTRIBUTION bo_normal=\d+/\d+/\d+ bo_high=\d+/\d+/\d+ rev_normal=\d+/\d+/\d+ rev_high=\d+/\d+/\d+ pb_normal=\d+/\d+/\d+ pb_high=\d+/\d+/\d+ mode=tester")
 if ($attribution.Count -eq 0) {
     throw "Tester attribution marker not found."
 }
@@ -113,4 +118,5 @@ if ($isRestart -and $maxPositions -ne 0) {
 "MT5 Strategy Tester symbol specification PASS: $($symbolSpec[-1].Matches[0].Value)"
 "MT5 Strategy Tester risk PASS: $($riskMatch.Value)"
 "MT5 Strategy Tester Pullback TP PASS: $($tpMatch.Value)"
+"MT5 Strategy Tester Breakout PASS: $($breakoutDone[-1].Matches[0].Value)"
 "MT5 Strategy Tester attribution PASS: $($attribution[-1].Matches[0].Value)"

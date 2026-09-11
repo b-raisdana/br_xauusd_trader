@@ -4,13 +4,13 @@
 
 - Project: XAUUSD EA
 - Project level: STANDARD
-- Current activity: MVP v2 technical freeze candidate complete; awaiting separate Demo/Shadow authorization and environment acceptance
+- Current activity: اجرای تأییدشده V1 Stabilized و سپس V2 Experimental؛ Demo/Shadow تا پایان این مسیر مطرح نیست
 - Strategy target: MVP v2 Consolidated Rulebook
 - Rule status: Active Rulebook implementation is complete for Python contracts and guarded MQL Breakout/Reversal/Pullback protected-entry and Native lifecycle
 - Research handoff: MERGED_READY_FOR_IMPLEMENTATION
 - Last verified Git checkpoint entering this continuation: `751feec` — guarded Strategy Tester lifecycle
-- Last verified date: 2026-09-08
-- Current branch: main
+- Last verified date: 2026-09-11
+- Current branch: `release/mvp-v1-stabilized`
 - GitHub sync: PRIVATE `origin/main` — rapid-MVP mode; routine push/PR/remote CI deferred, local Git retained
 - Live state: RESEARCH_ONLY
 
@@ -50,7 +50,7 @@
 - Initial Risk/Execution evidence: 7 focused tests PASS, including adjacent Free Space strict `>3.00`, structural Stop with six-dollar cap, first qualifying Target, native-cost RF, unlimited monotonic protection steps, protected orders, fixed 0.01 lot, 200/300 concurrency and native margin boundary.
 - Financial Safety evidence: 6 focused tests PASS, including sub-300 net-realized 20% latch/reset/actions, GROSS15 inclusive aggregation of realized/open/pending/new native cash risk, gross-loss non-netting, combined rejection precedence and fail-closed invalid inputs.
 - Operational Safety evidence: 4 focused tests PASS, including Broker-derived inclusive five-minute pre-close actions, timezone-basis validation, first attach, same-day restart flatten/cancel/lock and next-Broker-Day release.
-- Audit/Report evidence: 23 focused/integration tests PASS. Reversal, Breakout and Pullback signals plus protected ORDER/FILL/REJECT/CLOSE/MODIFY/CANCEL outcomes persist with request/BO lineage. Modify/Cancel reject events preserve current Position/Pending state, accepted Modify enforces no SL loosening, and typed recovery reuses the same invariant. Final reusable result evidence/report remains.
+- Audit/Report evidence: 23 focused/integration tests PASS. Reversal, Breakout and Pullback signals plus protected ORDER/FILL/REJECT/CLOSE/MODIFY/CANCEL outcomes persist with request/BO lineage. Modify/Cancel reject events preserve current Position/Pending state, accepted Modify enforces no SL loosening, and typed recovery reuses the same invariant. Final reusable daily comparison and 1,761-row event ledger are available under `artifacts/final_reporting/`.
 - Equivalence scaffold: versioned `tests/vectors/core_contracts.json` uses Decimal strings and executes nineteen Python vectors spanning Zone/Engagement/Signal/Trend/Pullback/Momentum/TP/Risk/Safety/Restart, Execution transition/protection validity and causal Tick ordering; generated MQL constants are byte-drift tested and the MQL startup consumer passed in isolated Strategy Tester. Real-tick lifecycle equivalence remains separate.
 - Current MQL5 baseline: `src/mt5/XAUUSD_MVP.mq5` plus modular Contract, State, Coordinator, Execution, Native, TesterBroker, TesterRisk and Visual includes compile with nineteen shared assertions and explicit `1e-9` tolerance. Canonical 444 raw Zones/23 days are deterministically generated and drift-tested. The opt-in event loop owns Broker-day/M15 boundaries, runs causal signals, prepares guarded entries, processes project-owned Native outcomes, applies risk-free profit protection and flattens at the Broker-session gate. `OnTradeTransaction` is default-off, exact Symbol/Magic filtered and unknown bindings are ignored. MetaEditor build 6151 reports 0 errors/0 warnings.
 - MQL prepared-request execution rejects missing directional FreeSpace 3$, structural SL/TP, Daily/GROSS15/concurrency/margin and invalid protection before any attempt. An allowed candidate durably records ORDER before the tester-only send; every attempted Broker request consumes the shared candle/usage slot, accepted tickets are atomically bound and Native outcomes update the projection.
@@ -71,7 +71,7 @@
 - `scripts/export_mt5_ticks.py` pins the MT5 Python bridge, accepts only explicit UTC ranges, writes only under ignored `data/cache/`, exports no account identity, and was runtime-validated on a 15-minute window: 6,487 ticks, 290,594 bytes, SHA-256 `498d87fa9c8359207284207537c91e85eee9f6a3c11f070d2e1cfb0a04c03d04`. The cache itself is not committed.
 - `load_mt5_tick_bars` preserves source row order for equal-millisecond ticks, rejects backward time, requires an explicit whole-minute offset, and creates internally consistent M15 Bid candles. The ignored 6,487-tick sample mechanically normalized/replayed as one bar.
 - `scripts/match_mt5_time_basis.py` fail-closes unless an ordered multi-tick probe uniquely matches one whole-30-minute UTC offset in the terminal history. A five-tick local correlation produced one unique match; the probe values, resolved Broker-specific offset and account identity are intentionally not persisted or committed.
-- Current test baseline: 139 passed; MetaEditor 0 errors/0 warnings. Final 23-day MQL run passed with 308 attempts/244 accepts/64 known rejects، 109 accepted Breakouts، 14 opposite-Reversal closes، max2، cancel/session-close 2/3، TP 8/2/2 and zero unknown reject, SL-loosen, final exposure or lifecycle failure.
+- Current V1 static baseline: 144 tests passed; MetaEditor 0 errors/0 warnings. The prior baseline 23-day MQL run passed with 308 attempts/244 accepts/64 known rejects، 109 accepted Breakouts، 14 opposite-Reversal closes، max2، cancel/session-close 2/3، TP 8/2/2 and zero unknown reject, SL-loosen, final exposure or lifecycle failure; this multi-day evidence predates the four V1 stabilization fixes and is not the V1 freeze result.
 - Informational counters on the same 23-day run: Reversal Normal `86/86/0`, Reversal High `26/26/0`, Pullback Normal `146/56/90`, Pullback High `44/20/24` (attempt/accepted/rejected). QA 2026-07-29 passed technically with `16/9/7`, net `+16.33` and zero failure. External signal-ledger and per-priority PnL comparisons are not MVP gates.
 - Template و Handoff به‌صورت محتوایی Merge شدند و Workflow محلی CI حفظ شد.
 - Repository روی Branch `main` ایجاد و Baseline در Git ثبت شد.
@@ -152,8 +152,9 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Current blocker
 
-- None for local code production, isolated Strategy Tester smoke, or normal GitHub synchronization.
-- Final Rulebook/Code freeze does not require visual review; it requires complete stored acceptance evidence and the canonical final report.
+- مانع اجرایی V1 وجود ندارد: 146 تست، compile صفر/صفر، smoke ایزوله و Acceptance کامل 23روزه Real-Tick در 2026-09-11 PASS شدند.
+- Evidence بومی V1 شامل 249 Order و 2,425 Block تطبیق‌شده است؛ zero pending invalid-price، lifecycle failure، SL-loosen و final exposure ثبت شد.
+- Final Rulebook/Code freeze به visual review وابسته نیست؛ checkpoint V1 و سپس اجرای گزارش قفل‌شده V2 لازم است.
 
 ## Leader decisions
 
@@ -162,6 +163,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-بسته فنی MVP آماده Freeze/Tag است. اقدام بعدی فقط پس از مجوز جداگانه رهبر، آماده‌سازی و اجرای Demo/Shadow در محیط Broker هدف است؛ Live و افزایش ریسک همچنان ممنوع است.
+Codex بدون توقف روتین سه نقص Runtime و Block audit را در V1 اصلاح، تست و با اجرای 23روزه Freeze می‌کند؛ سپس شاخه V2 Experimental را از V1 می‌سازد، Protocol قفل‌شده را یک‌ضرب اجرا و گزارش تصمیم کامل تولید می‌کند. تنها توقف برنامه‌ریزی‌شده، Promotion نهایی Ruleهای V2 توسط رهبر پس از مشاهده Evidence است. Live و افزایش ریسک همچنان ممنوع است.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

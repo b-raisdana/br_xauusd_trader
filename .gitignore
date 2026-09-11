@@ -28,9 +28,19 @@ logs/
 reports/
 artifacts/*
 !artifacts/.gitkeep
+!artifacts/final_reporting/
+!artifacts/final_reporting/*.csv
+!artifacts/v1_stabilized/
+!artifacts/v1_stabilized/*.json
 output/*
 !output/.gitkeep
+outputs/
 tmp/
+~$*
+
+# Local/generated analysis deliverables
+/FINAL_MVP_vs_RISK200_GROSS_15_trade_comparison.xlsx
+/rule_comparison_final_vs_risk200_gross15.csv
 
 # Large/local market data
 data/raw/

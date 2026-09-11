@@ -1,6 +1,6 @@
 # گزارش جامع نتایج تست MVP
 
-وضعیت: **مرحله ۷ تکمیل؛ Freeze نهایی هنوز وابسته به Gateهای مرحله ۴ و ۵ است**
+وضعیت: **V1 Stabilized در 2026-09-11 تأیید شد؛ V2 Experimental در انتظار اجرا است**
 منبع عددی ماشین‌خوان: `docs/FINAL_TEST_EVIDENCE.json`
 قاعده استفاده: هر گزارش خلاصه بعدی باید از این فایل و Evidence همراه آن تولید شود؛ برای گزارش‌گیری مجدد نباید MetaTrader 5 اجرا شود.
 
@@ -24,7 +24,7 @@ Checkpoint بالا والدِ تغییرات این گزارش است؛ Hashه�
 
 | آزمون | نتیجه | Evidence |
 |---|---|---|
-| Python suite | PASS | 139 تست |
+| Python suite | PASS | 146 تست |
 | Legacy Python syntax | PASS | 9/9 AST parse |
 | MQL compile | PASS | صفر Error و صفر Warning |
 | قرارداد مشترک Python/MQL | PASS | 19 vector |
@@ -72,20 +72,30 @@ Configها به‌ترتیب `tester_200.ini` و `tester_300.ini`، با Real Ti
 
 ## 6) Gateهای باقی‌مانده
 
-Gate فنی MVP باز باقی نمانده است. Demo/Shadow و هرگونه Live گیت‌های جداگانه با مجوز رهبر هستند.
+Gate فنی V1 باز باقی نمانده است. اجرای Batch قفل‌شده و گزارش تصمیم V2 برای پایان MVP باقی است. Demo/Shadow و هرگونه Live گیت‌های جداگانه با مجوز رهبر هستند.
+
+اجرای تازه V1 روی 23 Broker Day و Real Ticks پاس شد: 249 attempt، 248 accepted، یک Market invalid-stop ثبت‌شده، صفر pending invalid-price، صفر unknown reject، صفر lifecycle failure، صفر SL-loosen و Exposure نهایی صفر. Block ledger شامل 2,425 رکورد بود که با Counter اجرا تطبیق کامل داشت؛ 486 مورد `NATIVE_PENDING_PRICE_WAIT` بدون مصرف Signal/Window ثبت شد. Evidence مستقل در `artifacts/v1_stabilized/evidence.json` قرار دارد. عدد net در Marker ریسک، snapshot روز پایانی است و به‌عنوان PnL کل بازه تفسیر نمی‌شود.
 
 Full Quality Gate در 2026-09-08 پاس شد: Ruff، format، mypy، 139 تست Python، `git diff --check`، کامپایل MT5 با صفر خطا/هشدار، سه اجرای پذیرش تک‌روزه، اجرای ۲۳روزه و Evidence ساختاریافته حاضر.
 
 اجرای نهایی ۲۳روزه PASS شد: 308 attempt، 244 accepted، 64 known native reject، 109 Breakout accepted، 14 بستن Reversal مخالف، max position=2، cancel/session-close=`2/3`، protection modify=167، TP=`8/2/2` و صفر failure، unknown reject، SL-loosen و exposure نهایی.
 
+نتیجه حسابداری همین اجرای Freeze: سرمایه `200.00` به `274.48 USD` رسید؛ Net realized کل ۲۳ روز `+74.48 USD` بود. از 244 درخواست پذیرفته‌شده، 242 Position واقعاً Fill و Close شدند و دو Pending پذیرفته‌شده بدون Fill در پایان Session لغو شدند. جمع PnL روزانه با تغییر Balance و PnL روز 2026-08-28 (`-12.27 USD`) تطبیق کامل دارد.
+
 Attribution همان اجرا: Breakout Normal=`100/100/0` و High=`9/9/0`، Reversal Normal=`70/69/1` و High=`19/19/0`، Pullback Normal=`91/39/52` و High=`19/8/11`. QA نهایی 2026-07-29 با `17/15/2`، net=`+67.87 USD` و صفر failure پاس شد.
 
 A/B ازپیش‌محدود TP روی همان روز/Config نشان داد شمار Entryها ثابت ماند و Net هر دو Profile فقط `+0.14 USD` تغییر کرد؛ این یک attribution مهندسی یک‌روزه است، نه شواهد سودآوری. Strict Trend و Safety regression پاس‌اند. Sticky و PnL تفکیکی Priority از Scope حذف و FreeSpace15 به Post-MVP منتقل شده است؛ QA خارجی و multi-day Native parity نیز به‌دلیل نبود مرجع مستقل Gate نیستند.
 
-## 7) محدودیت تفسیر
+## 7) فایل‌های مستقل تحلیل
 
-نتایج عددی فعلی فقط یک Broker Day را پوشش می‌دهند و Evidence مهندسی هستند؛ از آنها نباید سودآوری، پایداری آماری یا آمادگی Live نتیجه‌گیری شود. هیچ مقدار ناموجودی در گزارش‌های بعدی تخمین زده نمی‌شود. بررسی بصری Chart و تأیید چشمی رهبر پروژه Gate فعال MVP نیست.
+- `artifacts/final_reporting/final_daily_performance_comparison.csv`: 648 ردیف؛ 23 روز نسخه نهایی و همه 32 سناریوی تاریخی دارای ماتریس روزانه، همراه با اختلاف `final_minus_scenario_usd`. مقایسه Legacy توصیفی است چون Ruleهای آن نسخه‌ها با Rule نهایی یکسان نیست.
+- `artifacts/final_reporting/final_event_ledger.csv`: 1,761 رخداد زمان‌دار شامل Attempt، Reject، Fill، Pending trigger/cancel، Modify، Close trigger/request، Close، PnL هر Position و PnL تجمعی روز/کل؛ Request، Rule، Zone و Priority نیز در همان ردیف‌ها موجود است.
+- `scripts/build_final_analysis_csv.py`: بازساز Fail-closed؛ فقط وقتی فایل‌های EA/EX5 با Hash نسخه Freeze منطبق باشند و حسابداری `+74.48/-12.27` تطبیق کند خروجی می‌سازد.
 
-## 8) قرارداد گزارش‌دهی بعدی
+## 8) محدودیت تفسیر
 
-Codex برای پاسخ‌های «خیلی کوتاه»، «مدیریتی»، «فنی»، «ریسک»، «عددی» یا «مقایسه Profileها» باید همین گزارش و JSON همراه آن را بخواند و قالب خواسته‌شده را تولید کند. اجرای MT5 فقط وقتی مجاز است که خود Evidence جدید لازم باشد، نه برای بازنویسی یا خلاصه‌سازی نتایج موجود.
+نتیجه روزانه نسخه نهایی 23 Broker Day را پوشش می‌دهد و Evidence مهندسی است؛ از آن نباید سودآوری پایدار یا آمادگی Live نتیجه‌گیری شود. سناریوهای Legacy رفتارهای منسوخ دارند، بنابراین Delta روزانه آنها مقایسه توصیفی است و A/B کنترل‌شده محسوب نمی‌شود. هیچ مقدار ناموجودی در گزارش‌های بعدی تخمین زده نمی‌شود. بررسی بصری Chart و تأیید چشمی رهبر پروژه Gate فعال MVP نیست.
+
+## 9) قرارداد گزارش‌دهی بعدی
+
+Codex برای پاسخ‌های «خیلی کوتاه»، «مدیریتی»، «فنی»، «ریسک»، «عددی»، «روزانه»، «معامله‌به‌معامله» یا «مقایسه Profile/Scenario» باید همین گزارش، JSON و دو CSV همراه آن را بخواند و قالب خواسته‌شده را تولید کند. اجرای MT5 فقط وقتی مجاز است که Evidence جدید لازم باشد، نه برای بازنویسی، فیلتر یا خلاصه‌سازی نتایج موجود.

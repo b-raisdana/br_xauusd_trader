@@ -20,31 +20,67 @@ bool EntryBarAvailable(const string &attempted_bars[],const string bar_id)
    return bar_id != "";
   }
 
-bool CandidateAttemptAvailable(const XauMarketCoordinator &state,
-                               const XauSignalCandidate &candidate)
+string CandidateRuleIds(const XauSignalCandidate &candidate)
+  {
+   if(candidate.family == XAU_SIGNAL_BREAKOUT)
+      return "BREAKOUT_VALIDATION,ZONE_ENGAGEMENT";
+   if(candidate.family == XAU_SIGNAL_REVERSAL)
+      return "REVERSAL_DIRECTIONAL_TOUCH";
+   if(candidate.family == XAU_SIGNAL_PULLBACK)
+      return "PULLBACK_CONSERVATIVE";
+   return "UNKNOWN_SIGNAL_FAMILY";
+  }
+
+string CandidateAttemptBlockReason(const XauMarketCoordinator &state,
+                                   const XauSignalCandidate &candidate)
   {
    if(!EntryBarAvailable(state.attempted_bars,candidate.bar_id))
-      return false;
+      return "ENTRY_ATTEMPT_ALREADY_USED";
    const int zone_index=FindDailyZoneState(state.zones,candidate.zone_id);
    if(zone_index < 0)
-      return false;
+      return "ZONE_NOT_FOUND";
    if(candidate.family == XAU_SIGNAL_BREAKOUT)
-      return true;
+      return "";
    if(candidate.family == XAU_SIGNAL_REVERSAL)
      {
       const int limit=(state.zones[zone_index].zone.priority == 1 ? 2 : 1);
-      return state.zones[zone_index].reversal_usage < limit;
+      return (state.zones[zone_index].reversal_usage < limit ? "" :
+              "REVERSAL_DAILY_LIMIT");
      }
    if(candidate.family == XAU_SIGNAL_PULLBACK)
      {
       const int window_index=FindCoordinatorPullback(state,candidate.zone_id,
                                                      candidate.direction);
-      return window_index >= 0 && state.pullbacks[window_index].active &&
-             !state.pullbacks[window_index].pending_active &&
-             PullbackUsageAllowed(state.zones[zone_index].zone.priority,
-                                  state.zones[zone_index].pullback_fills);
+      if(window_index < 0)
+         return "PULLBACK_WINDOW_MISSING";
+      if(!state.pullbacks[window_index].active)
+         return "PULLBACK_WINDOW_EXPIRED";
+      if(state.pullbacks[window_index].pending_active)
+         return "PULLBACK_PENDING_ACTIVE";
+      if(!PullbackUsageAllowed(state.zones[zone_index].zone.priority,
+                               state.zones[zone_index].pullback_fills))
+         return "PULLBACK_DAILY_LIMIT";
+      return "";
      }
-   return false;
+   return "UNKNOWN_SIGNAL_FAMILY";
+  }
+
+bool CandidateAttemptAvailable(const XauMarketCoordinator &state,
+                                const XauSignalCandidate &candidate)
+  {
+   return CandidateAttemptBlockReason(state,candidate) == "";
+  }
+
+string EntryRejectionReason(const XauEntryRejection rejection)
+  {
+   if(rejection == XAU_ENTRY_DAILY_LOSS) return "DAILY_LOSS";
+   if(rejection == XAU_ENTRY_GROSS_RISK) return "GROSS_RISK";
+   if(rejection == XAU_ENTRY_CONCURRENCY) return "CONCURRENCY";
+   if(rejection == XAU_ENTRY_MARGIN) return "MARGIN";
+   if(rejection == XAU_ENTRY_INVALID_PROTECTION) return "INVALID_PROTECTION";
+   if(rejection == XAU_ENTRY_FREE_SPACE) return "FREE_SPACE";
+   if(rejection == XAU_ENTRY_INITIAL_RISK) return "INITIAL_RISK";
+   return (rejection == XAU_ENTRY_ALLOWED ? "" : "UNKNOWN_ENTRY_REJECTION");
   }
 
 bool PrepareCandidateEntry(const XauSignalCandidate &candidate,const XauZone &zones[],
@@ -96,10 +132,7 @@ bool BuildPreparedOrderAudit(const XauPreparedEntry &prepared,const string event
    event.event_id=event_id;
    event.request_id=request_id;
    event.zone_id=prepared.candidate.zone_id;
-   event.rule_ids=(prepared.candidate.family == XAU_SIGNAL_BREAKOUT ?
-                   "BREAKOUT_VALIDATION,ZONE_ENGAGEMENT" :
-                   (prepared.candidate.family == XAU_SIGNAL_REVERSAL ?
-                    "REVERSAL_DIRECTIONAL_TOUCH" : "PULLBACK_CONSERVATIVE"));
+   event.rule_ids=CandidateRuleIds(prepared.candidate);
    event.direction=prepared.candidate.direction;
    event.order_type=prepared.candidate.order_type;
    event.broker_time=prepared.candidate.signal_time;

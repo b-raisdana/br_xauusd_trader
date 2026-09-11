@@ -1,0 +1,60 @@
+{
+  "journals": {
+    "block_records": 2425,
+    "order_records": 249
+  },
+  "lifecycle": {
+    "accepted": 248,
+    "attempts": 249,
+    "breakout_candidates": 446,
+    "cancellations": 0,
+    "failed": 0,
+    "pullback_candidates": 4352693,
+    "rejected": 1,
+    "reversal_candidates": 1188,
+    "session_closes": 1,
+    "session_flattened": true
+  },
+  "limitations": [
+    "Engineering backtest evidence is not permission for demo or real-money trading.",
+    "The single native invalid-stop rejection is retained and is not a pending-price defect.",
+    "The terminal risk summary is the final Broker Day snapshot, not whole-range PnL."
+  ],
+  "provenance": {
+    "compiled_sha256": "0c932d89cd8113ef98bbba90bdb6fe3d1e896b6aba1422b78e0b887f214aad5a",
+    "source_sha256": "70aa7e782ec3e6ae364b88551c9810d77dd490460bcbcf7fcbc945f611569077"
+  },
+  "risk": {
+    "invalid_price_rejects": 0,
+    "invalid_stop_rejects": 1,
+    "max_positions_observed": 2,
+    "other_broker_rejects": 0,
+    "sl_loosen_violations": 0,
+    "terminal_summary_gross_loss_usd": "30.33",
+    "terminal_summary_net_usd": "-16.73"
+  },
+  "run_id": "V1_STABILIZED_23D_REAL_TICK_200",
+  "schema_version": 1,
+  "scope": {
+    "capital_usd": "200.00",
+    "config": "config/mt5/tester_multiday_200.ini",
+    "live_enabled": false,
+    "max_positions_allowed": 3,
+    "model": "Every Tick Based on Real Ticks"
+  },
+  "status": "PASS",
+  "v1": {
+    "block_reasons": {
+      "ENTRY_ATTEMPT_ALREADY_USED": 168,
+      "FREE_SPACE": 193,
+      "GROSS_RISK": 996,
+      "INITIAL_RISK": 28,
+      "NATIVE_PENDING_PRICE_WAIT": 486,
+      "REVERSAL_DAILY_LIMIT": 554
+    },
+    "candidate_blocks": 2425,
+    "expiry_cancels": 0,
+    "native_pending_waits": 486,
+    "opposite_reversal_blocks": 0
+  }
+}

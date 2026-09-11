@@ -15,6 +15,19 @@ struct XauOrderAuditEvent
    double take_profit;
   };
 
+struct XauCandidateBlockAuditEvent
+  {
+   string event_id;
+   string candidate_id;
+   string zone_id;
+   string rule_ids;
+   string reason;
+   XauSignalFamily family;
+   XauDirection direction;
+   datetime broker_time;
+   double entry;
+  };
+
 bool AuditTextValid(const string value)
   {
    return value != "" && StringFind(value,"\"") < 0 && StringFind(value,"\\") < 0 &&
@@ -35,6 +48,23 @@ bool SerializeOrderAudit(const XauOrderAuditEvent &event,string &line)
       "\"entry\":\"%.10f\",\"stop_loss\":\"%.10f\",\"take_profit\":\"%.10f\"}",
       event.event_id,event.request_id,event.zone_id,event.rule_ids,(int)event.direction,
       (int)event.order_type,(long)event.broker_time,event.entry,event.stop_loss,event.take_profit);
+   return true;
+  }
+
+bool SerializeCandidateBlockAudit(const XauCandidateBlockAuditEvent &event,string &line)
+  {
+   line="";
+   if(!AuditTextValid(event.event_id) || !AuditTextValid(event.candidate_id) ||
+      !AuditTextValid(event.zone_id) || !AuditTextValid(event.rule_ids) ||
+      !AuditTextValid(event.reason) || event.broker_time <= 0 || event.entry <= 0.0)
+      return false;
+   line=StringFormat(
+      "{\"schema_version\":1,\"kind\":\"block\",\"event_id\":\"%s\","
+      "\"candidate_id\":\"%s\",\"zone_id\":\"%s\",\"rule_ids\":\"%s\","
+      "\"reason\":\"%s\",\"family\":%d,\"direction\":%d,"
+      "\"broker_time\":%I64d,\"entry\":\"%.10f\"}",
+      event.event_id,event.candidate_id,event.zone_id,event.rule_ids,event.reason,
+      (int)event.family,(int)event.direction,(long)event.broker_time,event.entry);
    return true;
   }
 
@@ -75,6 +105,13 @@ bool AppendOrderThenProject(const string audit_file,const XauEntryRejection deci
       return false;
    projections[index]=projection;
    return true;
+  }
+
+bool AppendCandidateBlockAudit(const string audit_file,
+                               const XauCandidateBlockAuditEvent &event)
+  {
+   string line="";
+   return SerializeCandidateBlockAudit(event,line) && AppendAuditLine(audit_file,line);
   }
 
 #endif

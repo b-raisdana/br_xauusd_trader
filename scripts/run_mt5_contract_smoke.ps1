@@ -107,6 +107,11 @@ $visualPass = @($newLogLines | Select-String -SimpleMatch `
 if ($visualPass.Count -eq 0) {
     throw "Visual payload success marker not found after terminal exit code $($process.ExitCode)."
 }
+$v1Pass = @($newLogLines | Select-String -SimpleMatch `
+        "V1_STABILIZATION_SMOKE_PASS pending-ready/block-audit mode=inert")
+if ($v1Pass.Count -eq 0) {
+    throw "V1 stabilization success marker not found after terminal exit code $($process.ExitCode)."
+}
 $timeProbe = @($newLogLines | Select-String -SimpleMatch "TIME_BASIS_PROBE index=")
 if ($timeProbe.Count -lt 5) {
     throw "Five time-basis probe markers not found after terminal exit code $($process.ExitCode)."
@@ -121,4 +126,4 @@ if ($eventLoopDone.Count -eq 0) {
     throw "Successful current event-loop completion marker not found after terminal exit code $($process.ExitCode)."
 }
 
-"MT5 runtime smoke PASS (19 vectors; execution/native/visual adapters; time probe; inert mode)."
+"MT5 runtime smoke PASS (19 vectors; V1 pending/block audit; execution/native/visual adapters; time probe; inert mode)."

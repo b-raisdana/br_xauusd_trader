@@ -312,6 +312,66 @@ def test_mql_broker_submission_is_hard_locked_to_strategy_tester() -> None:
     assert "OrderSend" not in ea
 
 
+def test_v1_pending_waits_for_native_valid_price_before_durable_order_and_attempt() -> None:
+    root = Path(__file__).parents[1]
+    broker = (root / "src" / "mt5" / "include" / "XauTesterBroker.mqh").read_text(encoding="utf-8")
+    ea = (root / "src" / "mt5" / "XAUUSD_MVP.mq5").read_text(encoding="utf-8")
+
+    assert "PendingStopPriceReady" in broker
+    assert "TesterCandidateNativeReady" in broker
+    assert "SYMBOL_TRADE_STOPS_LEVEL" in broker
+    assert ea.index("TesterCandidateNativeReady(_Symbol") < ea.index(
+        "AppendOrderThenProject(ORDER_AUDIT_FILE"
+    )
+    assert ea.index("NATIVE_PENDING_PRICE_WAIT") < ea.index("SubmitTesterPreparedEntry(true")
+
+
+def test_v1_expired_pullback_cancels_exact_native_ticket() -> None:
+    root = Path(__file__).parents[1]
+    broker = (root / "src" / "mt5" / "include" / "XauTesterBroker.mqh").read_text(encoding="utf-8")
+    ea = (root / "src" / "mt5" / "XAUUSD_MVP.mq5").read_text(encoding="utf-8")
+
+    assert "CancelTesterPendingOrder" in broker
+    assert "request.action=TRADE_ACTION_REMOVE" in broker
+    assert "CancelExpiredTesterPullbacks" in ea
+    assert "ResolveRequestOrderTicket" in ea
+    assert "ApplyTesterPendingCancellation" in ea
+    assert ea.index("BeginCoordinatorBar(g_market_state") < ea.index(
+        "CancelExpiredTesterPullbacks(tick.time"
+    )
+
+
+def test_v1_runtime_opposite_reversal_block_and_deduplicated_block_audit() -> None:
+    root = Path(__file__).parents[1]
+    ea = (root / "src" / "mt5" / "XAUUSD_MVP.mq5").read_text(encoding="utf-8")
+    audit = (root / "src" / "mt5" / "include" / "XauAudit.mqh").read_text(encoding="utf-8")
+
+    assert "RuntimeOppositeReversalBlocked" in ea
+    assert "BlocksOppositeReversal(true,strict_valid)" in ea
+    assert ea.index("RuntimeOppositeReversalBlocked(tick,candidates[i]") < ea.index(
+        "CandidateAttemptBlockReason(g_market_state"
+    )
+    assert "RecordUniqueText(g_candidate_block_keys,key)" in ea
+    assert "AppendCandidateBlockAudit" in ea and "BLOCK_AUDIT_FILE" in ea
+    assert "SerializeCandidateBlockAudit" in audit
+    assert r"\"kind\":\"block\"" in audit
+
+
+def test_tester_position_binding_recovers_same_tick_pending_fill_before_history_callback() -> None:
+    ea = (Path(__file__).parents[1] / "src" / "mt5" / "XAUUSD_MVP.mq5").read_text(encoding="utf-8")
+
+    recovery = ea[
+        ea.index("bool RecoverTesterPositionBinding") : ea.index(
+            "bool ApplyTesterPendingCancellation"
+        )
+    ]
+    assert recovery.index("ResolveExecutionOrderTicket(g_execution_bindings,position_id") < (
+        recovery.index("HistorySelect(0,broker_now)")
+    )
+    assert "BindExecutionPosition(g_execution_bindings,position_id,position_id)" in recovery
+    assert "SaveExecutionBindingsAtomically(EXECUTION_BINDINGS_FILE" in recovery
+
+
 def test_mql_tester_risk_snapshot_is_project_filtered_and_tester_locked() -> None:
     root = Path(__file__).parents[1]
     source = (root / "src" / "mt5" / "include" / "XauTesterRisk.mqh").read_text(encoding="utf-8")

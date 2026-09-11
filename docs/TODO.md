@@ -7,6 +7,29 @@
 
 ---
 
+## اجرای تأییدشده پس از Audit نمودار — 2026-09-10
+
+### V1 Stabilized — بدون تغییر Rule
+
+- [x] Pending Stop فقط وقتی Native-valid است ارسال شود؛ حالت نامعتبر منتظر Tick معتبر می‌ماند و Signal/Window مصرف نمی‌شود.
+- [x] Pending واقعی Pullback در شروع `t+6` به‌صورت ticket-specific لغو و lifecycle آن ثبت می‌شود.
+- [x] `BLOCK_OPPOSITE_REVERSAL` در مسیر Runtime و روی Touch واقعی Zone هدف Pullback اعمال شد.
+- [x] برای Candidateهای Blockشده قبل از `OrderSend`، دلیل دقیق و قابل گزارش ثبت شد.
+- [x] Regression هدفمند، Compile، smoke و اجرای 23روزه V1 با گزارش و Evidence کامل انجام شد؛ 146 تست، compile صفر/صفر، 249/248/1، صفر pending invalid-price/failure/SL-loosen/exposure و block ledger برابر 2,425 رکورد.
+
+### V2 Experimental — آزمایش قفل‌شده، نه Rule فعال
+
+- [x] Protocol شامل Dataset/range/cost/baseline/metrics پیش از اجرا در `docs/EXPERIMENTS.md` Freeze شد؛ اجرا فقط پس از Freeze و checkpoint تأییدشده V1 آغاز می‌شود.
+- [ ] مجموعه Variantهای تأییدشده در یک Batch خودکار اجرا شود: Reversal shadow-touch با `FreeSpace>=2.5R`، High Reversal با cap `1.5R`، High Pullback `1.5R` به‌صورت Variant، مدیریت R0، Merge/عرض Zone پیشنهادی، Trend با Body، مصرف جهت‌دار همه خانواده‌ها، momentum context مستقل از Position، concurrent-risk بدون realized gross و Daily Loss `40$`.
+- [ ] اثر هر Variant و ترکیب نهایی با sample count، PnL، PF، Drawdown، Reject/Fill و پایداری روزانه گزارش شود؛ نتیجه منفی نیز حفظ شود.
+- [ ] پس از گزارش، فقط Ruleهای صریحاً Promoteشده توسط رهبر وارد Production V2 شوند و Full acceptance تکرار شود.
+
+### V3 Independent Research
+
+- [ ] Handoff مستقل و کم‌حجم برای Account دوم ساخته شود؛ V3 از کدهای V1/V2 جدا بماند و هدف Robust OOS را دنبال کند.
+
+---
+
 ## 0) مهاجرت به Repository استاندارد
 
 - [x] Repository واقعی، Branch فعال، آخرین Commit معتبر و Working Tree بررسی شود.
@@ -39,7 +62,7 @@
 - [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.
 - [x] ماژول Risk/Execution — Initial SL/TP، Base R، RF، Profit Protection، Native input boundary، fixed volume/concurrency و Margin Gate پیاده و تست شدند.
 - [x] ماژول Safety — Daily loss، Portfolio risk، Broker session flatten و Restart fail-closed پیاده و Contract-tested شدند.
-- [ ] ماژول Audit/Report — Event/serialization و durable fail-closed JSONL Journal پیاده و تست شد؛ Evidence ساختاریافته و گزارش جامع نهایی باید با آخرین Acceptance همگام شوند.
+- [x] ماژول Audit/Report — Event/serialization و durable fail-closed JSONL Journal پیاده و تست شد؛ Evidence ساختاریافته، CSV مقایسه روزانه و Event ledger جامع با آخرین Acceptance همگام شدند.
 - [x] Compile Gate — current inert baseline با `#property strict` روی MetaEditor build 6151، صفر Error و صفر Warning compile شد؛ پس از هر توسعه باید تکرار شود.
 
 ---

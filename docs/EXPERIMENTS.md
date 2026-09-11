@@ -2,6 +2,16 @@
 
 نتایج این فایل Evidence هستند، نه Rule و نه مجوز Live. جزئیات Ruleهای جایگزین‌شده در `RULES_ARCHIVE_FUTURE.md` است.
 
+## Protocol قفل‌شده V2 — تأیید 2026-09-10
+
+- Baseline: خروجی تأییدشده `release/mvp-v1-stabilized` پس از رفع Defect؛ هیچ Rule جدیدی در Baseline مخلوط نمی‌شود.
+- Dataset: همان 23 Broker Day و Zoneهای canonical؛ Cost/Spread/Slippage از MT5 Native و Config یکسان بین Variantها.
+- Touch: Shadow/Tick directional معتبر می‌ماند؛ Close-confirmation اضافه نمی‌شود.
+- Variantها: `Reversal FreeSpace >= 2.5R` برای Normal/High؛ cap `1.5R` برای High Reversal؛ cap `1.5R` برای High Pullback فقط به‌عنوان Variant؛ مدیریت سود بر Actual `R0`؛ Merge فاصله `<=3` و کنترل عرض Zone؛ Trend reference با Body؛ consumption مستقل بر `Day+Zone+Family+Direction`؛ context مومنتوم مستقل از بازبودن Position؛ concurrent-risk بدون realized gross همراه Daily Loss ثابت `40$`.
+- منع Optimization: هیچ Grid Search یا انتخاب مرز جدید بعد از دیدن نتیجه در این Batch مجاز نیست.
+- معیار اصلی: Net OOS/Forward با کنترل Drawdown و هزینه؛ معیارهای همراه: PF، تعداد معامله، Concentration روزانه، Fill/Reject/Block، Tail loss و ثبات جهت اثر.
+- Promotion: نتیجه این Batch خودکار Rule فعال نمی‌شود؛ گزارش کامل تنها Gate تصمیم رهبر است.
+
 ## Evidence تاریخی بازیابی‌شده
 
 | ID | موضوع | نتیجه گزارش‌شده | برداشت مجاز | وضعیت Evidence جاری |

@@ -77,7 +77,7 @@ if ($isRestart -and @($newLogLines | Select-String -Pattern `
     throw "Same-day restart flatten marker not found."
 }
 $riskDone = @($newLogLines | Select-String -Pattern `
-        "TESTER_RISK_DONE net=(-?\d+\.\d+) gross_loss=(\d+\.\d+) max_positions=(\d+) daily_blocks=(\d+) gross_blocks=(\d+) concurrency_blocks=(\d+) margin_blocks=(\d+) protection_blocks=(\d+) space_blocks=(\d+) initial_blocks=(\d+) invalid_price_rejects=(\d+) other_broker_rejects=(\d+) protection_modifies=(\d+) modify_rejects=(\d+) sl_loosen=(\d+) mode=tester")
+        "TESTER_RISK_DONE net=(-?\d+\.\d+) gross_loss=(\d+\.\d+) max_positions=(\d+) daily_blocks=(\d+) gross_blocks=(\d+) concurrency_blocks=(\d+) margin_blocks=(\d+) protection_blocks=(\d+) space_blocks=(\d+) initial_blocks=(\d+) invalid_price_rejects=(\d+) invalid_stop_rejects=(\d+) other_broker_rejects=(\d+) protection_modifies=(\d+) modify_rejects=(\d+) sl_loosen=(\d+) mode=tester")
 if ($riskDone.Count -eq 0) {
     throw "Tester risk completion marker not found."
 }
@@ -93,6 +93,11 @@ $breakoutDone = @($newLogLines | Select-String -Pattern `
 if ($breakoutDone.Count -eq 0) {
     throw "Tester Breakout completion marker not found."
 }
+$v1Done = @($newLogLines | Select-String -Pattern `
+        "TESTER_V1_DONE candidate_blocks=\d+ native_pending_waits=\d+ opposite_reversal_blocks=\d+ expiry_cancels=\d+ mode=tester")
+if ($v1Done.Count -eq 0) {
+    throw "Tester V1 stabilization marker not found."
+}
 $attribution = @($newLogLines | Select-String -Pattern `
         "TESTER_ATTRIBUTION bo_normal=\d+/\d+/\d+ bo_high=\d+/\d+/\d+ rev_normal=\d+/\d+/\d+ rev_high=\d+/\d+/\d+ pb_normal=\d+/\d+/\d+ pb_high=\d+/\d+/\d+ mode=tester")
 if ($attribution.Count -eq 0) {
@@ -100,16 +105,19 @@ if ($attribution.Count -eq 0) {
 }
 $maxPositions = [int]$riskMatch.Groups[3].Value
 $marginBlocks = [int]$riskMatch.Groups[7].Value
-$otherBrokerRejects = [int]$riskMatch.Groups[12].Value
-$slLoosen = [int]$riskMatch.Groups[15].Value
+$invalidPriceRejects = [int]$riskMatch.Groups[11].Value
+$invalidStopRejects = [int]$riskMatch.Groups[12].Value
+$otherBrokerRejects = [int]$riskMatch.Groups[13].Value
+$slLoosen = [int]$riskMatch.Groups[16].Value
 $tpModifyRejects = [int]$tpMatch.Groups[4].Value
 $tpCloseRejects = [int]$tpMatch.Groups[5].Value
 $is300 = Select-String -LiteralPath $config -SimpleMatch "InpStrategyCapital=300.0"
 $allowedPositions = if ($is300) { 5 } else { 3 }
 if ($maxPositions -gt $allowedPositions -or $marginBlocks -ne 0 -or `
+        $invalidPriceRejects -ne 0 -or `
         $otherBrokerRejects -ne 0 -or $slLoosen -ne 0 -or `
         $tpModifyRejects -ne 0 -or $tpCloseRejects -ne 0) {
-    throw "Tester risk acceptance failed: max_positions=$maxPositions margin_blocks=$marginBlocks other_rejects=$otherBrokerRejects sl_loosen=$slLoosen tp_modify_rejects=$tpModifyRejects tp_close_rejects=$tpCloseRejects."
+    throw "Tester risk acceptance failed: max_positions=$maxPositions margin_blocks=$marginBlocks pending_invalid_price=$invalidPriceRejects other_rejects=$otherBrokerRejects sl_loosen=$slLoosen tp_modify_rejects=$tpModifyRejects tp_close_rejects=$tpCloseRejects. Informational market_invalid_stops=$invalidStopRejects."
 }
 if ($isRestart -and $maxPositions -ne 0) {
     throw "Same-day restart acceptance failed: max_positions=$maxPositions."
@@ -117,6 +125,8 @@ if ($isRestart -and $maxPositions -ne 0) {
 "MT5 Strategy Tester acceptance PASS: $marker"
 "MT5 Strategy Tester symbol specification PASS: $($symbolSpec[-1].Matches[0].Value)"
 "MT5 Strategy Tester risk PASS: $($riskMatch.Value)"
+"MT5 Strategy Tester known market-stop rejects (informational): $invalidStopRejects"
 "MT5 Strategy Tester Pullback TP PASS: $($tpMatch.Value)"
 "MT5 Strategy Tester Breakout PASS: $($breakoutDone[-1].Matches[0].Value)"
+"MT5 Strategy Tester V1 stabilization PASS: $($v1Done[-1].Matches[0].Value)"
 "MT5 Strategy Tester attribution PASS: $($attribution[-1].Matches[0].Value)"

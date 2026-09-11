@@ -1,0 +1,121 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { Workbook } from "file:///C:/Users/b.dana/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/@oai/artifact-tool/dist/artifact_tool.mjs";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const output = path.join(
+  root,
+  "artifacts",
+  "final_reporting",
+  "rule_comparison_final_vs_risk200_gross15.csv",
+);
+
+const headers = [
+  "ردیف",
+  "بخش",
+  "نام فارسی قانون",
+  "Semantic ID",
+  "قانون نهایی FINAL_MVP_V2_0_0_CAPITAL_200",
+  "تفاوت با RISK200_GROSS_15",
+  "نظر علمی مستقل از نتیجه تست",
+  "ترجیح علمی",
+];
+
+const rows = [];
+function add(section, name, id, finalRule, difference, opinion, preference) {
+  rows.push([rows.length + 1, section, name, id, finalRule, difference, opinion, preference]);
+}
+
+add("ثابت‌های پایه", "واحد پایه استراتژی", "BASE_R_USD", "BASE_R_USD دقیقاً 6.00 دلار و یک ثابت تجربی است، نه فاصله واقعی Entry تا Stop.", "هر دو R_CAP برابر 6 دلار دارند؛ نسخه قدیمی R0 واقعی را واحد اصلی مدیریت معامله می‌گرفت.", "تفکیک ثابت استراتژی از ریسک واقعی، تعریف‌ها را شفاف‌تر می‌کند؛ برتری اقتصادی عدد 6 بدون آزمون مستقل اثبات نمی‌شود.", "Final از نظر شفافیت");
+add("ثابت‌های پایه", "فاصله واقعی حدضرر", "ACTUAL_STOP_DISTANCE", "فاصله واقعی Entry تا Initial SL است و می‌تواند کمتر یا مساوی 6 دلار باشد.", "در نسخه قدیمی همین فاصله مستقیماً R0 و مبنای Target و Profit Protection بود.", "فاصله واقعی برای سنجش ریسک پولی مناسب‌تر است؛ جداکردن نام آن از BASE_R خطای مفهومی را کم می‌کند.", "Final از نظر تعریف");
+add("ثابت‌های پایه", "فاصله تصمیم قبل از ناحیه", "PRE_ZONE_TRIGGER_DISTANCE", "فاصله تصمیم Pre-Zone برابر 1.00 دلار است.", "در RISK200_GROSS_15 چنین Trigger مستقلی وجود نداشت.", "یک Trigger ازپیش‌تعریف‌شده قابلیت ابطال‌پذیری را بالا می‌برد، ولی مفیدبودن عدد 1 دلار صرفاً نظری قابل اثبات نیست.", "نامشخص از نظر Edge");
+add("ثابت‌های پایه", "نفوذ لازم برای Pullback", "PULLBACK_PENETRATION", "نفوذ لازم برای Pullback محافظه‌کارانه 0.20 دلار است.", "یکسان؛ نسخه قدیمی نیز 0.20 دلار داشت.", "هیچ تفاوت ساختاری وجود ندارد.", "مساوی");
+
+add("تعریف کندل و بازار", "کندل صعودی", "CANDLE_BULLISH", "Close بزرگ‌تر از Open باشد.", "یکسان.", "تعریف قطعی و بدون ابهام است.", "مساوی");
+add("تعریف کندل و بازار", "کندل نزولی", "CANDLE_BEARISH", "Close کوچک‌تر از Open باشد.", "یکسان.", "تعریف قطعی و بدون ابهام است.", "مساوی");
+add("تعریف کندل و بازار", "Doji", "در RULES.md شناسه مستقل ندارد", "Close مساوی Open است؛ نه Bullish و نه Bearish و Strict Trend را نقض می‌کند.", "نسخه قدیمی Doji را طبقه‌بندی می‌کرد، اما Strict Pullback Trend نداشت.", "رفتار Final صریح‌تر و محافظه‌کارانه‌تر است؛ Equality را به‌اشتباه Momentum محسوب نمی‌کند.", "Final");
+add("تعریف کندل و بازار", "محدوده کندل", "CANDLE_RANGE", "High تا Low کل دامنه و خارج Body برابر Wick/Shadow است.", "یکسان.", "تعریف استاندارد و کافی است.", "مساوی");
+add("تعریف کندل و بازار", "بازار و تایم‌فریم", "MARKET_TIMEFRAME", "XAUUSD، منطق M15 و اجرای داخل کندل با Tick واقعی؛ مرجع پذیرش MT5 Real Ticks است.", "یکسان در Symbol، M15 و Real Ticks.", "برای جلوگیری از خطای ترتیب درون کندل، Tick واقعی بر مدل OHLC برتر است.", "مساوی");
+
+add("Zoneها", "ورودی Zone", "ZONE_INPUT", "Zone روزانه خارجی، Load/Normalize/Sort با رعایت Enabled و Priority و بدون سقف تعداد.", "تقریباً یکسان؛ نسخه قدیمی نیز ranges.csv روزانه را بارگذاری می‌کرد.", "ورودی ثابت و روزانه امکان بازتولید را بهتر از تولید ضمنی Zone فراهم می‌کند.", "مساوی");
+add("Zoneها", "نام‌های معادل", "ZONE_ALIAS", "Zone، ناحیه، محدوده و خط یک مفهوم‌اند.", "در نسخه قدیمی Rule مستند مستقلی نبود؛ رفتار اجرایی تفاوتی ندارد.", "این قانون زبانی است و فقط ابهام مستندات را کم می‌کند.", "Final از نظر مستندسازی");
+add("Zoneها", "Zone خطی", "ZONE_LINE_ALLOWED", "Low مساوی High نیز Zone معتبر است.", "نسخه قدیمی نیز Zone خطی را عملاً می‌پذیرفت.", "پذیرش صریح حالت مرزی از رفتار وابسته به پیاده‌سازی جلوگیری می‌کند.", "Final از نظر صراحت");
+add("Zoneها", "Merge Zoneها", "ZONE_MERGE", "فاصله لبه‌به‌لبه کمتر از 1.5 دلار باعث Merge زنجیره‌ای می‌شود.", "یکسان.", "Merge زنجیره‌ای از نواحی تقریباً هم‌پوشان یک Exposure واحد می‌سازد؛ آستانه 1.5 همچنان پارامتر تجربی است.", "مساوی");
+add("Zoneها", "Priority بعد از Merge", "ZONE_PRIORITY", "وجود حداقل یک عضو High، Priority نهایی را High می‌کند.", "یکسان.", "قاعده محافظه‌کارانه‌ای برای حفظ برچسب اهمیت است، ولی کیفیت خود برچسب خارجی باید جداگانه اعتبارسنجی شود.", "مساوی");
+add("Zoneها", "طبقه‌بندی Zone", "ZONE_CLASSIFICATION", "هر Zone دقیقاً Normal یا High و Priority از ورودی روزانه است.", "یکسان.", "دو سطح ساده نسبت به Score چندپارامتری خطر Overfit کمتری دارد.", "مساوی");
+add("Zoneها", "ممنوعیت Entry بدون Signal Zone", "ZONE_ONLY_ENTRY", "Trend به‌تنهایی مجوز Entry نیست؛ هر Entry باید Signal مرتبط با Zone داشته باشد.", "یکسان در Reversal/Pullback؛ Breakout قدیمی فقط Signal والد بود.", "این محدودیت فضای فرضیه را کوچک و Attribution را روشن می‌کند.", "Final/قدیمی هر دو مناسب");
+add("Zoneها", "درگیرشدن Zone", "ZONE_ENGAGEMENT", "Open داخل Zone هر دو جهت را Engaged می‌کند؛ Crossing جهت‌دار معتبر است؛ Tick gap چندZone مسیر مصنوعی نمی‌سازد؛ هر M15 Reset می‌شود.", "یکسان.", "جلوگیری از ساخت مسیر مصنوعی بین دو Tick مانع سیگنال غیرقابل مشاهده می‌شود.", "مساوی");
+
+add("Trend", "شروع Trend در ابتدای روز", "DAY_START_TREND_BOOTSTRAP", "هر Broker Day از NONE شروع و با N=1، سپس N=2 و از کندل چهارم N=3 ساخته می‌شود؛ Trend روز قبل Carry نمی‌شود.", "RISK200_GROSS_15 همیشه سه کندل مرجع می‌خواست و Trend روز قبل را عملاً به روز جدید Carry می‌کرد.", "چون Zoneها مالکیت روزانه دارند، Bootstrap از آلودگی رژیم روز قبل جلوگیری می‌کند؛ در عوض ابتدای روز برآورد پرنویزتری دارد.", "Final");
+add("Trend", "تشخیص جهت Trend", "TREND_DIRECTION", "شکست High/Low مرجع N، Trend را UP/DOWN می‌کند و داخل محدوده Trend قبلی همان روز حفظ می‌شود.", "منطق شکست مشابه بود، اما N همیشه 3 و State بین روزها Sticky بود.", "نسخه Final با واحد آزمایش Broker Day سازگارتر است؛ قانون شکست در هر دو علّی است.", "Final");
+add("Trend", "ترتیب پردازش Tick", "TICK_EVENT_ORDER", "در هر Tick ابتدا Trend، سپس Directional Touch و بعد Signal ارزیابی می‌شود.", "نسخه قدیمی نیز عموماً همین ترتیب را داشت، اما قرارداد مشترک و Fail-closed صریح نداشت.", "ترتیب Final تغییر Trend و Touch هم‌زمان را بدون Look-ahead حل می‌کند و قابل‌آزمون‌تر است.", "Final");
+
+add("Breakout", "Breakout معتبر", "BREAKOUT_VALIDATION", "Engagement معتبر، Trend هم‌جهت در Close و Close اکید بیش از 1 دلار بیرون Zone؛ Reversal مخالف همان Zone بسته می‌شود.", "شرایط Signal تقریباً یکسان؛ در نسخه قدیمی Breakout فقط Signal و والد Pullback بود، ولی اجرای Final آن را Candidate ورود مستقیم نیز می‌کند.", "بخش تشخیص برابر است؛ ورود مستقیم Breakout یک فرضیه معاملاتی اضافه است و بدون Rule صریح مستقل، از نظر علمی هنوز مزیت قطعی ندارد.", "تشخیص مساوی؛ اجرای مستقیم نامشخص");
+add("Breakout", "شناسه والد Breakout", "BREAKOUT_LINEAGE", "هر Breakout یک BO# روزانه دارد و تمام Pullbackهای وابسته همان شناسه را نگه می‌دارند.", "نسخه قدیمی نیز Parent Breakout ID داشت، اما Cycle پس از اولین Fill بسته می‌شد.", "Lineage پایدار برای جلوگیری از Attribution اشتباه ضروری است.", "Final");
+
+add("Reversal", "ورود Reversal با Market Order", "REVERSAL_DIRECTIONAL_TOUCH", "Touch جهت‌دار Tick واقعی در خلاف Trend، Market Order می‌سازد و Tick gap چندZone سیگنال مصنوعی نمی‌سازد.", "هسته ورود یکسان بود.", "Market در Touch واقعی از فرض Fill مصنوعی Pending جلوگیری می‌کند، ولی هزینه Spread واقعی را می‌پذیرد.", "مساوی");
+add("Reversal", "اعتبار Wick Penetration", "REVERSAL_WICK_VALIDITY", "عبور Wick از Zone Reversal را باطل نمی‌کند؛ Breakout فقط با Close و Buffer سنجیده می‌شود.", "یکسان.", "تفکیک Touch درون کندل از شکست تأییدشده در Close از نظر ساختار فرضیه منطقی است.", "مساوی");
+add("Reversal", "سقف روزانه Reversal Normal", "NORMAL_REVERSAL_DAILY_LIMIT", "هر Normal Zone مجموعاً حداکثر یک Reversal Buy/Sell در روز دارد.", "در RISK200_GROSS_15 تمام Reversalهای Normal مسدود بودند.", "استفاده درجه‌ای از Priority اطلاعات بیشتری حفظ می‌کند؛ اما سودمندی Normal یک فرضیه تجربی است، نه نتیجه نظری.", "Final از نظر استفاده اطلاعات؛ Edge نامشخص");
+add("Reversal", "سقف روزانه Reversal High", "HIGH_REVERSAL_DAILY_LIMIT", "هر High Zone مجموعاً حداکثر دو Reversal Buy/Sell در روز دارد.", "یکسان به‌صورت مؤثر؛ Profile قدیمی H2 بود، حتی با اینکه Input خام HighMax=4 ثبت شده بود.", "سقف محدود از تکرار Exposure هم‌بسته جلوگیری می‌کند.", "مساوی");
+add("Reversal", "زمان مصرف سهمیه Reversal", "REVERSAL_USAGE_COMMIT", "Signal بدون ارسال مصرف نمی‌کند؛ به‌محض ارسال Market Order، موفق یا ناموفق، سهمیه مصرف می‌شود.", "نسخه قدیمی شمارنده را عمدتاً با Fill افزایش می‌داد؛ Reject می‌توانست امکان تلاش بعدی را باقی بگذارد.", "مصرف در Attempt جلوی Retry storm و انتخاب پس از مشاهده خطای Broker را می‌گیرد و رفتار را قطعی‌تر می‌کند.", "Final");
+add("Reversal", "جلوگیری از Signal تکراری", "REVERSAL_DUPLICATE_GUARD", "برای Day+M15+Zone+Direction فقط یک Signal؛ جهت‌ها مستقل ولی سهمیه Zone مشترک است.", "نسخه قدیمی Guard هر M15+Zone+Direction داشت، اما محدودیت سراسری یک Order در کندل نداشت.", "تعریف Final مرز Duplicate و ظرفیت روزانه را روشن‌تر جدا می‌کند.", "Final");
+
+add("Pullback", "ورود Pullback محافظه‌کارانه", "PULLBACK_CONSERVATIVE_ENTRY", "پس از Breakout، نفوذ حداقل 0.20 دلار و سپس Pending روی لبه شکسته؛ Retry فقط در همان Window؛ بدون Carry روزانه و بدون Max Penetration.", "تقریباً یکسان.", "ورود لبه‌ای پس از Penetration فرضیه را علّی نگه می‌دارد؛ نبود Max Penetration می‌تواند در حرکت‌های عمیق ریسک انتخاب ایجاد کند.", "مساوی");
+add("Pullback", "Window پولبک", "PULLBACK_WINDOW", "فقط کندل‌های t+1 تا t+5؛ در شروع t+6 منقضی می‌شود.", "یکسان.", "Window ثابت مانع Retestهای دیرهنگام و تغییر تعریف پس از مشاهده قیمت می‌شود؛ طول 5 پارامتر تجربی است.", "مساوی");
+add("Pullback", "چند Pullback از یک Breakout", "PULLBACK_MULTI_PER_BREAKOUT", "Fill اول Parent Breakout را نمی‌بندد و تا پایان Window Pullback بعدی ممکن است.", "نسخه قدیمی Cycle را بلافاصله بعد از Fill اول Complete می‌کرد.", "Final تعریف Parent را حفظ می‌کند، اما ورودهای تکراری هم‌بسته‌اند؛ برتری پیش‌بینی بدون آزمون مستقل مشخص نیست.", "Final از نظر انسجام؛ Edge نامشخص");
+add("Pullback", "مصرف روزانه Pullback", "PULLBACK_DAILY_USAGE", "Normal حداکثر یک Fill در روز، High بدون سقف روزانه؛ برای Zone+Direction فقط یک Pending/Cycle هم‌زمان.", "Normal1 و High بدون سقف مشابه بود، ولی بسته‌شدن Parent پس از Fill اول فرصت‌های یک Breakout را محدود می‌کرد.", "Normal1 تمرکز را محدود می‌کند؛ High نامحدود فقط در حضور GROSS15 و سقف کندل قابل دفاع است و همچنان ریسک خوشه‌ای دارد.", "Final با کنترل ریسک؛ نیازمند حساسیت High");
+add("Pullback", "استقلال مصرف Signalها", "SIGNAL_USAGE_INDEPENDENCE", "Reversal و Pullback Counter مستقل دارند.", "عملاً مستقل بودند، ولی State و زمان Consumption کمتر صریح بود.", "استقلال از تداخل تصادفی خانواده‌ها جلوگیری می‌کند؛ ریسک مشترک باید جداگانه با Portfolio Gate کنترل شود.", "Final");
+
+add("Momentum و TP", "روند اکید پس از Pullback", "STRICT_PULLBACK_TREND", "همه کندل‌های بسته پس از PB و کندل جاری در نقطه تصمیم باید اکیداً هم‌جهت باشند؛ Doji شکست است.", "در RISK200_GROSS_15 وجود نداشت.", "تعریف نقطه‌ای و اکید قابل ابطال و بدون State نویزی است؛ افزودن این Filter پیچیدگی و ریسک Overfit ایجاد می‌کند.", "طراحی Final بهتر؛ Edge نامشخص");
+add("Momentum و TP", "نقطه تصمیم قبل از Zone", "PRE_ZONE_DECISION_TRIGGER", "Trigger یک دلار پیش از Zone حامل TP جاری و با اولین Crossing، حتی Tick gap، فعال می‌شود.", "نسخه قدیمی Trigger پیش از Zone نداشت.", "وابستگی Trigger به Target جاری از ابهام شماره Zone جلوگیری می‌کند؛ مقدار یک دلار نیازمند اعتبارسنجی مستقل است.", "Final از نظر تعریف");
+add("Momentum و TP", "جلوگیری از Reversal مخالف", "BLOCK_OPPOSITE_REVERSAL", "فقط هنگام Touch واقعی Zone بعدی و فقط در صورت باقی‌بودن Strict Trend، Reversal مخالف Block می‌شود.", "نسخه قدیمی Reversal مخالف را هنگام Breakout معتبر همان Zone می‌بست و Filter مبتنی بر Strict Trend نداشت.", "Final تصمیم را به مشاهده واقعی Touch و Momentum جاری متصل می‌کند و از Block دائمی جلوگیری می‌کند.", "Final");
+add("Momentum و TP", "تمدید یک‌مرحله‌ای TP", "EXTEND_PULLBACK_TP", "در Pre-Zone و Strict Trend معتبر، TP فقط یک Zone جلو می‌رود؛ با شکست Momentum Restore یا Market Close می‌شود.", "در نسخه قدیمی TP Extension وجود نداشت و Target ثابت می‌ماند.", "محدودیت یک مرحله و برگشت‌پذیری، ریسک Extension را مهار می‌کند؛ بااین‌حال قانون افزوده باید به‌عنوان فرضیه مستقل سنجیده شود.", "Final از نظر ایمنی؛ Edge نامشخص");
+
+add("Free Space", "تعریف Free Space", "FREE_SPACE_DEFINITION", "فاصله خالی لبه Zone ورود تا نزدیک‌ترین Zone بعدی در جهت معامله.", "یکسان.", "تعریف لبه‌به‌لبه با مانع واقعی پیش رو سازگار است.", "مساوی");
+add("Free Space", "حداقل Free Space", "FREE_SPACE_MINIMUM", "فقط FreeSpace بزرگ‌تر از 3.00 دلار برای Reversal/Pullback مجاز است؛ مساوی 3 نیز Block است.", "نسخه قدیمی FreeSpace مساوی یا بزرگ‌تر از 15 دلار را برای Pullback و Reversal High لازم داشت.", "15 دلار Selectivity و فضای حرکت بیشتری می‌دهد؛ 3 دلار با 0.5×BASE_R پیوند مفهومی دارد. بدون آزمون حساسیت و مدل هزینه، برنده علمی قطعی ندارد.", "نامشخص");
+
+add("SL و TP اولیه", "حدضرر اولیه", "INITIAL_STOP", "Stop روی نزدیک‌ترین Zone مخالف و با سقف فاصله 6 دلار؛ نبود Stop Zone باعث Reject می‌شود.", "قاعده پایه مشابه بود، اما High Reversal قدیمی می‌توانست Stop را تا 1.5×BASE_R یعنی 9 دلار گسترش دهد.", "سقف یکنواخت Final Tail Risk و مقایسه بین Priorityها را بهتر کنترل می‌کند؛ Stop بزرگ‌تر ممکن است Noise را تحمل کند ولی تمرکز ریسک می‌سازد.", "Final");
+add("SL و TP اولیه", "حد سود اولیه", "INITIAL_TARGET", "اولین Zone در جهت معامله که نزدیک‌ترین مرزش حداقل 6 دلار از Entry فاصله دارد.", "نسخه قدیمی اولین Zone با فاصله حداقل R0 واقعی را می‌گرفت؛ برای High توسعه‌یافته ممکن بود آستانه 9 دلار باشد.", "R0 واقعی نسبت Reward/Risk را مقیاس‌پذیرتر می‌کند؛ BASE_R ثابت تعریف Strategy را یکنواخت می‌کند. برتری به هدف طراحی وابسته است.", "نامشخص؛ RISK از نظر مقیاس ریسک");
+
+add("محافظت سود", "Break-even خالص", "RISK_FREE_PRICE", "قیمت خروج با PnL خالص تقریباً صفر پس از هزینه Native.", "نسخه قدیمی نیز BE را با Fill و هزینه‌های Native شناخته‌شده محاسبه می‌کرد.", "استفاده از هزینه Native از BE اسمی دقیق‌تر است.", "مساوی");
+add("محافظت سود", "محافظت پله‌ای از سود", "PROFIT_PROTECTION", "برای هر X صحیح، در X×6 دلار حرکت مطلوب SL به RF+(X−1)×6 منتقل و هرگز شل نمی‌شود.", "نسخه قدیمی بر R0 واقعی بود: 1R→BE، 1.5R→+0.5R و از 2R Structural Trail.", "Final درجات آزادی کمتر و رفتار یکنواخت‌تری دارد؛ مدل قدیمی نسبت به ریسک واقعی مقیاس‌پذیرتر ولی Structural Trail مستعد پیچیدگی است.", "Final از نظر پارسیمونی؛ RISK از نظر Scale");
+
+add("Execution و سرمایه", "Order محافظت‌شده از لحظه ایجاد", "ORDER_PROTECTED_FROM_CREATION", "هر Order از ابتدا SL و TP معتبر دارد و نوع Entry ثبت می‌شود.", "یکسان در هدف؛ Final اعتبارسنجی Fail-closed صریح‌تری دارد.", "حفاظت از لحظه ایجاد ریسک Gap عملیاتی بین Fill و Modify را حذف می‌کند.", "Final در پیاده‌سازی");
+add("Execution و سرمایه", "هزینه‌های Native", "NATIVE_COSTS", "Spread از Bid/Ask و PnL/Commission/Swap/Fee از Broker/Deal History؛ هزینه مصنوعی وجود ندارد.", "نسخه قدیمی نیز در این سناریو هزینه Native را ثبت می‌کرد.", "مدل Native از هزینه ثابت مصنوعی معتبرتر است، ولی به مشخصات Broker وابسته می‌ماند.", "مساوی");
+add("Execution و سرمایه", "تقریب آموزشی PnL", "PNL_APPROXIMATION_ONLY", "در 0.01 lot حرکت یک‌دلاری تقریباً یک دلار PnL ناخالص است؛ Accounting فقط Native است.", "در نسخه قدیمی به‌صورت Rule مستند مستقل نبود؛ محاسبه Native انجام می‌شد.", "تفکیک تقریب آموزشی از حسابداری مانع استفاده اشتباه از تقریب در Evidence می‌شود.", "Final از نظر مستندسازی");
+add("Execution و سرمایه", "حجم ثابت و سقف Position", "FIXED_LOT_AND_CONCURRENCY", "سرمایه 200 دلار: 0.01 lot و حداکثر 3 Position؛ Dynamic Lot خاموش.", "یکسان؛ RISK200 نیز 0.01 و MaxLivePositions=3 داشت.", "حجم ثابت Attribution را ساده می‌کند، اما ریسک درصدی با تغییر Equity ثابت نمی‌ماند.", "مساوی");
+add("Execution و سرمایه", "حداکثر یک Entry جدید در هر کندل", "ONE_NEW_ORDER_PER_CANDLE", "کل Strategy در هر M15 فقط یک Order attempt دارد؛ موفق یا Reject سهمیه کندل را مصرف می‌کند.", "در نسخه قدیمی سقف سراسری نبود؛ فقط Duplicateهای محلی و MaxPosition اعمال می‌شد.", "Signalهای هم‌زمان معمولاً هم‌بسته‌اند؛ Gate سراسری Multiplicity، Retry و تراکم Exposure را کاهش می‌دهد.", "Final");
+add("Execution و سرمایه", "Daily Realized Loss Guard", "DAILY_REALIZED_LOSS_GUARD", "برای سرمایه زیر 300، زیان خالص Realized برابر 20٪، Entry را قفل و Pending را Cancel می‌کند؛ Position صرفاً با این Rule بسته نمی‌شود.", "یکسان برای سناریوی سرمایه 200 و Override=false.", "Net daily guard از زیان روزانه جلوگیری می‌کند ولی سود قبلی می‌تواند Gross loss را پنهان کند؛ GROSS15 این ضعف را جداگانه پوشش می‌دهد.", "مساوی");
+add("Execution و سرمایه", "بودجه ریسک پرتفوی", "PORTFOLIO_RISK_BUDGET", "GROSS_DAILY برابر 15٪ سرمایه؛ Gross realized loss + Open risk + Pending risk + New risk با محاسبات Native.", "قاعده اسمی یکسان؛ Final فیلتر دقیق Symbol+Magic، حالت BE-or-better و Fail-closed روشن‌تری دارد.", "Gross aggregation از Netting سود و زیان جلوگیری می‌کند؛ اجرای Final از نظر جداسازی و خطای اندازه‌گیری قوی‌تر است.", "Final در پیاده‌سازی؛ Rule مساوی");
+
+add("Session و Restart", "پایان Session", "SESSION_END_FLATTEN", "پنج دقیقه قبل از پایان Session واقعی Broker، Entry Block، Pending/Cycle Cancel و تمام Positionهای EA بسته می‌شوند.", "یکسان؛ RISK200_GROSS_15 با SESSION_ALL_FLAT و 5 دقیقه اجرا می‌شد.", "Flatten مبتنی بر تقویم Broker از Carry ناخواسته و ساعت Hard-code جلوگیری می‌کند.", "مساوی");
+add("Session و Restart", "Restart امن", "RESTART_FAIL_CLOSED", "Restart همان روز باعث Day Lock، Cancel، Flatten و ممنوعیت Fill تا روز بعد می‌شود.", "نسخه قدیمی Gate صریح Day Lock و بازیابی Fail-closed معادل نداشت.", "وقتی State کامل قابل بازیابی نیست، Flatten و Lock از ادامه با State ناقص علمی‌تر و ایمن‌تر است.", "Final");
+
+add("Audit و گزارش", "Journal قابل Trace", "AUDIT_JOURNAL", "Signal/Order/Fill/Close با Event ID، Rule ID، زمان، Zone، جهت، Entry/SL/TP، BO lineage و دلیل Reject ثبت می‌شوند.", "نسخه قدیمی Journal مفصل داشت، اما قرارداد durable-before-state، request correlation و recovery invariant ضعیف‌تر بود.", "ثبت قبل از تغییر State، قابلیت بازسازی و تشخیص خطا را افزایش می‌دهد.", "Final");
+add("Audit و گزارش", "گزارش نهایی قابل بازاستفاده", "FINAL_TEST_REPORT", "Evidence باید Dataset/Config/Hash/Build/Costs/counters/PnL/Risk/failures/limits را نگه دارد و گزارش بعدی بدون اجرای مجدد ساخته شود.", "نسخه قدیمی Summary/Journal داشت، ولی قرارداد جامع Provenance و بازاستفاده بدون rerun نداشت.", "Provenance کامل از HARKing، تغییر خاموش Config و گزارش انتخابی جلوگیری می‌کند.", "Final");
+
+const workbook = Workbook.create();
+const sheet = workbook.worksheets.add("Rule comparison");
+sheet.getRangeByIndexes(0, 0, rows.length + 1, headers.length).values = [headers, ...rows];
+workbook.recalculate();
+
+const inspection = await workbook.inspect({
+  kind: "table",
+  range: `Rule comparison!A1:H${rows.length + 1}`,
+  include: "values,formulas",
+});
+if (!inspection.ndjson.includes("BASE_R_USD") || rows.length !== 54) {
+  throw new Error(`Rule comparison validation failed; rows=${rows.length}`);
+}
+
+function csvCell(value) {
+  const text = String(value ?? "");
+  return `"${text.replaceAll('"', '""')}"`;
+}
+
+const csv = [headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n") + "\r\n";
+await fs.mkdir(path.dirname(output), { recursive: true });
+await fs.writeFile(output, `\uFEFF${csv}`, "utf8");
+console.log(`rows=${rows.length} output=${output}`);

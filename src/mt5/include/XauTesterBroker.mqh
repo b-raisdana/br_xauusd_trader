@@ -31,6 +31,49 @@ bool TesterRetcodeAccepted(const uint retcode)
           retcode == TRADE_RETCODE_DONE_PARTIAL;
   }
 
+bool PendingStopPriceReady(const XauDirection direction,const double entry_price,
+                           const double bid,const double ask,const double minimum_distance)
+  {
+   if(entry_price <= 0.0 || bid <= 0.0 || ask < bid || minimum_distance < 0.0)
+      return false;
+   if(direction == XAU_BUY)
+     {
+      const double threshold=ask+minimum_distance;
+      return (minimum_distance <= PARITY_PRICE_TOLERANCE ?
+              entry_price > threshold+PARITY_PRICE_TOLERANCE :
+              entry_price >= threshold-PARITY_PRICE_TOLERANCE);
+     }
+   const double threshold=bid-minimum_distance;
+   return (minimum_distance <= PARITY_PRICE_TOLERANCE ?
+           entry_price < threshold-PARITY_PRICE_TOLERANCE :
+           entry_price <= threshold+PARITY_PRICE_TOLERANCE);
+  }
+
+bool TesterCandidateNativeReady(const string symbol,const XauSignalCandidate &candidate,
+                                bool &ready)
+  {
+   ready=false;
+   if(symbol == "" || candidate.entry_price <= 0.0)
+      return false;
+   if(candidate.order_type == XAU_ORDER_MARKET)
+     {
+      ready=true;
+      return true;
+     }
+   if(candidate.order_type != XAU_ORDER_PENDING_STOP)
+      return false;
+   MqlTick tick;
+   long stops_level=0;
+   double point=0.0;
+   if(!SymbolInfoTick(symbol,tick) ||
+      !SymbolInfoInteger(symbol,SYMBOL_TRADE_STOPS_LEVEL,stops_level) ||
+      !SymbolInfoDouble(symbol,SYMBOL_POINT,point) || stops_level < 0 || point <= 0.0)
+      return false;
+   ready=PendingStopPriceReady(candidate.direction,candidate.entry_price,tick.bid,tick.ask,
+                               (double)stops_level*point);
+   return true;
+  }
+
 bool SubmitTesterPreparedEntry(const bool enabled,const long magic,const string symbol,
                                const XauPreparedEntry &prepared,
                                XauTesterSubmission &submission)
@@ -107,6 +150,34 @@ bool CancelTesterPendingOrders(const bool enabled,const long magic,const string 
          return false;
       cancelled_tickets[index]=ticket;
      }
+   return true;
+  }
+
+bool CancelTesterPendingOrder(const bool enabled,const long magic,const string symbol,
+                              const ulong order_ticket,XauTesterSubmission &submission)
+  {
+   submission.attempted=false;
+   submission.accepted=false;
+   submission.order_ticket=order_ticket;
+   submission.deal_ticket=0;
+   submission.retcode=0;
+   if(!TesterExecutionAllowed(enabled) || magic <= 0 || symbol == "" ||
+      order_ticket == 0 || !OrderSelect(order_ticket) ||
+      OrderGetString(ORDER_SYMBOL) != symbol || OrderGetInteger(ORDER_MAGIC) != magic)
+      return false;
+   const ENUM_ORDER_TYPE order_type=(ENUM_ORDER_TYPE)OrderGetInteger(ORDER_TYPE);
+   if(order_type != ORDER_TYPE_BUY_STOP && order_type != ORDER_TYPE_SELL_STOP)
+      return false;
+   MqlTradeRequest request={};
+   MqlTradeResult result={};
+   request.action=TRADE_ACTION_REMOVE;
+   request.order=order_ticket;
+   request.symbol=symbol;
+   request.magic=(ulong)magic;
+   submission.attempted=true;
+   const bool sent=OrderSend(request,result);
+   submission.retcode=result.retcode;
+   submission.accepted=sent && TesterRetcodeAccepted(result.retcode);
    return true;
   }
 

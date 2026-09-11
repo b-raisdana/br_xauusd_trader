@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "status": "FINAL",
-  "as_of": "2026-09-08",
+  "as_of": "2026-09-11",
   "purpose": "Canonical reusable evidence for reporting without rerunning MetaTrader 5",
   "provenance": {
     "last_committed_repository_head": "871189ae632af525361f0041cd08c9206216eaa4",
@@ -24,7 +24,7 @@
     }
   },
   "automated_checks": {
-    "python_tests": {"status": "PASS", "passed": 139},
+    "python_tests": {"status": "PASS", "passed": 146},
     "legacy_python_ast": {"status": "PASS", "passed": 9, "total": 9},
     "mql_compile": {"status": "PASS", "errors": 0, "warnings": 0},
     "python_mql_contract_vectors": {"status": "PASS", "count": 19},
@@ -132,6 +132,29 @@
       "market_close_branch_observed": false
     }
   },
+  "v1_stabilized": {
+    "status": "PASS",
+    "config": "config/mt5/tester_multiday_200.ini",
+    "model": "Every Tick Based on Real Ticks",
+    "range": "2026-07-29..2026-08-28",
+    "source_sha256": "70AA7E782EC3E6AE364B88551C9810D77DD490460CBCF7FCBC945F611569077",
+    "compiled_sha256": "0C932D89CD8113EF98BBBA90BDB6FE3D1E896B6ABA1422B78E0B887F214AAD5A",
+    "attempts": 249,
+    "accepted": 248,
+    "rejected": 1,
+    "invalid_price_rejections": 0,
+    "invalid_stop_rejections": 1,
+    "other_broker_rejections": 0,
+    "maximum_observed_positions": 2,
+    "candidate_blocks": 2425,
+    "native_pending_waits": 486,
+    "opposite_reversal_blocks": 0,
+    "expiry_cancels": 0,
+    "sl_loosen_violations": 0,
+    "final_exposure": 0,
+    "lifecycle_failures": 0,
+    "structured_evidence": "artifacts/v1_stabilized/evidence.json"
+  },
   "mt5_multiday_engineering": {
     "status": "PASS",
     "config": "config/mt5/tester_multiday_200.ini",
@@ -139,8 +162,12 @@
     "range": "2026-07-29..2026-08-28",
     "zone_broker_days": 23,
     "capital_usd": "200.00",
+    "final_balance_usd": "274.48",
+    "net_realized_pnl_usd": "74.48",
     "attempts": 308,
     "accepted": 244,
+    "filled_and_closed_positions": 242,
+    "accepted_unfilled_then_cancelled": 2,
     "rejected": 64,
     "invalid_price_rejections": 64,
     "other_broker_rejections": 0,
@@ -183,9 +210,32 @@
       "lifecycle_failures": 0
     }
   },
+  "reporting_artifacts": {
+    "daily_performance_comparison": {
+      "path": "artifacts/final_reporting/final_daily_performance_comparison.csv",
+      "sha256": "3E5D8542B27FAB51B0C2CD932B7FE993795896530D4C809306A62553EC560087",
+      "rows": 648,
+      "final_broker_days": 23,
+      "scenarios": 33,
+      "purpose": "Daily final MT5 PnL alongside every available historical daily scenario, with final-minus-scenario deltas"
+    },
+    "event_ledger": {
+      "path": "artifacts/final_reporting/final_event_ledger.csv",
+      "sha256": "F4D7CC03590ED1C34B0BE8CFF808A44B8A96258618A46408747EDD82FAB35C0F",
+      "rows": 1761,
+      "attempts": 308,
+      "rejects": 64,
+      "fills": 242,
+      "closes": 242,
+      "purpose": "Timestamped native lifecycle, durable request/zone/rule lineage, modifications, closes, realized and cumulative PnL"
+    },
+    "rebuild_script": "scripts/build_final_analysis_csv.py",
+    "accounting_reconciliation": "PASS: daily sum 74.48; balance 200.00 to 274.48; 2026-08-28 net -12.27"
+  },
   "pending_final_evidence": [],
   "interpretation_limits": [
-    "The stored PnL values cover one Broker Day and are engineering evidence, not profitability evidence.",
+    "The stored final daily PnL covers 23 Broker Days and is engineering evidence, not proof of profitability or robustness.",
+    "Historical daily scenarios use superseded behavior; their deltas are descriptive comparisons, not controlled A/B attribution.",
     "No missing metric may be inferred or estimated.",
     "Real-money trading remains outside MVP acceptance and requires explicit Project Leader approval.",
     "Visual chart inspection is not an MVP gate."

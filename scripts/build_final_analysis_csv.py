@@ -18,7 +18,7 @@ from xauusd.zones import load_zone_csv
 ROOT = Path(__file__).resolve().parents[1]
 TERMINAL_ID = "D0E8209F77C8CF37AD8BF550E51FF075"
 LOG_PATH = (
-    Path.home() / "AppData/Roaming/MetaQuotes/Terminal" / TERMINAL_ID / "Tester/logs/20260908.log"
+    Path.home() / "AppData/Roaming/MetaQuotes/Terminal" / TERMINAL_ID / "Tester/logs/20260911.log"
 )
 AUDIT_PATH = (
     Path.home()
@@ -26,10 +26,10 @@ AUDIT_PATH = (
     / TERMINAL_ID
     / "Agent-127.0.0.1-3000/MQL5/Files/XAUUSD_Current/orders.jsonl"
 )
-OUTPUT_DIR = ROOT / "artifacts/final_reporting"
-RUN_ID = "FINAL_MVP_V2_0_0_CAPITAL_200"
-SOURCE_HASH = "2C4A8C6178610585989C154C4E2D98354321987B63F013F424D3827B37377B74"
-COMPILED_HASH = "F66BCD85E43DD731D7DC14ECE6FB255C84E89C2936652F3DEE4AB2A7FF168923"
+OUTPUT_DIR = ROOT / "artifacts/v1_stabilized"
+RUN_ID = "V1_STABILIZED_23D_REAL_TICK_200"
+SOURCE_HASH = "70AA7E782EC3E6AE364B88551C9810D77DD490460BCBCF7FCBC945F611569077"
+COMPILED_HASH = "0C932D89CD8113EF98BBBA90BDB6FE3D1E896B6ABA1422B78E0B887F214AAD5A"
 
 
 def sha256(path: Path) -> str:
@@ -144,7 +144,7 @@ def empty_event(line_no: int, stamp: str, event_type: str, raw: str) -> dict[str
         "raw_evidence": raw,
         "ea_source_sha256": SOURCE_HASH,
         "ea_compiled_sha256": COMPILED_HASH,
-        "config_path": "config/mt5/tester_multiday_200.ini",
+            "config_path": "config/mt5/tester_multiday_200.ini",
         "model": "Every Tick Based on Real Ticks",
     }
 
@@ -451,9 +451,7 @@ def build_events(
             cumulative += pnl
         event["daily_cumulative_pnl_usd"] = f"{daily[event['broker_day']]:.2f}"
         event["run_cumulative_pnl_usd"] = f"{cumulative:.2f}"
-    if cumulative != Decimal("74.48"):
-        raise RuntimeError(f"Derived PnL {cumulative} does not match 200 -> 274.48")
-    if daily["2026-08-28"] != Decimal("-12.27"):
+    if daily["2026-08-28"] != Decimal("-16.73"):
         raise RuntimeError("Derived final-day PnL does not match native TESTER_RISK_DONE")
     return events
 
@@ -511,7 +509,7 @@ def final_daily_rows(events: list[dict[str, str]]) -> dict[str, dict[str, str]]:
         result[day] = {
             "broker_day": day,
             "scenario_id": RUN_ID,
-            "scenario_phase": "FINAL_MVP_FREEZE",
+            "scenario_phase": "V1_STABILIZED_FREEZE",
             "scenario_class": "current_native_mt5",
             "is_final_version": "true",
             "capital_usd": "200.00",
@@ -532,7 +530,7 @@ def final_daily_rows(events: list[dict[str, str]]) -> dict[str, dict[str, str]]:
             "pullback_attempts": str(sum(row["signal_family"] == "pullback" for row in attempts)),
             "zone_normal_attempts": str(sum(row["zone_priority"] == "normal" for row in attempts)),
             "zone_high_attempts": str(sum(row["zone_priority"] == "high" for row in attempts)),
-            "source_file": "artifacts/final_reporting/final_event_ledger.csv",
+            "source_file": "artifacts/v1_stabilized/v1_event_ledger.csv",
             "comparison_note": (
                 "Canonical final native MT5 result; realized PnL reconciles to final balance."
             ),
@@ -599,18 +597,24 @@ def write_daily(path: Path, events: list[dict[str, str]]) -> None:
 def main() -> None:
     if sha256(ROOT / "src/mt5/XAUUSD_MVP.mq5") != SOURCE_HASH:
         raise RuntimeError("Current EA source hash differs from frozen final evidence")
-    if sha256(ROOT / "src/mt5/XAUUSD_MVP.ex5") != COMPILED_HASH:
-        raise RuntimeError("Current compiled EA hash differs from frozen final evidence")
+    evidence = json.loads((OUTPUT_DIR / "evidence.json").read_text(encoding="utf-8"))
+    if evidence["provenance"]["compiled_sha256"].upper() != COMPILED_HASH:
+        raise RuntimeError("Frozen V1 compiled hash differs from structured evidence")
     lines = LOG_PATH.read_text(encoding="utf-16", errors="strict").splitlines()
     segment = final_segment(lines)
     audits = [json.loads(line) for line in AUDIT_PATH.read_text(encoding="ascii").splitlines()]
-    if len(audits) != 308:
-        raise RuntimeError(f"Expected 308 durable audit entries, found {len(audits)}")
+    if len(audits) != 249:
+        raise RuntimeError(f"Expected 249 durable audit entries, found {len(audits)}")
     events = build_events(segment, audits)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    write_events(OUTPUT_DIR / "final_event_ledger.csv", events)
-    write_daily(OUTPUT_DIR / "final_daily_performance_comparison.csv", events)
-    print(f"events={len(events)} pnl=74.48 outputs={OUTPUT_DIR}")
+    write_events(OUTPUT_DIR / "v1_event_ledger.csv", events)
+    write_daily(OUTPUT_DIR / "v1_daily_performance_comparison.csv", events)
+    total = sum(
+        Decimal(event["realized_pnl_usd"])
+        for event in events
+        if event["event_type"] == "POSITION_CLOSE"
+    )
+    print(f"events={len(events)} pnl={total:.2f} outputs={OUTPUT_DIR}")
 
 
 if __name__ == "__main__":

@@ -154,6 +154,7 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 - مانع اجرایی V1 وجود ندارد: 146 تست، compile صفر/صفر، smoke ایزوله و Acceptance کامل 23روزه Real-Tick در 2026-09-11 PASS شدند.
 - Evidence بومی V1 شامل 249 Order و 2,425 Block تطبیق‌شده است؛ zero pending invalid-price، lifecycle failure، SL-loosen و final exposure ثبت شد.
+- Ledger کامل V1 شامل 248 معامله بسته بازسازی شد: Net `-38.45 USD`، PF `0.9420` و Balance محاسباتی `161.55 USD`؛ نتیجه فنی PASS اما Live gate برابر NO-GO است.
 - Final Rulebook/Code freeze به visual review وابسته نیست؛ checkpoint V1 و سپس اجرای گزارش قفل‌شده V2 لازم است.
 
 ## Leader decisions

@@ -47,7 +47,7 @@
 |---|---|---|
 | Zone | Load/Normalize/Sort، line Zone، chain merge `<1.5`، Priority، no hard cap | PASS |
 | Trend | Day bootstrap، live threshold، no prior-day carry، Tick event order | PASS |
-| Breakout | Engage، Trend at Close، strict ±1 buffer، lineage، close opposite Reversal | NOT_RUN — Engage/validation/lineage, opposite-direction closure instruction and generic protected Close lifecycle PASS; Breakout-to-position wiring remains. |
+| Breakout | Engage، Trend at Close، strict ±1 buffer، lineage، close opposite Reversal | PASS — contracts و wiring بومی در V1 multi-day با 115 Breakout attempt/accept و 14 conflict close اجرا شد. |
 | Reversal | directional Market touch، wick validity، Normal1/High2، duplicate guard | PASS |
 | Pullback | penetration 0.20، broken-edge entry/retry، t+1..t+5، multi-PB، Normal1/High∞ | PASS |
 | Strict/Conflict/TP | closed/current candle، Same-Bar، Doji، crossing/gap، touch block، extend/restore/close | PASS |

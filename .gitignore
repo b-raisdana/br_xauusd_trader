@@ -32,6 +32,7 @@ artifacts/*
 !artifacts/final_reporting/*.csv
 !artifacts/v1_stabilized/
 !artifacts/v1_stabilized/*.json
+!artifacts/v1_stabilized/*.csv
 output/*
 !output/.gitkeep
 outputs/

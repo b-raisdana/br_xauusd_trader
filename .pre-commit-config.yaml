@@ -1,7 +1,7 @@
 repos:
   - repo: local
     hooks:
-      - id: ruff-check
+      - id: ruff
         name: ruff-check
         entry: python -m ruff check
         language: system
@@ -11,7 +11,7 @@ repos:
         entry: python -m ruff format --check
         language: system
         types: [python]
-      - id: pytest
+      - id: pytest-fast
         name: pytest
         entry: python -m pytest
         language: system

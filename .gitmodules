@@ -1,0 +1,3 @@
+[submodule "br_pre_commit"]
+	path = br_pre_commit
+	url = git@github.com:b-raisdana/br_pre_commit.git

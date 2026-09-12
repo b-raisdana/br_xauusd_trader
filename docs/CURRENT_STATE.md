@@ -164,6 +164,6 @@ Historical F2 پیش از Secondary Rules برای Demo/Shadow آماده ارز
 
 ## Next autonomous action
 
-Codex بدون توقف روتین سه نقص Runtime و Block audit را در V1 اصلاح، تست و با اجرای 23روزه Freeze می‌کند؛ سپس شاخه V2 Experimental را از V1 می‌سازد، Protocol قفل‌شده را یک‌ضرب اجرا و گزارش تصمیم کامل تولید می‌کند. تنها توقف برنامه‌ریزی‌شده، Promotion نهایی Ruleهای V2 توسط رهبر پس از مشاهده Evidence است. Live و افزایش ریسک همچنان ممنوع است.
+Codex بسته گزارش نهایی V1 را با Ledger، مقایسه روزانه، راهنمای تست کوچک و inventory کامل تحویل می‌دهد. شاخه V2 Experimental ساخته شده است، اما اجرای Batch تا حل ابهام‌های Rule ثبت‌شده در `docs/V2_PROTOCOL_GAPS.md` مجاز نیست؛ حدس‌زدن این موارد Strategy logic را تغییر می‌دهد. Live و افزایش ریسک همچنان ممنوع است.
 
 فایل‌های Legacy فقط برای Forensic/Audit هستند و نباید مرجع روزمره اجرای MVP باشند.

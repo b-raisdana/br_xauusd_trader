@@ -33,6 +33,9 @@ artifacts/*
 !artifacts/v1_stabilized/
 !artifacts/v1_stabilized/*.json
 !artifacts/v1_stabilized/*.csv
+
+# Local/generated comparison bundles (keep outside Git; compact CSV evidence is tracked)
+rule_comparison_final_vs_risk200_gross15.zip
 output/*
 !output/.gitkeep
 outputs/

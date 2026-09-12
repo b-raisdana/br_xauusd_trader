@@ -76,6 +76,12 @@ Gate فنی V1 باز باقی نمانده است. اجرای Batch قفل‌ش
 
 اجرای تازه V1 روی 23 Broker Day و Real Ticks پاس شد: 249 attempt، 248 accepted، یک Market invalid-stop ثبت‌شده، صفر pending invalid-price، صفر unknown reject، صفر lifecycle failure، صفر SL-loosen و Exposure نهایی صفر. Block ledger شامل 2,425 رکورد بود که با Counter اجرا تطبیق کامل داشت؛ 486 مورد `NATIVE_PENDING_PRICE_WAIT` بدون مصرف Signal/Window ثبت شد. Evidence مستقل در `artifacts/v1_stabilized/evidence.json` قرار دارد. عدد net در Marker ریسک، snapshot روز پایانی است و به‌عنوان PnL کل بازه تفسیر نمی‌شود.
 
+حسابداری کامل همین V1 از Journal بازسازی شد: 248 معامله بسته شامل 54 برد، 188 باخت و 6 سربه‌سر؛ Gross profit=`624.36`، Gross loss=`662.81`، Net=`-38.45 USD`، Profit factor=`0.9420` و Balance محاسباتی از سرمایه 200 دلار برابر `161.55 USD` است. افت سرمایه روی توالی معاملات بسته `150.17 USD` است و معادل equity drawdown داخل معامله در گزارش رسمی MT5 نیست.
+
+مقایسه روزانه توصیفی نشان می‌دهد Final MVP predecessor در همان 23 روز `+74.48 USD` و RISK200_GROSS_15 در 22 روز موجود `+183.98 USD` داشته‌اند. اختلاف V1 با Final MVP برابر `-112.93 USD` است؛ RISK200 برای 2026-08-10 ردیف ندارد و روی 22 روز مشترک V1=`-16.41 USD` و اختلاف V1−Risk=`-200.39 USD` است. چون Rule و Engine نسخه‌ها یکسان نیست، این اعداد A/B کنترل‌شده نیستند. راهنمای نهایی‌سازی، تنظیم تست کوچک، جدول روزانه و inventory کامل فایل‌ها در `docs/V1_FINALIZATION_GUIDE.md` و Workbook خروجی ثبت شده‌اند.
+
+نتیجه Release/Live gate برای V1 برابر **NO-GO** است: مسیر `OrderSend` خارج Strategy Tester عمداً قفل است، نتیجه این بازه منفی و PF کمتر از یک است، Demo/Paper و آزمون disconnect/reconnect/reconciliation/kill-switch اجرا نشده‌اند، parity و هزینه/latency واقعی Broker اثبات نشده و یک Market invalid-stop reject باقی است. هر Limited Live علاوه بر رفع این موارد به حدود rollout/rollback و تأیید صریح رهبر نیاز دارد.
+
 Full Quality Gate در 2026-09-08 پاس شد: Ruff، format، mypy، 139 تست Python، `git diff --check`، کامپایل MT5 با صفر خطا/هشدار، سه اجرای پذیرش تک‌روزه، اجرای ۲۳روزه و Evidence ساختاریافته حاضر.
 
 اجرای نهایی ۲۳روزه PASS شد: 308 attempt، 244 accepted، 64 known native reject، 109 Breakout accepted، 14 بستن Reversal مخالف، max position=2، cancel/session-close=`2/3`، protection modify=167، TP=`8/2/2` و صفر failure، unknown reject، SL-loosen و exposure نهایی.

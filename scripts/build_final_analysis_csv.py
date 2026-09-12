@@ -144,7 +144,7 @@ def empty_event(line_no: int, stamp: str, event_type: str, raw: str) -> dict[str
         "raw_evidence": raw,
         "ea_source_sha256": SOURCE_HASH,
         "ea_compiled_sha256": COMPILED_HASH,
-            "config_path": "config/mt5/tester_multiday_200.ini",
+        "config_path": "config/mt5/tester_multiday_200.ini",
         "model": "Every Tick Based on Real Ticks",
     }
 

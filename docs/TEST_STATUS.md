@@ -34,7 +34,7 @@
 | Signal priority attribution | Same 23-day MQL run | PASS informational | Reversal Normal 86/86/0 and High 26/26/0; Pullback Normal 146/56/90 and High 44/20/24. Per-priority PnL is intentionally not an MVP acceptance criterion. |
 | QA day 2026-07-29 | Real-tick technical ledger summary | PASS technical | 17/15/2، 7 Breakout accepted، net +67.87 and zero failure. |
 | Final reusable report | Structured evidence + comprehensive Markdown | PASS Stage 7 | Canonical JSON/report include hashes, profile counters, Symbol spec, TP and restart evidence; summaries must reuse them without rerunning MT5. |
-| MVP V1 Freeze | Rulebook/Code/Evidence immutable version | READY_FOR_CHECKPOINT | Smoke، اجرای 23روزه و Evidence همگام PASS است؛ checkpoint Git مرحله بعد است. |
+| MVP V1 Freeze | Rulebook/Code/Evidence immutable version | PASS | Tag `mvp-v1-stabilized` در `e7c26e2` و checkpoint گزارش نهایی `42c40dc` موجود است؛ Smoke، اجرای 23روزه و Evidence همگام PASS‌اند. |
 | Shadow/Demo | Broker acceptance | NOT_RUN | پس از MVP Freeze. |
 | Limited Live | Explicit Leader approval | BLOCKED | شواهد و Risk approval موجود نیست. |
 | Historical bundle core manifest | `SHA256_KIT.txt` | PASS | هر 16 ورودی Manifest با فایل استخراج‌شده Match شد. |

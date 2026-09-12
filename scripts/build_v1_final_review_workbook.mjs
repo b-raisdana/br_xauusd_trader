@@ -139,7 +139,7 @@ dailySheet.getRange("F5").formulas = [["=IF(D5=\"\",\"\",B5-D5)"]]; dailySheet.g
 dailySheet.getRange("A28:F28").values = [["Total / available rows", null, null, null, null, null]];
 dailySheet.getRange("B28").formulas = [["=SUM(B5:B27)"]]; dailySheet.getRange("C28").formulas = [["=SUM(C5:C27)"]]; dailySheet.getRange("D28").formulas = [["=SUM(D5:D27)"]];
 
-filesSheet.getRange("A2:C2").merge(); filesSheet.getRange("A2").values = [["Complete tracked-file inventory"]];
+filesSheet.getRange("A2:C2").merge(); filesSheet.getRange("A2").values = [["Tracked and nonignored working-file inventory"]];
 filesSheet.getRange("A4:C4").values = [["Path", "Version/scope", "Purpose"]];
 filesSheet.getRange("A5").write(inventory);
 
@@ -189,16 +189,31 @@ howTo.getRange("A5:D12").format.wrapText = true; live.getRange("A5:D12").format.
 live.getRange("D5:D12").format.fill = warningFill;
 for (const sheet of [dailySheet, filesSheet, howTo, live]) sheet.freezePanes.freezeRows(4);
 summary.getRange("A:F").format.autofitColumns(); dailySheet.getRange("A:F").format.autofitColumns();
+summary.getRange("D:D").format.columnWidth = 27; summary.getRange("E:E").format.columnWidth = 34; summary.getRange("F:F").format.columnWidth = 22;
+dailySheet.getRange("A:A").format.columnWidth = 18; dailySheet.getRange("B:F").format.columnWidth = 18;
 filesSheet.getRange("A:A").format.columnWidth = 58; filesSheet.getRange("B:B").format.columnWidth = 25; filesSheet.getRange("C:C").format.columnWidth = 70;
 howTo.getRange("A:A").format.columnWidth = 22; howTo.getRange("B:B").format.columnWidth = 30; howTo.getRange("C:D").format.columnWidth = 58;
 live.getRange("A:A").format.columnWidth = 24; live.getRange("B:B").format.columnWidth = 20; live.getRange("C:C").format.columnWidth = 65; live.getRange("D:D").format.columnWidth = 18;
-const chart = dailySheet.charts.add("line", dailySheet.getRange("A4:D27")); chart.title = "Daily PnL comparison"; chart.setPosition("H4", "P20");
+howTo.getRange("A4:D12").format.autofitRows(); live.getRange("A4:D12").format.autofitRows();
 workbook.recalculate();
 await fs.mkdir(outputDir, {recursive:true});
-const preview = await workbook.render({sheetName:"Summary",autoCrop:"all",scale:1,format:"png"});
-await fs.writeFile(`${outputDir}/V1_FINAL_REVIEW_preview.png`, new Uint8Array(await preview.arrayBuffer()));
+const previewSpecs = [
+  ["Summary", "A1:F14", "summary"],
+  ["Daily comparison", "A1:F28", "daily_comparison"],
+  ["File inventory", "A1:C34", "file_inventory_sample"],
+  ["Small tests", "A1:D12", "small_tests"],
+  ["Live readiness", "A1:D12", "live_readiness"],
+];
+for (const [sheetName, range, suffix] of previewSpecs) {
+  const preview = await workbook.render({sheetName, range, scale:1, format:"png"});
+  await fs.writeFile(`${outputDir}/V1_FINAL_REVIEW_${suffix}.png`, new Uint8Array(await preview.arrayBuffer()));
+}
 const inspection = await workbook.inspect({kind:"table",sheetId:"Summary",range:"A2:F14",include:"values,formulas",tableMaxRows:20,tableMaxCols:8});
 console.log(inspection.ndjson);
+const dailyInspection = await workbook.inspect({kind:"table",sheetId:"Daily comparison",range:"A4:F28",include:"values,formulas",tableMaxRows:30,tableMaxCols:8});
+console.log(dailyInspection.ndjson);
+const fileInspection = await workbook.inspect({kind:"table",sheetId:"File inventory",range:"A4:C14",include:"values",tableMaxRows:12,tableMaxCols:4});
+console.log(fileInspection.ndjson);
 const errors = await workbook.inspect({kind:"match",searchTerm:"#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A|#NUM!|#NULL!|#SPILL!|#CALC!",options:{useRegex:true,maxResults:100},summary:"final formula error scan"});
 console.log(errors.ndjson);
 const output = await SpreadsheetFile.exportXlsx(workbook);

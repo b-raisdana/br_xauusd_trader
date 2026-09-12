@@ -1,6 +1,7 @@
 # MetaTrader5==5.0.6180
 
 br-logging-and-profiling>=0.5.2
+ctrader-open-api
 
 pandas==3.0.5
 plotly==6.9.0

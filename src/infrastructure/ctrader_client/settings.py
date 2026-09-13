@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 
 from .models import CTraderError
 
-DEFAULT_ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
+DEFAULT_ENV_PATH = Path(__file__).resolve().parents[3] / ".env"
 
 
 @dataclass(frozen=True, slots=True)

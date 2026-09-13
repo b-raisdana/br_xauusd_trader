@@ -8,7 +8,7 @@ all message construction and parsing to the functions defined here.
 Price encoding
 --------------
 cTrader transmits every price as an integer scaled by ``10 ** digits`` (see
-``ctrader_client.rate.decode_price``). The live spot and depth events therefore
+``infrastructure.ctrader_client.rate.decode_price``). The live spot and depth events therefore
 carry raw integers that must be divided by the symbol's ``digits`` to become
 human-readable prices; the symbol's ``digits``/``pipPosition`` come from a
 ``ProtoOASymbolByIdRes`` request, not from the stream itself.

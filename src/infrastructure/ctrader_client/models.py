@@ -1,8 +1,8 @@
 """cTrader Open API client domain models.
 
 Pure value objects used by the request builders and response parsers in
-``ctrader_client.streams``. None of these depend on the network or on the
-cTrader protobuf runtime, so they are cheap to construct and test.
+``infrastructure.ctrader_client.streams``. None of these depend on the network
+or on the cTrader protobuf runtime, so they are cheap to construct and test.
 """
 
 from __future__ import annotations

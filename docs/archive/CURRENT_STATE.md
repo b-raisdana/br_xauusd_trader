@@ -61,7 +61,7 @@
 - Price boundaries use finite `Decimal` values and merged Zone IDs use `{BrokerDay ISO}:R{sorted ordinal}`; future MQL5 parity must test conversion/tolerance explicitly.
 - `.gitattributes` now preserves canonical `ranges.csv` and all immutable Legacy evidence byte-for-byte across Windows/Linux; staged Git blobs verify core manifest 16/16 and canonical SHA-256 exactly.
 - First-run repository audit completed on 2026-09-06: all current and legacy source/test files were inventoried; `_migration_inbox` is absent.
-- Current executable baseline uses project-local Python 3.12, required by the active dependency set; `uv`, deterministic migration tests, Ruff, mypy and pytest are available.
+- Current executable baseline established with project-local Python 3.11.15, `uv`, deterministic migration tests, Ruff, mypy and pytest.
 - Windows runtime discovery confirmed Git 2.54.0, GitHub CLI 2.100.0 and MT5 Terminal/MetaEditor build 6151. PowerShell entry points require `-ExecutionPolicy Bypass` on this host.
 - Quality gate now fails closed on external command failures and excludes immutable `legacy_reference/` from current-code lint/type enforcement.
 - Normalized Python replay now enforces Broker-Day ownership, unique/non-overlapping bars, chronological in-bar ticks, OHLC consistency and final Bid=Close before routing through the same MarketState and durable audit projector. Historical tick input and exit/execution replay remain.
@@ -97,7 +97,7 @@
 
 ## Repository audit mismatches
 
-- `docs/RUNBOOK.md` records the verified Python 3.12 setup required by the active dependency set.
+- `docs/RUNBOOK.md` previously said Python still needed verification; Python 3.11.15 is now verified and the exact setup commands are recorded.
 - The original quality gate could print PASS after a failed external command. It now checks every exit code.
 - CI/tooling originally linted immutable legacy Python. Current-code gates now exclude `legacy_reference/`, while separate read-only legacy integrity/static checks remain recorded here and in `TEST_STATUS.md`.
 - Historical result/reference CSVs and the canonical Zone dataset are present, but the historical tick cache, full execution environment, compile logs and source commit provenance required to reproduce strategy PASS claims are not.

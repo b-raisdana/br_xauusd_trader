@@ -2,7 +2,7 @@
 
 ## Overview
 
-`src/ctrader_client/` is a Python package providing authenticated real-time
+`src/infrastructure/ctrader_client/` is a Python package providing authenticated real-time
 streaming of XAUUSD market data (spots, order-book depth, tick history) via the
 cTrader Open API.
 
@@ -47,7 +47,7 @@ token when it expires (60-second safety margin).
 ## Usage
 
 ```python
-from ctrader_client import CTraderClient, CTraderSettings, OAuthClient
+from infrastructure.ctrader_client import CTraderClient, CTraderSettings, OAuthClient
 
 settings = CTraderSettings.from_env()
 oauth = OAuthClient.from_settings(settings)
@@ -65,3 +65,26 @@ client.connect()
 The live transport uses the `ctrader-open-api` Twisted client over SSL. For
 unit testing, `CTraderClient` accepts any `Transport` (Protocol) that
 implements `connect`, `send`, `close`, and the `on_*` callback registrations.
+
+## Manual testing CLI
+
+A `typer`-based CLI lives under `src/presentation/` and exercises every
+implemented client capability without needing live credentials:
+
+```text
+ctrader-cli settings      # show env/.env-derived settings (or which vars are missing)
+ctrader-cli decode 260340000 5   # integer -> float price
+ctrader-cli rate 4 5            # pip_size / point helpers
+ctrader-cli build               # print every protobuf request builder
+ctrader-cli parse               # parse synthetic responses into domain models
+ctrader-cli simulate            # drive the full state machine offline (fake transport, no network)
+ctrader-cli oauth refresh       # live OAuth refresh-token exchange (needs .env credentials)
+ctrader-cli oauth auth-code --code CODE --redirect-uri URI   # live auth-code exchange
+```
+
+Run it directly with `python src/presentation/ctrader_cli.py <command>`, as a
+module with `PYTHONPATH=src python -m presentation.ctrader_cli <command>`, or
+after an editable install via the `ctrader-cli` console script. The `oauth`
+subcommands perform live HTTP to the cTrader token endpoint and require real
+OAuth credentials in `.env`; `simulate`, `build`, `parse`, `decode`, `rate` and
+`settings` are offline and safe to run anywhere.

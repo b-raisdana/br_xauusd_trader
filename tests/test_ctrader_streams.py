@@ -1,4 +1,4 @@
-"""Unit tests for ctrader_client.streams (protobuf builders and parsers)."""
+"""Unit tests for infrastructure.ctrader_client.streams (protobuf builders and parsers)."""
 
 from __future__ import annotations
 
@@ -15,13 +15,13 @@ from ctrader_open_api.messages.OpenApiMessages_pb2 import (
     ProtoOASymbolsListReq,
 )
 
-from ctrader_client.models import (
+from infrastructure.ctrader_client.models import (
     CTraderAccount,
     CTraderError,
     LightSymbolInfo,
 )
-from ctrader_client.rate import decode_price
-from ctrader_client.streams import (
+from infrastructure.ctrader_client.rate import decode_price
+from infrastructure.ctrader_client.streams import (
     build_account_auth_request,
     build_application_auth_request,
     build_get_account_list_request,

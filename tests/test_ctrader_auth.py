@@ -1,4 +1,4 @@
-"""Unit tests for ctrader_client.auth (OAuth2 token management)."""
+"""Unit tests for infrastructure.ctrader_client.auth (OAuth2 token management)."""
 
 from __future__ import annotations
 
@@ -7,13 +7,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from ctrader_client.auth import (
+from infrastructure.ctrader_client.auth import (
     TOKEN_URL,
     OAuthClient,
     exchange_authorization_code,
     exchange_refresh_token,
 )
-from ctrader_client.models import CTraderError, TokenResponse
+from infrastructure.ctrader_client.models import CTraderError, TokenResponse
 
 
 class TestTOKEN_URL:
@@ -22,7 +22,7 @@ class TestTOKEN_URL:
 
 
 class TestExchangeRefreshToken:
-    @patch("ctrader_client.auth.requests")
+    @patch("infrastructure.ctrader_client.auth.requests")
     def test_success(self, mock_requests: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.json.return_value = {
@@ -47,7 +47,7 @@ class TestExchangeRefreshToken:
         assert call_kwargs.kwargs["params"]["grant_type"] == "refresh_token"
         assert call_kwargs.kwargs["params"]["client_id"] == "client_id"
 
-    @patch("ctrader_client.auth.requests")
+    @patch("infrastructure.ctrader_client.auth.requests")
     def test_error_code_raises(self, mock_requests: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"errorCode": "INVALID_REFRESH_TOKEN", "description": "bad"}
@@ -59,7 +59,7 @@ class TestExchangeRefreshToken:
         assert exc_info.value.code == "INVALID_REFRESH_TOKEN"
         assert "bad" in exc_info.value.message
 
-    @patch("ctrader_client.auth.requests")
+    @patch("infrastructure.ctrader_client.auth.requests")
     def test_missing_fields_raises(self, mock_requests: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"something": "else"}
@@ -71,7 +71,7 @@ class TestExchangeRefreshToken:
 
 
 class TestExchangeAuthorizationCode:
-    @patch("ctrader_client.auth.requests")
+    @patch("infrastructure.ctrader_client.auth.requests")
     def test_success(self, mock_requests: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.json.return_value = {
@@ -103,7 +103,7 @@ class TestOAuthClient:
         )
         assert client.get_access_token() == "cached_token"
 
-    @patch("ctrader_client.auth.exchange_refresh_token")
+    @patch("infrastructure.ctrader_client.auth.exchange_refresh_token")
     def test_get_access_token_refreshes_when_expired(self, mock_exchange: MagicMock) -> None:
         mock_exchange.return_value = TokenResponse(
             access_token="new_access",
@@ -135,7 +135,7 @@ class TestOAuthClient:
             client.get_access_token()
 
     def test_from_settings(self) -> None:
-        from ctrader_client.settings import CTraderSettings
+        from infrastructure.ctrader_client.settings import CTraderSettings
 
         settings = CTraderSettings(
             client_id="cid",

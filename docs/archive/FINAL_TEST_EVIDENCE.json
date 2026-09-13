@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "status": "FINAL",
+  "as_of": "2026-09-08",
+  "purpose": "Canonical reusable evidence for reporting without rerunning MetaTrader 5",
+  "provenance": {
+    "last_committed_repository_head": "871189ae632af525361f0041cd08c9206216eaa4",
+    "ea_source_sha256": "2C4A8C6178610585989C154C4E2D98354321987B63F013F424D3827B37377B74",
+    "ea_compiled_sha256": "F66BCD85E43DD731D7DC14ECE6FB255C84E89C2936652F3DEE4AB2A7FF168923",
+    "mt5_terminal_build": 6151,
+    "python_version": "3.11.15",
+    "dataset": {
+      "path": "data/ranges.csv",
+      "sha256": "D146FE4650EA52DA64B585A7A0EE15D874E68801F12764481E9EF8C773C9F4F3",
+      "source_rows": 444,
+      "broker_days": 23,
+      "merged_zones": 421
+    },
+    "contract_vectors": {
+      "path": "tests/vectors/core_contracts.json",
+      "sha256": "FDA4287D893604FF0F790F4F5C767A3E8D2F44EE5DF516D82722D196D3897083",
+      "count": 19,
+      "mql_tolerance": "1e-9"
+    }
+  },
+  "automated_checks": {
+    "python_tests": {"status": "PASS", "passed": 139},
+    "legacy_python_ast": {"status": "PASS", "passed": 9, "total": 9},
+    "mql_compile": {"status": "PASS", "errors": 0, "warnings": 0},
+    "python_mql_contract_vectors": {"status": "PASS", "count": 19},
+    "signal_count_parity": {
+      "status": "PASS",
+      "broker_day": "2026-08-28",
+      "native_ticks": 541333,
+      "m15_bars": 88,
+      "breakout": 28,
+      "reversal": 62,
+      "pullback": 410904,
+      "count_differences": 0
+    }
+  },
+  "mt5_real_tick_profiles": [
+    {
+      "name": "capital_200",
+      "config": "config/mt5/tester_200.ini",
+      "config_sha256": "B8126916BF9726FB30B295420F8354E986ABB2EC1B0F9A51041C303ECECE1E98",
+      "broker_day": "2026-08-28",
+      "model": "Every Tick Based on Real Ticks",
+      "capital_usd": "200.00",
+      "lot": "0.01",
+      "maximum_positions": 3,
+      "attempts": 10,
+      "accepted": 8,
+      "rejected": 2,
+      "invalid_price_rejections": 2,
+      "other_broker_rejections": 0,
+      "net_realized_pnl_usd": "-12.27",
+      "realized_gross_loss_usd": "25.87",
+      "maximum_observed_positions": 1,
+      "profit_protection_modifications": 4,
+      "profit_protection_rejections": 0,
+      "sl_loosen_violations": 0,
+      "final_exposure": 0,
+      "lifecycle_failures": 0,
+      "pullback_tp": {"extensions": 0, "restores": 0, "market_closes": 0, "rejections": 0},
+      "breakout": {"attempts": 3, "accepted": 3, "rejected": 0, "conflict_closes": 0},
+      "status": "PASS_BOUNDED_ENGINEERING"
+    },
+    {
+      "name": "capital_300",
+      "config": "config/mt5/tester_300.ini",
+      "config_sha256": "6EA7AAC87717DFDC82A23F3ECF0D7915498ED36FC8496B5734F3E2F71D1D35CF",
+      "broker_day": "2026-08-28",
+      "model": "Every Tick Based on Real Ticks",
+      "capital_usd": "300.00",
+      "lot": "0.01",
+      "maximum_positions": 5,
+      "attempts": 17,
+      "accepted": 15,
+      "rejected": 2,
+      "invalid_price_rejections": 2,
+      "other_broker_rejections": 0,
+      "net_realized_pnl_usd": "-5.47",
+      "realized_gross_loss_usd": "44.82",
+      "maximum_observed_positions": 1,
+      "profit_protection_modifications": 10,
+      "profit_protection_rejections": 0,
+      "sl_loosen_violations": 0,
+      "final_exposure": 0,
+      "lifecycle_failures": 0,
+      "pullback_tp": {"extensions": 1, "restores": 1, "market_closes": 0, "rejections": 0},
+      "breakout": {"attempts": 5, "accepted": 5, "rejected": 0, "conflict_closes": 0},
+      "status": "PASS_BOUNDED_ENGINEERING"
+    }
+  ],
+  "safety_evidence": {
+    "daily_loss_and_gross15_contracts": "PASS",
+    "session_flatten": "PASS_BOTH_PROFILES",
+    "final_zero_exposure": "PASS_BOTH_PROFILES",
+    "same_day_restart_runtime": {
+      "status": "PASS",
+      "config": "config/mt5/tester_restart.ini",
+      "config_sha256": "8317BD1CA81901E37E544E6F611FD69E0ED99D484465FA3E17D2273F552E30E4",
+      "attempts": 0,
+      "maximum_observed_positions": 0,
+      "final_exposure": 0,
+      "lifecycle_failures": 0
+    },
+    "symbol_specification": {
+      "status": "PASS",
+      "digits": 2,
+      "point": "0.01",
+      "contract_size": "100.00",
+      "tick_size": "0.01",
+      "tick_value": "0.10",
+      "stops_level": 0,
+      "freeze_level": 0,
+      "volume_min": "0.01",
+      "volume_step": "0.01",
+      "session": "2026-08-28 00:00:00..23:00:00"
+    },
+    "live_trading": "BLOCKED_BY_DESIGN"
+  },
+  "targeted_regression_evidence": {
+    "strict_trend_contracts": "PASS",
+    "safety_after_tp_change": "PASS",
+    "tp_ab_2026_08_28": {
+      "status": "PASS_ENGINEERING_ATTRIBUTION",
+      "entry_counts_changed": false,
+      "capital_200_net_effect_usd": "+0.14",
+      "capital_300_net_effect_usd": "+0.14",
+      "market_close_branch_observed": false
+    }
+  },
+  "mt5_multiday_engineering": {
+    "status": "PASS",
+    "config": "config/mt5/tester_multiday_200.ini",
+    "config_sha256": "3E1972CAC0AC4554B90E54E6008CF87A1681AF84AD09A04BFB58F67E9CBDE6E9",
+    "range": "2026-07-29..2026-08-28",
+    "zone_broker_days": 23,
+    "capital_usd": "200.00",
+    "attempts": 308,
+    "accepted": 244,
+    "rejected": 64,
+    "invalid_price_rejections": 64,
+    "other_broker_rejections": 0,
+    "maximum_observed_positions": 2,
+    "pending_cancellations": 2,
+    "session_position_closes": 3,
+    "profit_protection_modifications": 167,
+    "tp_extensions": 8,
+    "tp_restores": 2,
+    "tp_market_closes": 2,
+    "tp_rejections": 0,
+    "sl_loosen_violations": 0,
+    "final_exposure": 0,
+    "lifecycle_failures": 0,
+    "breakout_attempts": 109,
+    "breakout_accepted": 109,
+    "breakout_conflict_closes": 14
+  },
+  "signal_attribution": {
+    "multiday_attempt_accepted_rejected": {
+      "breakout_normal": [100, 100, 0],
+      "breakout_high": [9, 9, 0],
+      "reversal_normal": [70, 69, 1],
+      "reversal_high": [19, 19, 0],
+      "pullback_normal": [91, 39, 52],
+      "pullback_high": [19, 8, 11]
+    },
+    "qa_2026_07_29": {
+      "status": "PASS_TECHNICAL",
+      "config_sha256": "37D3FE63CD8C3E385F4D5A5B90ED1E5EFD20F23C36DECBFEAFDA3697AA6F39C7",
+      "attempts": 17,
+      "accepted": 15,
+      "rejected": 2,
+      "net_realized_pnl_usd": "67.87",
+      "breakout_normal": [7, 7, 0],
+      "reversal_normal": [5, 5, 0],
+      "reversal_high": [0, 0, 0],
+      "pullback_normal": [5, 3, 2],
+      "pullback_high": [0, 0, 0],
+      "lifecycle_failures": 0
+    }
+  },
+  "pending_final_evidence": [],
+  "interpretation_limits": [
+    "The stored PnL values cover one Broker Day and are engineering evidence, not profitability evidence.",
+    "No missing metric may be inferred or estimated.",
+    "Real-money trading remains outside MVP acceptance and requires explicit Project Leader approval.",
+    "Visual chart inspection is not an MVP gate."
+  ]
+}

@@ -1,11 +1,11 @@
-"""Unit tests for ctrader_client.settings."""
+"""Unit tests for infrastructure.ctrader_client.settings."""
 
 from __future__ import annotations
 
 import pytest
 
-from ctrader_client.models import CTraderError
-from ctrader_client.settings import CTraderSettings
+from infrastructure.ctrader_client.models import CTraderError
+from infrastructure.ctrader_client.settings import CTraderSettings
 
 
 @pytest.fixture(autouse=True)

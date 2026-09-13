@@ -1,10 +1,10 @@
-"""Unit tests for ctrader_client.rate."""
+"""Unit tests for infrastructure.ctrader_client.rate."""
 
 from __future__ import annotations
 
 import pytest
 
-from ctrader_client.rate import decode_price, pip_size, point
+from infrastructure.ctrader_client.rate import decode_price, pip_size, point
 
 
 class TestDecodePrice:

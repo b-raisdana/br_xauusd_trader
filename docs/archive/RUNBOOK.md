@@ -4,7 +4,7 @@ Codex keeps this file updated with exact repeatable commands.
 
 ## Environment
 - OS: Windows host verified on 2026-09-06
-- Python version: project-local CPython 3.12 (required by the active dependency set)
+- Python version: project-local CPython 3.11.15 (created through uv 0.11.25)
 - Historical Python packages: MetaTrader5, NumPy 2.5.2, Polars 1.44.1
 - Main platform: MetaTrader 5 / MQL5
 - Installed MT5 Terminal and MetaEditor: build 6151 under `C:\Program Files\MetaTrader 5`

@@ -1,4 +1,6 @@
-"""Helpers for ctrader_client tests: wrap protobuf messages in ProtoMessage envelopes."""
+"""
+Helpers for infrastructure.ctrader_client tests: wrap protobuf messages in ProtoMessage envelopes.
+"""
 
 from __future__ import annotations
 

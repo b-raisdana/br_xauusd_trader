@@ -1,4 +1,4 @@
-"""Unit tests for ctrader_client.client state machine with a fake transport."""
+"""Unit tests for infrastructure.ctrader_client.client state machine with a fake transport."""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ from ctrader_open_api.messages.OpenApiMessages_pb2 import (
     ProtoOAGetAccountListByAccessTokenRes,
 )
 
-from ctrader_client.auth import OAuthClient
-from ctrader_client.client import CTraderClient
-from ctrader_client.models import CTraderError, SpotTick, SymbolInfo, TickPage
-from ctrader_client.settings import CTraderSettings
+from infrastructure.ctrader_client.auth import OAuthClient
+from infrastructure.ctrader_client.client import CTraderClient
+from infrastructure.ctrader_client.models import CTraderError, SpotTick, SymbolInfo, TickPage
+from infrastructure.ctrader_client.settings import CTraderSettings
 
 
 class FakeOAuth(OAuthClient):

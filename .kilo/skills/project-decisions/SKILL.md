@@ -23,7 +23,7 @@ description: Use for any of — adding a "fetch/compute and persist" function (c
 
 Trigger: adding a "fetch or compute this data" function, or a function called repeatedly with the same effective inputs.
 
-**Disk-level** (persists across restarts): `read_file()` in `helper/data_preparation.py` (`ExtendedDf.read_file()` is the pandera-bound variant). Reads feather/ZSTD first, falls back to legacy CSV-zip (auto-migrates to feather/ZSTD and deletes the zip on a full read), else calls `generator(time_range_str)` and re-reads. New persisted artifacts: reuse `read_file()` with a `data_frame_type` + `generator` — don't invent a new naming/read/write scheme. Generators write via `write_data_file(df, data_frame_type, time_range_str, file_path)` (feather/ZSTD), never `to_csv(...zip...)`. An LRU memo (~32 entries) sits in front of the disk read, keyed on `(data_frame_type, time_range_str, file_path, skip_rows, n_rows)`; skipped for `timerange_is_not_cachable()` ranges (touch the live/incomplete present — never memoize, never leave cached on disk).
+**Disk-level** (persists across restarts): `read_file()` in `src/helper/data_preparation.py` (`ExtendedDf.read_file()` is the pandera-bound variant). Reads feather/ZSTD first, falls back to legacy CSV-zip (auto-migrates to feather/ZSTD and deletes the zip on a full read), else calls `generator(time_range_str)` and re-reads. New persisted artifacts: reuse `read_file()` with a `data_frame_type` + `generator` — don't invent a new naming/read/write scheme. Generators write via `write_data_file(df, data_frame_type, time_range_str, file_path)` (feather/ZSTD), never `to_csv(...zip...)`. An LRU memo (~32 entries) sits in front of the disk read, keyed on `(data_frame_type, time_range_str, file_path, skip_rows, n_rows)`; skipped for `timerange_is_not_cachable()` ranges (touch the live/incomplete present — never memoize, never leave cached on disk).
 
 **In-memory** (derived from an already-in-RAM object, doesn't need to survive the process): cache on `df.attrs[private_key]`, not a dict — `pd.DataFrame` is unhashable. Self-bounded by the owning object's lifetime. Example: `_cached_training_frames()` in `training_datasets.py`, avoiding ~100x/quarter recompute of indicators/labels in the dataset-generator producer loops.
 
@@ -48,15 +48,30 @@ Dependency direction:
 
 ### Required folders
 
+Paths below are physical paths under the `src/` package root; Python imports omit the leading `src.`. Empty required folders are tracked with `.gitkeep`; remove the marker when the first real module is added. Do not create `__init__.py` solely to make an empty folder importable.
+
 | Folder | Owns | Allowed dependencies | Forbidden |
 |---|---|---|---|
-| `src/domain/` | Domain model, business invariants, entities, value objects, domain services, domain events, specifications, and domain schemas | Standard library, third-party libraries, and its own contracts | Filesystem/network/framework/config/logging I/O |
-| `src/application/` | Use cases and application services: one cohesive workflow per use case, orchestration, transaction boundaries, command/query DTOs, and port contracts in `application/ports/` | Domain contracts and injected port interfaces | Concrete infrastructure adapters or presentation code |
-| `src/infrastructure/` | Adapters and technical concerns: broker/exchange/MT5/cTrader, persistence, filesystem, config loading, logging, clock, serialization, and framework setup | Domain contracts/value objects and application port interfaces | Business policy or presentation behavior |
-| `src/presentation/` | Driving adapters and user-facing boundaries: CLI, API, UI, notebooks, reports, plots, and entrypoint composition | Application use cases and DTOs | Persistence, broker calls, or trading-rule decisions |
-| `src/helper/` | Small reusable pure utilities that do not belong to a domain concept or workflow: import aliases, date/time formatting, path/string/serialization helpers | Standard library, third-party libraries, and other helpers | Orchestration, business rules, I/O, or framework setup |
+| `src/domain/` | DDD model and business invariants: entities, value objects, domain services, domain events, specifications, and domain schemas | Standard library, third-party libraries, and its own contracts | Filesystem/network/framework/config/logging I/O |
+| `src/application/` | Hexagonal application layer: use cases and application services, one cohesive workflow per use case, orchestration, transaction boundaries, command/query DTOs, and port contracts in `application/ports/` | Domain contracts and injected port interfaces | Concrete infrastructure adapters, direct I/O, or presentation code |
+| `src/infrastructure/` | Hexagonal driven adapters and technical concerns: broker/exchange/MT5/cTrader, persistence, filesystem, config loading, logging, clock, serialization, and framework setup | Domain contracts/value objects and application port interfaces | Business policy or presentation behavior |
+| `src/presentation/` | Hexagonal driving adapters and user-facing boundaries: CLI, API, UI, notebooks, reports, plots, and entrypoint composition | Application use cases and DTOs | Persistence, broker calls, or trading-rule decisions |
+| `src/helper/` | Optional cross-cutting utility namespace, not a DDD or hexagonal layer: import aliases, date/time formatting, path/string/serialization helpers | Standard library, third-party libraries, and other helpers | Orchestration, business rules, I/O, or framework setup |
 
-Subfolders are created only when they contain code. Use focused subfolders such as `domain/price_action/`, `application/use_cases/`, `application/ports/`, `infrastructure/adapters/`, `infrastructure/persistence/`, `infrastructure/config/`, `presentation/cli/`, `presentation/reports/`, and `helper/dates/` when the responsibility is large enough to warrant one.
+Any layer may use `helper`; `helper` must not import a layer module. Subfolders are created only when they contain code. Use focused subfolders such as `domain/price_action/`, `application/use_cases/`, `application/ports/`, `infrastructure/adapters/`, `infrastructure/persistence/`, `infrastructure/config/`, `presentation/cli/`, `presentation/reports/`, and `helper/dates/` when the responsibility is large enough to warrant one.
+
+### DDD and hexagonal mapping
+
+| Concept | Folder | Responsibility |
+|---|---|---|
+| Entity | `domain/entities/` | Identity and lifecycle |
+| Value object | `domain/value_objects/` | Immutable value without persistent identity |
+| Domain service | `domain/services/` | Stateless business operation that does not naturally belong to an entity/value object |
+| Domain event | `domain/events/` | Business fact recorded by the domain; no side effects |
+| Specification | `domain/` | Reusable business predicate or rule |
+| Repository/specification port | `domain/ports/` or `application/ports/` | Contract owned by the layer that consumes it |
+| Use case | `application/use_cases/` | Transaction/workflow orchestration |
+| Adapter | `infrastructure/adapters/` | Implementation of a port for an external system or persistence mechanism |
 
 ### Hexagonal/DDD placement
 

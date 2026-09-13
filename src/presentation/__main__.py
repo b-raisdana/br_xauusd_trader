@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from presentation.ctrader_cli import app
+from presentation.ctrader.ctrader_cli import app
 
 if __name__ == "__main__":
     raise SystemExit(app())

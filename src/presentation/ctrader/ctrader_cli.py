@@ -36,8 +36,8 @@ from infrastructure.ctrader_client.streams import (  # noqa: E402
     parse_symbols_list,
     parse_tick_data_page,
 )
-from presentation.ctrader_oauth import oauth_app  # noqa: E402
-from presentation.ctrader_samples import (  # noqa: E402
+from presentation.ctrader.ctrader_oauth import oauth_app  # noqa: E402
+from presentation.ctrader.ctrader_samples import (  # noqa: E402
     SIM_ACCOUNT_ID,
     SIM_DIGITS,
     SIM_SYMBOL_ID,
@@ -45,7 +45,7 @@ from presentation.ctrader_samples import (  # noqa: E402
     _symbol_by_id_message,
     _symbols_list_message,
 )
-from presentation.ctrader_simulation import simulate  # noqa: E402
+from presentation.ctrader.ctrader_simulation import simulate  # noqa: E402
 
 app = typer.Typer(
     help="Manual test CLI for the cTrader Open API client (infrastructure.ctrader_client).",

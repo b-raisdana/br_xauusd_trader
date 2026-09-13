@@ -10,7 +10,7 @@ from ctrader_open_api import Protobuf
 from ctrader_open_api.messages.OpenApiCommonMessages_pb2 import ProtoMessage
 
 from infrastructure.ctrader_client import CTraderClient, CTraderSettings, OAuthClient
-from presentation.ctrader_samples import (
+from presentation.ctrader.ctrader_samples import (
     SIM_ACCOUNT_ID,
     SIM_SYMBOL_ID,
     SIM_TICKER,

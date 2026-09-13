@@ -2,7 +2,7 @@
 
 from typer.testing import CliRunner
 
-from presentation.ctrader_cli import app
+from presentation.ctrader.ctrader_cli import app
 
 runner = CliRunner()
 

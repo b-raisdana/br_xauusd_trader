@@ -4,15 +4,11 @@ from __future__ import annotations
 
 import json
 import os
-import sys
-from pathlib import Path
 
 import typer
 from ctrader_open_api import Protobuf
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from infrastructure.ctrader_client import (  # noqa: E402
+from infrastructure.ctrader_client import (
     CTraderSettings,
     build_account_auth_request,
     build_application_auth_request,
@@ -26,8 +22,8 @@ from infrastructure.ctrader_client import (  # noqa: E402
     pip_size,
     point,
 )
-from infrastructure.ctrader_client.models import CTraderError, TickPage  # noqa: E402
-from infrastructure.ctrader_client.streams import (  # noqa: E402
+from infrastructure.ctrader_client.models import CTraderError, TickPage
+from infrastructure.ctrader_client.streams import (
     parse_accounts,
     parse_depth_event,
     parse_error,
@@ -36,8 +32,8 @@ from infrastructure.ctrader_client.streams import (  # noqa: E402
     parse_symbols_list,
     parse_tick_data_page,
 )
-from presentation.ctrader.ctrader_oauth import oauth_app  # noqa: E402
-from presentation.ctrader.ctrader_samples import (  # noqa: E402
+from presentation.ctrader.ctrader_oauth import oauth_app
+from presentation.ctrader.ctrader_samples import (
     SIM_ACCOUNT_ID,
     SIM_DIGITS,
     SIM_SYMBOL_ID,
@@ -45,7 +41,7 @@ from presentation.ctrader.ctrader_samples import (  # noqa: E402
     _symbol_by_id_message,
     _symbols_list_message,
 )
-from presentation.ctrader.ctrader_simulation import simulate  # noqa: E402
+from presentation.ctrader.ctrader_simulation import simulate
 
 app = typer.Typer(
     help="Manual test CLI for the cTrader Open API client (infrastructure.ctrader_client).",

@@ -5,6 +5,8 @@ ctrader-open-api
 requests
 twisted
 
+service_identity
+
 pandas==3.0.5
 plotly==6.9.0
 jupyter

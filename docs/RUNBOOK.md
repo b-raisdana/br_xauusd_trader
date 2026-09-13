@@ -51,6 +51,18 @@ Read-only raw tick acquisition uses explicit UTC boundaries and writes only to i
 
 Do not assign Broker Days from UTC until the terminal time basis for that run is explicitly verified. Tick cache is generated evidence and must not be committed.
 
+## Fetch cTrader market data
+
+Register `http://localhost:8080/callback` in the cTrader Open API application, then store only `CTRADER_CLIENT_ID` and `CTRADER_CLIENT_SECRET` in `.env`. On the first invocation, each live data command opens browser authorization, stores the resulting refresh token in ignored `.env`, and continues automatically:
+
+```bash
+ctrader-cli fetch-candles --symbol XAUUSD --timeframe 1min
+ctrader-cli stream-orderbook --symbol XAUUSD
+ctrader-cli stream-trades --symbol XAUUSD
+```
+
+The default OAuth scope is read-only `accounts`. Override the registered callback with `CTRADER_REDIRECT_URI`; request `CTRADER_OAUTH_SCOPE=trading` only when a future command needs trading access.
+
 The inert contract smoke emits five time/Bid probe markers when its local smoke configuration enables `InpEmitTimeBasisProbe`. Correlate that ordered sequence against UTC terminal history with local values only:
 
 ```powershell

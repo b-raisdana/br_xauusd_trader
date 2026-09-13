@@ -64,6 +64,16 @@ class TestFromEnv:
         with pytest.raises(CTraderError, match="CTRADER_REFRESH_TOKEN"):
             CTraderSettings.from_env(env_path=None)
 
+    def test_missing_tokens_allowed_for_interactive_authorization(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("CTRADER_CLIENT_ID", "test_client_id")
+        monkeypatch.setenv("CTRADER_CLIENT_SECRET", "test_secret")
+
+        settings = CTraderSettings.from_env(env_path=None, require_token=False)
+
+        assert settings.has_token is False
+
     def test_defaults_applied(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _set_required(monkeypatch)
         settings = CTraderSettings.from_env(env_path=None)

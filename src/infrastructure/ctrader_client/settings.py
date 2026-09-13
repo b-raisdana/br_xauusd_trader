@@ -45,7 +45,12 @@ class CTraderSettings:
         return bool(self.access_token or self.refresh_token)
 
     @classmethod
-    def from_env(cls, env_path: Optional[os.PathLike] = DEFAULT_ENV_PATH) -> "CTraderSettings":
+    def from_env(
+        cls,
+        env_path: Optional[os.PathLike] = DEFAULT_ENV_PATH,
+        *,
+        require_token: bool = True,
+    ) -> "CTraderSettings":
         """Build settings from ``*.env`` plus real environment variables."""
         if env_path is not None:
             load_dotenv(env_path, override=False)
@@ -67,7 +72,7 @@ class CTraderSettings:
 
         refresh_token = os.getenv("CTRADER_REFRESH_TOKEN") or None
         access_token = os.getenv("CTRADER_ACCESS_TOKEN") or None
-        if not refresh_token and not access_token:
+        if require_token and not refresh_token and not access_token:
             raise CTraderError(
                 "Neither CTRADER_REFRESH_TOKEN nor CTRADER_ACCESS_TOKEN is set. "
                 "Complete the one-time OAuth grant; see docs/ctrader.md.",

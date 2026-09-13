@@ -23,23 +23,26 @@ client.py   -- CTraderClient state machine + RealtimeTransport (Twisted-backed)
 |---|---|---|
 | `CTRADER_CLIENT_ID` | yes | OAuth2 application client ID |
 | `CTRADER_CLIENT_SECRET` | yes | OAuth2 application client secret |
-| `CTRADER_REFRESH_TOKEN` | one of refresh/access | Long-lived refresh token |
-| `CTRADER_ACCESS_TOKEN` | one of refresh/access | Short-lived access token |
+| `CTRADER_REFRESH_TOKEN` | no | Long-lived refresh token; live data commands obtain and save it automatically when absent |
+| `CTRADER_ACCESS_TOKEN` | no | Short-lived access token |
 | `CTRADER_ACCOUNT_LOGIN` | no | Select account by trader login number |
 | `CTRADER_SYMBOL` | no | Symbol name (default `XAUUSD`) |
 | `CTRADER_HOST` | no | API host (default `demo.ctraderapi.com`) |
 | `CTRADER_PORT` | no | API port (default `5035`) |
+| `CTRADER_REDIRECT_URI` | no | Registered localhost callback (default `http://localhost:8080/callback`) |
+| `CTRADER_OAUTH_SCOPE` | no | `accounts` for read-only data (default) or `trading` |
 
 A fallback key `ctrader_demo_account_login_number` is also read by
 `CTraderSettings.from_env`.
 
 ## OAuth2 Setup (one-time)
 
-1. Register an application at https://openapi.ctrader.com/apps
-2. Obtain the `client_id` and `client_secret`
-3. Complete the interactive authorization-code grant to receive a
-   `refresh_token`
-4. Set the variables in `.env` (never commit `.env`)
+1. Register an application at https://openapi.ctrader.com/apps and obtain its `client_id` and `client_secret`.
+2. Register `http://localhost:8080/callback` as an application redirect URI, or set `CTRADER_REDIRECT_URI` to another registered localhost URI with an explicit port.
+3. Put `CTRADER_CLIENT_ID` and `CTRADER_CLIENT_SECRET` in `.env` (never commit `.env`).
+4. Run any live data command. If no token exists, it opens cTrader authorization in the browser, captures the localhost callback, exchanges the code, saves `CTRADER_REFRESH_TOKEN` to `.env` with owner-only permissions, and continues the original command.
+
+The default `accounts` scope is read-only and sufficient for market-data fetching. Set `CTRADER_OAUTH_SCOPE=trading` only for commands that genuinely need trading permission.
 
 The `OAuthClient` caches the access token and auto-refreshes using the refresh
 token when it expires (60-second safety margin).
@@ -80,6 +83,9 @@ ctrader-cli parse               # parse synthetic responses into domain models
 ctrader-cli simulate            # drive the full state machine offline (fake transport, no network)
 ctrader-cli oauth refresh       # live OAuth refresh-token exchange (needs .env credentials)
 ctrader-cli oauth auth-code --code CODE --redirect-uri URI   # live auth-code exchange
+ctrader-cli fetch-candles       # authorizes automatically on first use, then fetches data
+ctrader-cli stream-orderbook    # authorizes automatically on first use, then streams depth
+ctrader-cli stream-trades       # authorizes automatically on first use, then streams quotes
 ```
 
 Run it directly with `python src/presentation/ctrader_cli.py <command>`, as a

@@ -31,7 +31,7 @@ dev = [
 ]
 
 [project.scripts]
-ctrader-cli = "presentation.ctrader_cli:app"
+ctrader-cli = "presentation.ctrader.ctrader_cli:app"
 
 [build-system]
 requires = ["hatchling"]

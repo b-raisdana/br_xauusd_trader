@@ -1,12 +1,12 @@
 ---
 name: project-decisions
-description: Use for any of — adding a "fetch/compute and persist" function (cache-or-generate); placing a new module/file under app/ (code-layers); adding network I/O or CPU-heavy fan-out (concurrency-and-blocking); before hand-rolling a new algorithm/transform (lib-first); building a filesystem path, CLI entrypoint, or settings/validation model (paths-cli-config); deciding what test type a change needs (test-strategy); writing/reviewing pandas/numpy code (vectorized-pandas-numpy); touching a file that reads/writes the OHLCV/indicator/label disk cache (feather/ZSTD migration-on-touch); adding/renaming a column or index level that holds timestamps (timestamp-column-naming); or a function about to duplicate another's shape with only a small explicit difference (merge-duplicated-logic-dry). One skill, several independent sections — read only the one(s) that match.
+description: Use for any of — adding a "fetch/compute and persist" function (cache-or-generate); placing a new module/file under src/ (code-layers); adding network I/O or CPU-heavy fan-out (concurrency-and-blocking); before hand-rolling a new algorithm/transform (lib-first); building a filesystem path, CLI entrypoint, or settings/validation model (paths-cli-config); deciding what test type a change needs (test-strategy); writing/reviewing pandas/numpy code (vectorized-pandas-numpy); touching a file that reads/writes the OHLCV/indicator/label disk cache (feather/ZSTD migration-on-touch); adding/renaming a column or index level that holds timestamps (timestamp-column-naming); or a function about to duplicate another's shape with only a small explicit difference (merge-duplicated-logic-dry). One skill, several independent sections — read only the one(s) that match.
 ---
 
 # Project decisions
 
 - [Cache or generate](#cache-or-generate)
-- [Code layers](#code-layers)
+- [Code layers and folder ownership](#code-layers-and-folder-ownership)
 - [Concurrency & blocking](#concurrency--blocking)
 - [Check "archive_not_used_trash/"](#check-archive_not_used_trash)
 - [Lib-first](#lib-first)
@@ -35,33 +35,60 @@ Rules:
 - Bound disk-level caches (fixed-size LRU, evict-oldest); in-memory caches self-bound via object lifetime.
 - One cache per artifact type — don't add a second read-or-generate branch for data already cached elsewhere (Repository design pattern).
 
-## Code layers
+## Code layers and folder ownership
 
-Trigger: adding a module/file under `app/`, or reviewing a layer boundary. DDD-flavored, not MVC — offline pipeline, no request/response cycle. Dependency arrows point inward: Presentation → Application → Infrastructure/Domain, and Infrastructure → Domain schemas only. Domain depends on nothing in-house.
+Trigger: adding/moving a module/file under `src/`, or reviewing a layer boundary. This repository uses DDD inside a hexagonal architecture for an offline trading pipeline. It is not MVC and has no request/response cycle.
 
-1. **Presentation** (`presentation/*`) — plotting, entrypoints, notebooks.
-2. **Application** (`application/dataset_generation`, `application/preprocessing`, `application/model_implementations`, `application/optimization`, `application/backtesting`, `application/live_trading`) — orchestrates Domain + Infrastructure for one job (dataset gen, training, prediction, optimization, backtesting).
-3. **Infrastructure** (`infrastructure/ohlcv`, `infrastructure/disk_cache.py`, `infrastructure/market_data_fetch`, `infrastructure/model_artifacts`, `infrastructure/order_execution`, `config/Config.py`) — I/O/framework adapters only: exchange fetch, disk cache/persistence, GPU/TF setup, config, logging. **No calculation logic** — `infrastructure/ohlcv/{ohlcv.py,ohlcva.py}` is the pattern to copy: `get_base_timeframe_ohlcv`/`get_multi_timeframe_ohlcv`/`get_multi_timeframe_ohlcva` live here because they fetch and `@cache_on_disk`-decorate, but each is a thin wrapper — the actual row-shaping/resampling/indicator math they call out to lives in `domain/ohlcv/` and `domain/technical_analysis/`, imported in. `infrastructure/disk_cache.py` is the generic `(data_frame_type, time_range_str)` persistence engine — not ohlcv-specific despite living next to `infrastructure/ohlcv/` (used by `domain/price_action/*`, `domain/schemas/common/ExtendedDf.py`, etc. too), which is why it sits one level up rather than inside `infrastructure/ohlcv/`.
-4. **Domain** (`domain/ohlcv`, `domain/technical_analysis`, `domain/price_action`, `domain/order`, `domain/schemas`) — pure algorithms (DataFrame→DataFrame, no I/O) + PanderaDFM schemas.
-   - `domain/ohlcv/` — OHLCV-shape construction, not named-indicator math: `ohlc.py` (`build_base_timeframe_ohlcv` — raw fetched rows → validated OHLCV DataFrame), `multi_timeframe.py` (`aggregate_multi_timeframe_ohlcv` — base-timeframe → all configured timeframes), `volume.py` (`insert_volume_rma`/`insert_mt_volume_rma` — smooths the OHLCV volume column directly, not a named indicator).
-   - `domain/technical_analysis/` — named indicator math, one file per category: `base.py` (generic smoothing primitive, e.g. `RMA`), `classic_indicators.py` (Ichimoku/Bollinger/RSI/MFI/OBV/CCI). Add a new category file rather than growing an existing one past its category.
-   - `domain/price_action/` — price-action/market-structure pattern detection (peak/valley, bull/bear/side, base-pattern, pivots).
-   - `domain/schemas/` — PanderaDFM value-object schemas.
+Dependency direction:
 
-Placing new code:
+- `presentation -> application -> domain`
+- `infrastructure -> application/domain port contracts`
+- `helper ->` pure utilities only; it must not become a dependency hub
+- Domain imports no in-house layer.
 
-- Pure transform, no I/O → Domain (`domain/ohlcv/*` for OHLCV shape/resampling, `domain/technical_analysis/*` for named indicator math, `domain/price_action/*` for pattern detection) or a new PanderaDFM schema under `domain/schemas/`.
-- Orchestrates multiple domain steps + I/O for one job → Application (e.g. `application/backtesting/BasePatternStrategy.py`, `application/dataset_generation/*`).
-- Direct disk/exchange/GPU/config/logging → Infrastructure (`infrastructure/market_data_fetch/*`, `infrastructure/ohlcv/*`, `infrastructure/disk_cache.py`, `config/Config.py`); new persisted-artifact types go through a repository (`get`/`save`), not inline I/O.
-- Plot/print/CLI → Presentation (`presentation/*`).
+### Required folders
 
-DDD map: value objects = PanderaDFM schemas (no persistent identity); domain services = the TA transform chain (PeakValley → BullBearSide → BasePattern → ATR/pivots → ftc); application services = orchestrators; bounded contexts = _price action_ (`domain/price_action`, `application/backtesting`) and _forecasting_ (`application/dataset_generation`, `application/model_implementations`), sharing the OHLCV/PanderaDFM kernel.
+| Folder | Owns | Allowed dependencies | Forbidden |
+|---|---|---|---|
+| `src/domain/` | Domain model, business invariants, entities, value objects, domain services, domain events, specifications, and domain schemas | Standard library, third-party libraries, and its own contracts | Filesystem/network/framework/config/logging I/O |
+| `src/application/` | Use cases and application services: one cohesive workflow per use case, orchestration, transaction boundaries, command/query DTOs, and port contracts in `application/ports/` | Domain contracts and injected port interfaces | Concrete infrastructure adapters or presentation code |
+| `src/infrastructure/` | Adapters and technical concerns: broker/exchange/MT5/cTrader, persistence, filesystem, config loading, logging, clock, serialization, and framework setup | Domain contracts/value objects and application port interfaces | Business policy or presentation behavior |
+| `src/presentation/` | Driving adapters and user-facing boundaries: CLI, API, UI, notebooks, reports, plots, and entrypoint composition | Application use cases and DTOs | Persistence, broker calls, or trading-rule decisions |
+| `src/helper/` | Small reusable pure utilities that do not belong to a domain concept or workflow: import aliases, date/time formatting, path/string/serialization helpers | Standard library, third-party libraries, and other helpers | Orchestration, business rules, I/O, or framework setup |
 
-Rules:
+Subfolders are created only when they contain code. Use focused subfolders such as `domain/price_action/`, `application/use_cases/`, `application/ports/`, `infrastructure/adapters/`, `infrastructure/persistence/`, `infrastructure/config/`, `presentation/cli/`, `presentation/reports/`, and `helper/dates/` when the responsibility is large enough to warrant one.
 
-- Never import Presentation/Application from Domain. Current known violation, deferred (see `docs/ML_Forecasting_System_Design/todo/03-infrastructure.md` step 12's 2026-08-17 note): several `domain/price_action/*` modules import straight from Infrastructure, not just schemas — `BasePattern.py`/`BullBearSide.py`/`BullBearSidePivot.py`/`PeakValleyPivots.py`/`AtrMovementPivots.py` pull `get_multi_timeframe_ohlcva`/`read_multi_timeframe_ohlcva` from `infrastructure/ohlcv/ohlcva.py`, and `BasePattern.py`/`BullBearSide.py`/`BullBearSidePivot.py`/`PeakValleyPivots.py`/`PeakValley.py` import `cache_on_disk` from `infrastructure/disk_cache.py` — don't copy this pattern into new code; a proper fix passes the OHLCVA frame (and any caching) in rather than having Domain pull it itself.
-- Don't fork a second copy of a module for a new pipeline — extend/move the existing one instead of duplicating.
-- Pass config/state explicitly into constructors/functions, never pulled from `app_config` mid-function.
+### Hexagonal/DDD placement
+
+- Domain model or business rule -> `domain/`.
+- Use case or workflow -> `application/use_cases/`.
+- Port interface consumed by application -> `application/ports/`.
+- Domain-side repository/specification port, when needed -> `domain/ports/`.
+- Adapter implementing a port -> `infrastructure/adapters/`.
+- External system, persistence, config loading, logging, or clock -> `infrastructure/`.
+- CLI, API, UI, notebook, report, or plot -> `presentation/`.
+- Generic pure utility -> `helper/`.
+- If one module does two jobs, split it at the layer boundary; never use `helper/` as a catch-all.
+- No separate `interfaces/` folder is required: port contracts live beside their consumer (`application/ports/` or `domain/ports/`), and implementations live in `infrastructure/adapters/`.
+
+### Existing repository mapping
+
+- `src/xauusd/` is the current strategy implementation and currently mixes domain/application responsibilities. Do not duplicate it; migrate or extend it in coherent batches while preserving tests.
+- `src/ctrader_client/` is an infrastructure adapter package. Keep its external-client boundary and move implementation under `infrastructure/` when refactored.
+- `scripts/` contains legacy entrypoints. `scripts/presentations.py` is a presentation adapter, not application or domain logic. New entrypoints belong in `presentation/`.
+- `config/` holds non-secret configuration data. Config loading belongs in `infrastructure/config/`, not `helper/`.
+- `integrations/` contains integration documentation and instructions. Executable adapters belong in `infrastructure/`.
+- `tests/` mirrors the layer or concern under test and is not production code.
+
+### Rules
+
+- Never import Presentation, Application, or Infrastructure from Domain.
+- Application depends on port contracts, not concrete adapters.
+- Infrastructure may depend on Domain/Application contracts, never on Presentation.
+- Presentation calls Application; it must not bypass Application to call Domain or Infrastructure directly.
+- Helper imports only standard-library, third-party, or other helper modules; it must not import a layer module.
+- Keep config and state explicit; do not pull globals from a module.
+- Do not fork duplicate modules for a new pipeline; move or extend the existing module.
 
 Splitting an oversized file (~500+ lines, by responsibility not raw count): extract one cohesive cluster per commit (few/no external callers first — check via grep), re-export moved names (`from new_module import name as name`) so callers keep working unchanged in that commit, log remaining clusters as follow-up instead of a full-file rewrite in one pass.
 
@@ -86,9 +113,9 @@ these are codes we developed before and has good ideas to remeber for optimized 
 do not move them blindly. every thime get the idea and implement it in a better way and try to optimize.
 apply skulls defined project standard on the code.
 
-**Hard guard: never edit or create any file under `archive_not_used_trash/`.** It is read-only reference — kept for its ideas, excluded from lint/mypy/tests by design (see `.pre-commit-config.yaml` and `pyproject.toml` excludes). If you need logic that lives there, re-implement it properly in the active tree (`app/`), applying current project standards; do not patch the archived copy, do not move it into `app/`, and do not add new files inside it. Treat the entire directory as frozen.
+**Hard guard: never edit or create any file under `archive_not_used_trash/`.** It is read-only reference — kept for its ideas, excluded from lint/mypy/tests by design (see `.pre-commit-config.yaml` and `pyproject.toml` excludes). If you need logic that lives there, re-implement it properly in the active tree (`src/`), applying current project standards; do not patch the archived copy, do not move it into `src/`, and do not add new files inside it. Treat the entire directory as frozen.
 
-When re-implementing ideas from `archive_not_used_trash/`, apply the active tree's naming conventions: the codebase uses `time_range` / `time_range_str` for timestamp spans (not `date_range` / `date_range_str`), and `pd.date_range` is the only exception (pandas library call). Do not bring old `date_range` naming into `app/`.
+When re-implementing ideas from `archive_not_used_trash/`, apply the active tree's naming conventions: the codebase uses `time_range` / `time_range_str` for timestamp spans (not `date_range` / `date_range_str`), and `pd.date_range` is the only exception (pandas library call). Do not bring old `date_range` naming into `src/`.
 
 ## Helper imports
 

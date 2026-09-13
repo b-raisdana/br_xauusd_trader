@@ -36,7 +36,7 @@ def export_ticks(
     if end <= start:
         raise ValueError("end must follow start")
 
-    import MetaTrader5 as mt5  # type: ignore[import-untyped]
+    import MetaTrader5 as mt5
 
     if not mt5.initialize(path=str(terminal)):
         code, message = mt5.last_error()

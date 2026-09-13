@@ -36,7 +36,7 @@ def main() -> int:
     parser.add_argument("--bids", type=bid_sequence, required=True)
     args = parser.parse_args()
 
-    import MetaTrader5 as mt5  # type: ignore[import-untyped]
+    import MetaTrader5 as mt5
 
     if not mt5.initialize(path=str(args.terminal)):
         code, message = mt5.last_error()

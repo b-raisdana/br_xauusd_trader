@@ -1,15 +1,38 @@
 """Offline smoke tests for the cTrader presentation CLI."""
 
 from pathlib import Path
+from types import SimpleNamespace
+from typing import cast
 
 import pytest
 from typer.testing import CliRunner
 
 from infrastructure.ctrader_client.models import TokenResponse
 from presentation.ctrader.ctrader_cli import app
-from presentation.ctrader.ctrader_oauth import load_live_settings
+from presentation.ctrader.ctrader_oauth import _open_browser, load_live_settings
 
 runner = CliRunner()
+
+
+def test_browser_open_uses_windows_powershell_inside_wsl(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[list[str], dict[str, str]]] = []
+    monkeypatch.setattr("presentation.ctrader.ctrader_oauth._is_wsl", lambda: True)
+    monkeypatch.setattr(
+        "presentation.ctrader.ctrader_oauth.shutil.which", lambda name: "powershell.exe"
+    )
+
+    def run(command: list[str], **kwargs: object) -> SimpleNamespace:
+        calls.append((command, cast(dict[str, str], kwargs["env"])))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr("presentation.ctrader.ctrader_oauth.subprocess.run", run)
+
+    assert _open_browser("https://example.test/?a=1&b=2") is True
+    command, child_env = calls[0]
+    assert command[-1] == "Start-Process -FilePath $env:CTRADER_BROWSER_URL"
+    assert child_env["CTRADER_BROWSER_URL"] == "https://example.test/?a=1&b=2"
 
 
 def test_parse_command_completes_with_synthetic_messages() -> None:

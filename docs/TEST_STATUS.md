@@ -8,7 +8,7 @@
 |---|---|---|---|
 | Migration integrity | Rule/Decision/Experiment separation | PASS | Template/Handoff Merge شد؛ Legacy از Active Rules جدا و تصمیم‌های نهایی Leader ثبت شد. |
 | Package structure smoke | Required root, Source-of-Truth files and canonical ranges | PASS | Canonical SHA-256 and required structure remain covered by pytest. |
-| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS with unrelated format debt | 2026-09-13: Ruff check PASS, mypy 65 files PASS, pytest 223 PASS, diff check PASS; repository-wide Ruff format remains blocked by 28 pre-existing mirrored skill Markdown files, while all changed files pass the format hook. |
+| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS with unrelated format debt | 2026-09-13: Ruff check PASS, mypy 65 files PASS, pytest 224 PASS, diff check PASS; repository-wide Ruff format remains blocked by 28 pre-existing mirrored skill Markdown files, while all changed files pass the format hook. |
 | Legacy static integrity | Historical sources/manifests without promotion | PASS | Python AST 9/9; PowerShell parser 12/12; MQL5 strict + balanced braces 3/3; Git-staged core manifest 16/16 across byte-preserved attributes. Not compile/runtime evidence. |
 | Zone/Trend/orchestration slice | Rule → causal ticks → bar close → deterministic tests | PASS | 21 focused tests; strict tick-chain/final-close validation and Breakout-before-Trend-roll PASS; 23 canonical days → 421 merged Zones; 444/444 source rows retained. |
 | Breakout/Reversal signal slice | Strict qualification, touch and accounting contracts | PASS | 9 focused/integration tests; strict buffer/lineage, same-Tick Trend, directional Market touch, gap/wick, duplicate, daily usage and shared bar slot PASS. |

@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import json
 import os
+import platform
+import shutil
+import subprocess
 import webbrowser
 from dataclasses import replace
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -93,6 +96,40 @@ def _start_local_server(port: int, code_holder: dict[str, str]) -> HTTPServer:
     return HTTPServer(("localhost", port), handler)
 
 
+def _is_wsl() -> bool:
+    return "microsoft" in platform.release().lower() or bool(os.getenv("WSL_INTEROP"))
+
+
+def _open_browser(url: str) -> bool:
+    """Open a URL in the host browser, including from a headless WSL shell."""
+    powershell = shutil.which("powershell.exe") if _is_wsl() else None
+    if powershell:
+        child_env = os.environ.copy()
+        child_env["CTRADER_BROWSER_URL"] = url
+        try:
+            completed = subprocess.run(
+                [
+                    powershell,
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    "Start-Process -FilePath $env:CTRADER_BROWSER_URL",
+                ],
+                check=False,
+                env=child_env,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=10,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return False
+        return completed.returncode == 0
+    try:
+        return webbrowser.open(url)
+    except webbrowser.Error:
+        return False
+
+
 def authorize_interactively(
     client_id: str,
     client_secret: str,
@@ -127,9 +164,11 @@ def authorize_interactively(
     server = _start_local_server(parsed_redirect.port, code_holder)
     server.timeout = timeout
     typer.echo(f"[oauth] Opening browser for cTrader {scope!r} authorization.")
-    typer.echo(f"[oauth] If the browser does not open, visit: {authorization_url}")
+    opened = _open_browser(authorization_url)
+    if not opened:
+        typer.echo("[oauth] Browser launch failed; open this URL manually:")
+        typer.echo(authorization_url)
     try:
-        webbrowser.open(authorization_url)
         server.handle_request()
     finally:
         server.server_close()

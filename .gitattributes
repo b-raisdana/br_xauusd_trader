@@ -1,3 +1,4 @@
 # Preserve checksum-governed inputs and immutable historical evidence byte-for-byte.
 /data/ranges.csv -text whitespace=trailing-space,space-before-tab,cr-at-eol
 /legacy_reference/** -text whitespace=-trailing-space,-space-before-tab,cr-at-eol
+/pre-commit text eol=lf

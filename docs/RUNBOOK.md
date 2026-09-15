@@ -2,6 +2,10 @@
 
 Codex keeps this file updated with exact repeatable commands.
 
+## Shared pre-commit setup
+
+Run `powershell -ExecutionPolicy Bypass -File scripts/setup_pre_commit.ps1` from the Windows checkout. This installs the pinned `br_pre_commit` submodule hook using Git Bash and normalizes its shell launchers to LF. Git commits run the shared wrapper in Ubuntu-24.04 WSL with conda environment `tf`; that environment needs pre-commit, Ruff and project test dependencies. Use a feature branch because the wrapper protects `main`. Reinstall after moving the checkout.
+
 ## Environment
 - OS: Windows host verified on 2026-09-06
 - Python version: project-local CPython 3.12 (required by the active dependency set)

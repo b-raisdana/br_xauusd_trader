@@ -10,9 +10,8 @@ description: Use after finishing any code modification in this repo, before the 
 After modifying code, run the repo's pre-commit gate before final handoff unless the user explicitly asks not to run checks. Prefer checking only changed files first because it matches what a real commit will run and avoids unrelated legacy failures:
 
 ```bash
-# Portable: runs in the active Python environment (no WSL wrapper needed).
-# If the project conda env is not already active, activate it first:
-#   conda activate tf   # or: source <conda>/etc/profile.d/conda.sh && conda activate tf
+# Runs in the active Python environment on PATH (no WSL wrapper needed).
+# Make sure the project env that has pre-commit/ruff/pytest is active first.
 pre-commit run
 ```
 

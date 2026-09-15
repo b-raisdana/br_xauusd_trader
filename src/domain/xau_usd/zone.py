@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from domain.xau_usd.constants import BREAKOUT_BUFFER_USD, PRE_ZONE_TRIGGER_DISTANCE_USD, PULLBACK_PENETRATION_USD
-from domain.xau_usd.enums import XauDirection, XauTrend
-from domain.xau_usd.models import XauZone
+from .constants import BREAKOUT_BUFFER_USD, PRE_ZONE_TRIGGER_DISTANCE_USD, PULLBACK_PENETRATION_USD
+from .enums import XauDirection, XauTrend
+from .models import XauZone
 
 
 def build_merged_zones(

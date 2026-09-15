@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from domain.xau_usd.enums import (
+from .enums import (
     XauDirection,
     XauExecutionEvent,
     XauExecutionStatus,

@@ -1,6 +1,6 @@
 ---
 name: pytest
-description: Use whenever writing, running, or debugging a pytest test in this repo (app/tests/). Covers how to actually execute tests here (use the active Python environment on PATH, e.g. conda `tf` or the repo `.venv`), plus repo conventions for markers, fixtures, and structure. Load test-strategy first to pick the right test type before writing it.
+description: Use whenever writing, running, or debugging a pytest test in this repo (app/tests/). Covers how to actually execute tests here (use the active Python environment on PATH), plus repo conventions for markers, fixtures, and structure. Load test-strategy first to pick the right test type before writing it.
 ---
 
 # pytest (this repo)
@@ -9,12 +9,10 @@ Companion to [test-strategy](../test-strategy/SKILL.md) (which type to write) �
 
 ## Running tests — read this first
 
-The project's deps are installed in the active Python environment — use whatever Python is on PATH (a venv/conda env such as `tf`, or the repo's `.venv`). Don't `pip install` into a throwaway venv on Windows, that hits meson/build-from-source errors for nothing:
-
+The project's deps are installed in the active Python environment — use whatever Python is on PATH. Don't `pip install` into a throwaway venv on Windows, that hits meson/build-from-source errors for nothing:
 ```bash
-# Portable: runs in the active Python environment (no WSL wrapper needed).
-# If the project conda env is not already active, activate it first:
-#   conda activate tf   # or: source <conda>/etc/profile.d/conda.sh && conda activate tf
+# Runs in the active Python environment on PATH (no WSL wrapper needed).
+# Make sure the project env that has pre-commit/ruff/pytest is active first.
 pytest -m unit
 ```
 

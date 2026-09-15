@@ -1,6 +1,6 @@
 # MetaTrader5==5.0.6180
 
-br-logging-and-profiling>=0.5.2
+br-logging-and-profiling>=0.6.5
 ctrader-open-api
 requests
 twisted
@@ -21,7 +21,6 @@ duckdb
 numpy>=1.26.4,<2.2 # compatible with pandas/scipy and br-logging-and-profiling
 scipy==1.17.1 # pinned for reproducible analysis behavior
 optuna==4.9.0
-scikit-learn==1.9.0
 pytz==2026.3.post1
 prophet==1.4.0
 pandera==0.32.1 # conda install -c conda-forge pandera

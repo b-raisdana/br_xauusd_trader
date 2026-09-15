@@ -1,4 +1,4 @@
-# MetaTrader5==5.0.6180
+MetaTrader5==5.0.6180
 
 br-logging-and-profiling>=0.6.5
 ctrader-open-api

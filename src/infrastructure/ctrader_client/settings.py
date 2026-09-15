@@ -65,8 +65,7 @@ class CTraderSettings:
             )
         if not client_secret:
             raise CTraderError(
-                "CTRADER_CLIENT_SECRET is not set. It is shown once when you "
-                "register your Open API application.",
+                "CTRADER_CLIENT_SECRET is not set. It is shown once when you register your Open API application.",
                 code="CONFIG",
             )
 
@@ -79,9 +78,7 @@ class CTraderSettings:
                 code="CONFIG",
             )
 
-        login_raw = os.getenv("CTRADER_ACCOUNT_LOGIN") or os.getenv(
-            "ctrader_demo_account_login_number"
-        )
+        login_raw = os.getenv("CTRADER_ACCOUNT_LOGIN") or os.getenv("ctrader_demo_account_login_number")
         account_login: Optional[int] = None
         if login_raw:
             account_login = int(login_raw.strip())

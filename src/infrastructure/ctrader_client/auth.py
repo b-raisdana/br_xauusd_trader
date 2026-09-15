@@ -37,9 +37,7 @@ def _exchange(params: dict[str, str]) -> TokenResponse:
     try:
         data = response.json()
     except ValueError as exc:
-        raise CTraderError(
-            f"OAuth token response was not JSON: {response.text[:200]}", code="OAUTH"
-        ) from exc
+        raise CTraderError(f"OAuth token response was not JSON: {response.text[:200]}", code="OAUTH") from exc
     error_code = data.get("errorCode")
     if error_code:
         raise CTraderError(data.get("description") or str(error_code), code=error_code)
@@ -67,9 +65,7 @@ def exchange_refresh_token(client_id: str, client_secret: str, refresh_token: st
     )
 
 
-def exchange_authorization_code(
-    client_id: str, client_secret: str, code: str, redirect_uri: str
-) -> TokenResponse:
+def exchange_authorization_code(client_id: str, client_secret: str, code: str, redirect_uri: str) -> TokenResponse:
     """Exchange a one-time authorization code for an access + refresh token."""
     return _exchange(
         {
@@ -111,9 +107,7 @@ class OAuthClient:
         if self.access_token and time.time() < self._expires_at:
             return self.access_token
         if not self.refresh_token:
-            raise CTraderError(
-                "No refresh token configured; complete the OAuth grant first.", code="AUTH"
-            )
+            raise CTraderError("No refresh token configured; complete the OAuth grant first.", code="AUTH")
         token = exchange_refresh_token(self.client_id, self.client_secret, self.refresh_token)
         self.access_token = token.access_token
         self.refresh_token = token.refresh_token or self.refresh_token

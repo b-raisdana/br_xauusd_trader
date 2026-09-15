@@ -203,9 +203,7 @@ class CTraderClient:
         deferred: Deferred = Deferred()
         self._pending_tick = (symbol_id, deferred)
         assert self._account_id is not None
-        self._send(
-            build_get_tick_data_request(self._account_id, symbol_id, from_timestamp, to_timestamp)
-        )
+        self._send(build_get_tick_data_request(self._account_id, symbol_id, from_timestamp, to_timestamp))
         return deferred
 
     def close(self) -> None:
@@ -215,9 +213,7 @@ class CTraderClient:
 
     def _on_transport_connected(self) -> None:
         self._set_state("connected")
-        self._send(
-            build_application_auth_request(self.settings.client_id, self.settings.client_secret)
-        )
+        self._send(build_application_auth_request(self.settings.client_id, self.settings.client_secret))
 
     def _on_disconnected(self, reason: Any) -> None:
         self._set_state("disconnected")

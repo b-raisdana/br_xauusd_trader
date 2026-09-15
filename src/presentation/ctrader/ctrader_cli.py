@@ -126,9 +126,7 @@ def build_msgs() -> None:
         "get_tick_data": build_get_tick_data_request(account_id, symbol_id, 1700000000, 1700003600),
     }
     for name, msg in messages.items():
-        typer.echo(
-            f"[build] {name}: payloadType={msg.payloadType} full_name={msg.DESCRIPTOR.full_name}"
-        )
+        typer.echo(f"[build] {name}: payloadType={msg.payloadType} full_name={msg.DESCRIPTOR.full_name}")
         typer.echo(f"  {msg}")
 
 
@@ -265,9 +263,7 @@ def _aggregate_ticks_to_candles(ticks: list[tuple[int, float]], timeframe: timed
 @app.command(name="fetch-candles")
 def fetch_candles(
     symbol: str = typer.Option("XAUUSD", "--symbol", "-s", help="Symbol name (e.g. XAUUSD)"),
-    timeframe: str = typer.Option(
-        "1min", "--timeframe", "-t", help="Timeframe (e.g. 1min, 5min, 1h, 1d)"
-    ),
+    timeframe: str = typer.Option("1min", "--timeframe", "-t", help="Timeframe (e.g. 1min, 5min, 1h, 1d)"),
     timerange: Optional[str] = typer.Option(
         None,
         "--timerange",
@@ -316,10 +312,7 @@ def fetch_candles(
                 typer.echo(f"[fetch-candles] Symbol '{symbol}' not found")
                 reactor.stop()
                 return
-            typer.echo(
-                f"[fetch-candles] Resolved {symbol} -> id={symbol_info.symbol_id}, "
-                f"digits={symbol_info.digits}"
-            )
+            typer.echo(f"[fetch-candles] Resolved {symbol} -> id={symbol_info.symbol_id}, digits={symbol_info.digits}")
             # Fetch tick data
             tick_deferred = client.fetch_tick_data(symbol_info.symbol_id, from_ts, to_ts)
 
@@ -364,9 +357,7 @@ def fetch_candles(
 def stream_orderbook(
     symbol: str = typer.Option("XAUUSD", "--symbol", "-s", help="Symbol name (e.g. XAUUSD)"),
     side: str = typer.Option("bid", "--side", help="Side to display: bid, ask, or both"),
-    duration: int = typer.Option(
-        0, "--duration", "-d", help="Duration in seconds (0 = run until Ctrl+C)"
-    ),
+    duration: int = typer.Option(0, "--duration", "-d", help="Duration in seconds (0 = run until Ctrl+C)"),
 ) -> None:
     """Stream order book (depth) updates for the given symbol.
 
@@ -395,8 +386,7 @@ def stream_orderbook(
                 reactor.stop()
                 return
             typer.echo(
-                f"[stream-orderbook] Resolved {symbol} -> id={symbol_info.symbol_id}, "
-                f"digits={symbol_info.digits}"
+                f"[stream-orderbook] Resolved {symbol} -> id={symbol_info.symbol_id}, digits={symbol_info.digits}"
             )
             typer.echo(f"[stream-orderbook] Subscribing to order book (side={side})...")
 
@@ -404,13 +394,9 @@ def stream_orderbook(
                 # Filter by side
                 for quote in update.new_quotes:
                     if side in ("bid", "both") and quote.bid is not None:
-                        typer.echo(
-                            f"  [BID] id={quote.quote_id} size={quote.size} price={quote.bid}"
-                        )
+                        typer.echo(f"  [BID] id={quote.quote_id} size={quote.size} price={quote.bid}")
                     if side in ("ask", "both") and quote.ask is not None:
-                        typer.echo(
-                            f"  [ASK] id={quote.quote_id} size={quote.size} price={quote.ask}"
-                        )
+                        typer.echo(f"  [ASK] id={quote.quote_id} size={quote.size} price={quote.ask}")
                 for qid in update.deleted_quote_ids:
                     typer.echo(f"  [DEL] quote_id={qid}")
 
@@ -440,9 +426,7 @@ def stream_orderbook(
 def stream_trades(
     symbol: str = typer.Option("XAUUSD", "--symbol", "-s", help="Symbol name (e.g. XAUUSD)"),
     side: str = typer.Option("bid", "--side", help="Side to display: bid, ask, or both"),
-    duration: int = typer.Option(
-        0, "--duration", "-d", help="Duration in seconds (0 = run until Ctrl+C)"
-    ),
+    duration: int = typer.Option(0, "--duration", "-d", help="Duration in seconds (0 = run until Ctrl+C)"),
 ) -> None:
     """Stream trade/quote updates (ProtoOASpotEvent) for the given symbol.
 
@@ -470,21 +454,14 @@ def stream_trades(
                 typer.echo(f"[stream-trades] Symbol '{symbol}' not found")
                 reactor.stop()
                 return
-            typer.echo(
-                f"[stream-trades] Resolved {symbol} -> id={symbol_info.symbol_id}, "
-                f"digits={symbol_info.digits}"
-            )
+            typer.echo(f"[stream-trades] Resolved {symbol} -> id={symbol_info.symbol_id}, digits={symbol_info.digits}")
             typer.echo(f"[stream-trades] Subscribing to trade stream (side={side})...")
 
             def on_spot(tick) -> None:
                 if side in ("bid", "both") and tick.bid is not None:
-                    typer.echo(
-                        f"  [BID] {tick.bid} @ {datetime.fromtimestamp(tick.timestamp).isoformat()}"
-                    )
+                    typer.echo(f"  [BID] {tick.bid} @ {datetime.fromtimestamp(tick.timestamp).isoformat()}")
                 if side in ("ask", "both") and tick.ask is not None:
-                    typer.echo(
-                        f"  [ASK] {tick.ask} @ {datetime.fromtimestamp(tick.timestamp).isoformat()}"
-                    )
+                    typer.echo(f"  [ASK] {tick.ask} @ {datetime.fromtimestamp(tick.timestamp).isoformat()}")
 
             client.on("spot", on_spot)
             client.subscribe_tick_stream(symbol_info.symbol_id)

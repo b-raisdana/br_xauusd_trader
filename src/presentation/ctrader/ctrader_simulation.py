@@ -35,9 +35,7 @@ def _payload_name(message: Any) -> str:
 
 
 def _fmt_sent(messages: list[Any]) -> str:
-    lines = [
-        f"  [{i}] {_payload_name(m)} payloadType={m.payloadType}" for i, m in enumerate(messages)
-    ]
+    lines = [f"  [{i}] {_payload_name(m)} payloadType={m.payloadType}" for i, m in enumerate(messages)]
     return "\n".join(lines) if lines else "  (none)"
 
 
@@ -115,24 +113,17 @@ def simulate() -> None:
     typer.echo(_fmt_sent(transport.sent))
 
     transport.feed(_wrap(Protobuf.get("ProtoOAApplicationAuthRes")))
-    typer.echo(
-        f"[simulate] fed ProtoOAApplicationAuthRes -> state={client._state} "
-        f"access_token={client._access_token}"
-    )
+    typer.echo(f"[simulate] fed ProtoOAApplicationAuthRes -> state={client._state} access_token={client._access_token}")
 
     transport.feed(_wrap(_make_account_list(is_live=False)))
     typer.echo(
-        f"[simulate] fed ProtoOAGetAccountListByAccessTokenRes -> state={client._state} "
-        f"account_id={client._account_id}"
+        f"[simulate] fed ProtoOAGetAccountListByAccessTokenRes -> state={client._state} account_id={client._account_id}"
     )
     typer.echo("[simulate] sent requests now:")
     typer.echo(_fmt_sent(transport.sent))
 
     transport.feed(_wrap(Protobuf.get("ProtoOAAccountAuthRes", ctidTraderAccountId=SIM_ACCOUNT_ID)))
-    typer.echo(
-        f"[simulate] fed ProtoOAAccountAuthRes -> state={client._state} "
-        f"ready={client._ready.called}"
-    )
+    typer.echo(f"[simulate] fed ProtoOAAccountAuthRes -> state={client._state} ready={client._ready.called}")
 
     typer.echo(f"[simulate] client.resolve_symbol('{SIM_TICKER}')")
     deferred = client.resolve_symbol(SIM_TICKER)
@@ -142,9 +133,7 @@ def simulate() -> None:
 
     transport.feed(_wrap(_symbol_by_id_message()))
     resolved = deferred.result if deferred.called else None
-    typer.echo(
-        f"[simulate] fed ProtoOASymbolByIdRes -> resolve called={deferred.called} symbol={resolved}"
-    )
+    typer.echo(f"[simulate] fed ProtoOASymbolByIdRes -> resolve called={deferred.called} symbol={resolved}")
 
     client.subscribe_live_price(SIM_SYMBOL_ID)
     client.subscribe_orderbook(SIM_SYMBOL_ID)
@@ -189,6 +178,4 @@ def simulate() -> None:
     typer.echo(f"[simulate] last depth -> {seen['depth'][-1] if seen['depth'] else None}")
 
     client.close()
-    typer.echo(
-        f"[simulate] DONE. total sent requests={len(transport.sent)} final state={client._state}"
-    )
+    typer.echo(f"[simulate] DONE. total sent requests={len(transport.sent)} final state={client._state}")

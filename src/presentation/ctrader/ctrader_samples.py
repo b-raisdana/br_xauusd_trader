@@ -13,9 +13,7 @@ SIM_DIGITS = 5
 SIM_PIP_POSITION = 4
 
 
-def _make_account_list(
-    account_id: int = SIM_ACCOUNT_ID, login: int = SIM_ACCOUNT_ID, is_live: bool = False
-) -> Any:
+def _make_account_list(account_id: int = SIM_ACCOUNT_ID, login: int = SIM_ACCOUNT_ID, is_live: bool = False) -> Any:
     msg = Protobuf.get("ProtoOAGetAccountListByAccessTokenRes")
     msg.accessToken = "fake_token"
     acct = msg.ctidTraderAccount.add()
@@ -38,9 +36,7 @@ def _symbols_list_message(symbol_id: int = SIM_SYMBOL_ID, name: str = SIM_TICKER
     return msg
 
 
-def _symbol_by_id_message(
-    symbol_id: int = SIM_SYMBOL_ID, name: str = SIM_TICKER, digits: int = SIM_DIGITS
-) -> Any:
+def _symbol_by_id_message(symbol_id: int = SIM_SYMBOL_ID, name: str = SIM_TICKER, digits: int = SIM_DIGITS) -> Any:
     msg = Protobuf.get("ProtoOASymbolByIdRes")
     msg.ctidTraderAccountId = SIM_ACCOUNT_ID
     raw = msg.symbol.add()

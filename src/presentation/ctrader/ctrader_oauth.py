@@ -210,9 +210,7 @@ def oauth_init(
     client_secret: str = typer.Option(..., "--client-secret", envvar="CTRADER_CLIENT_SECRET"),
     redirect_port: int = typer.Option(8080, "--port", help="Local port for OAuth redirect"),
     redirect_path: str = typer.Option("/callback", "--path", help="Redirect path"),
-    save_to_env: bool = typer.Option(
-        True, "--save/--no-save", help="Save refresh token to .env file"
-    ),
+    save_to_env: bool = typer.Option(True, "--save/--no-save", help="Save refresh token to .env file"),
     env_file: str = typer.Option(".env", "--env-file", help="Path to .env file"),
     scope: str = typer.Option("accounts", "--scope", help="OAuth scope: accounts or trading"),
 ) -> None:

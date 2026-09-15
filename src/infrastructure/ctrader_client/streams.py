@@ -112,9 +112,7 @@ def build_subscribe_spots_request(
     return request
 
 
-def build_subscribe_depth_request(
-    account_id: int, symbol_id: int
-) -> ProtoOASubscribeDepthQuotesReq:
+def build_subscribe_depth_request(account_id: int, symbol_id: int) -> ProtoOASubscribeDepthQuotesReq:
     request = ProtoOASubscribeDepthQuotesReq()
     request.ctidTraderAccountId = account_id
     request.symbolId.append(int(symbol_id))
@@ -238,10 +236,7 @@ def parse_depth_event(message: Any, digits: int) -> OrderBookUpdate:
 
 def parse_tick_data_page(message: Any, symbol_id: int) -> TickPage:
     """Parse a ``ProtoOAGetTickDataRes`` into a :class:`TickPage`."""
-    ticks = tuple(
-        TickData(timestamp=int(sample.timestamp), tick=int(sample.tick))
-        for sample in message.tickData
-    )
+    ticks = tuple(TickData(timestamp=int(sample.timestamp), tick=int(sample.tick)) for sample in message.tickData)
     return TickPage(symbol_id=symbol_id, ticks=ticks, has_more=bool(message.hasMore))
 
 

@@ -1,6 +1,6 @@
 ---
 name: pytest
-description: Use whenever writing, running, or debugging a pytest test in this repo (app/tests/). Covers how to actually execute tests here (Windows has no usable Python env for this project — the real one is a WSL conda env), plus repo conventions for markers, fixtures, and structure. Load test-strategy first to pick the right test type before using this skill to write it.
+description: Use whenever writing, running, or debugging a pytest test in this repo (app/tests/). Covers how to actually execute tests here (use the active Python environment on PATH, e.g. conda `tf` or the repo `.venv`), plus repo conventions for markers, fixtures, and structure. Load test-strategy first to pick the right test type before writing it.
 ---
 
 # pytest (this repo)
@@ -9,20 +9,18 @@ Companion to [test-strategy](../test-strategy/SKILL.md) (which type to write) �
 
 ## Running tests — read this first
 
-Windows Python installs (`py -3.9`...`3.14`) lack this project's deps (`pandas`, `pandas_ta`, `tensorflow`, `pandera`, ...) — don't `pip install` into a throwaway venv, that hits meson/build-from-source errors on Windows for nothing. The real environment is the WSL conda env `tf`:
+The project's deps are installed in the active Python environment — use whatever Python is on PATH (a venv/conda env such as `tf`, or the repo's `.venv`). Don't `pip install` into a throwaway venv on Windows, that hits meson/build-from-source errors for nothing:
 
 ```bash
-wsl.exe -d Ubuntu-24.04 -- bash -lc '
-  source ~/miniconda3/etc/profile.d/conda.sh && conda activate tf &&
-  cd /home/brais/code/DL-Forecasting &&
-  pytest -m unit
-'
+# Portable: runs in the active Python environment (no WSL wrapper needed).
+# If the project conda env is not already active, activate it first:
+#   conda activate tf   # or: source <conda>/etc/profile.d/conda.sh && conda activate tf
+pytest -m unit
 ```
 
-The repo is a native WSL ext4 clone at `/home/brais/code/DL-Forecasting` (no separate Windows-side checkout). TensorFlow's CUDA/cuDNN registration warnings on import are harmless noise, not a failure signal — check the actual pytest summary line. WSL has no outbound network (pip installs fail with a DNS error); `pytest` and the full dep set are already installed in `tf`, so this is rarely needed — ask the user before assuming network access for a genuinely new dependency.
+TensorFlow's CUDA/cuDNN registration warnings on import are harmless noise, not a failure signal — check the actual pytest summary line. Ask the user before assuming network access for a genuinely new dependency; the dep set is already installed in the active environment.
 
-**Data cache lives in-repo.** Cached OHLCV under `data/` (`Config.path_of_data`) needs no override — it defaults to `<repo_root>/data`, and since the whole clone is native ext4, that's already the fast path (no `drvfs` tax to route around). `DLF_DATA_ROOT` still exists as a generic override but is unused by default now. Only `e2e`/`perf` tests touch real `data/` at all (see [test-strategy](../test-strategy/SKILL.md) fixture/data policy); unit/characterization/regression/smoke never read it. Full rationale: [docs/infrastructure.md § environments](../../../docs/infrastructure.md#environments).
-
+**Data cache lives in-repo.** Cached OHLCV under `data/` (`Config.path_of_data`) needs no override — it defaults to `<repo_root>/data`. `DLF_DATA_ROOT` still exists as a generic override but is unused by default now. Only `e2e`/`perf` tests touch real `data/` at all (see [test-strategy](../test-strategy/SKILL.md) fixture/data policy); unit/characterization/regression/smoke never read it. Full rationale: [docs/infrastructure.md § environments](../../../docs/infrastructure.md#environments).
 Fast gate (every commit): `pytest -m unit`. Full run (nightly/manual, includes integration, `e2e`, and `perf`): `pytest`. Live broker OHLCV fetches are integration tests, never pre-commit tests. The fast gate is wired into `.pre-commit-config.yaml` alongside the `mypy`/`ruff`/`xenon` incremental ratchet ([infrastructure.md § incremental ratchet](../../../docs/infrastructure.md#incremental-ratchet-mypyruffxenon-scope)) — local/per-commit only, bypassable with `--no-verify`. No CI workflow exists yet; promote the same fast-gate command to a required check when one lands.
 
 ## Performance budget

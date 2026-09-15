@@ -3,7 +3,7 @@
 ## Pre-commit setup (2026-09-15)
 
 - `br_pre_commit` matches fetched `origin/main` at `5e07919592792a0c8a5c5f19f4e36640df994ec8`.
-- Reinstall with `powershell -ExecutionPolicy Bypass -File scripts/setup_pre_commit.ps1`; uses Git Bash, Ubuntu-24.04 WSL and conda `tf`. Local Git settings ignore NTFS executable-bit differences; upstream shell launchers are normalized to LF without changing the submodule commit.
+- Reinstall with `powershell -ExecutionPolicy Bypass -File scripts/setup_pre_commit.ps1`; uses the active Python environment and conda `tf`. Local Git settings ignore NTFS executable-bit differences; upstream shell launchers are normalized to LF without changing the submodule commit.
 - Staged `pre-commit run` and the installed shared wrapper pass Ruff, formatting and pytest. Current Windows pytest: 85 passed (one upstream Protobuf deprecation warning); earlier test counts below are historical.
 - Existing staged work relocates MQL files to `mt5/`, removes obsolete tests and TODO documents, and adds configuration and an MT5 initialization helper. This tooling check does not establish fresh MQL compile or trading parity evidence.
 

@@ -10,11 +10,10 @@ description: Use after finishing any code modification in this repo, before the 
 After modifying code, run the repo's pre-commit gate before final handoff unless the user explicitly asks not to run checks. Prefer checking only changed files first because it matches what a real commit will run and avoids unrelated legacy failures:
 
 ```bash
-wsl.exe -d Ubuntu-24.04 -- bash -lc '
-  source ~/miniconda3/etc/profile.d/conda.sh && conda activate tf &&
-  cd /home/brais/code/DL-Forecasting &&
-  pre-commit run
-'
+# Portable: runs in the active Python environment (no WSL wrapper needed).
+# If the project conda env is not already active, activate it first:
+#   conda activate tf   # or: source <conda>/etc/profile.d/conda.sh && conda activate tf
+pre-commit run
 ```
 
 Use `pre-commit run --all-files` only when the change is broad, touches shared configuration, or the user asks for a full check.

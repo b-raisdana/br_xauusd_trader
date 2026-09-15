@@ -46,7 +46,8 @@ addopts = "-q"
 pythonpath = ["src"]
 
 [tool.ruff]
-line-length = 100
+target-version = "py312"
+line-length = 120
 exclude = ["legacy_reference"]
 
 [tool.ruff.lint]

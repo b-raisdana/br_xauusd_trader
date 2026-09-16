@@ -1,3 +1,0 @@
-﻿"run_id","train_pnl","train_pf","forward_pnl","forward_pf","all_pnl","all_pf","mt5_robust_status"
-"MT5_F1_SPACE15_HIGH_H2_100K_UNCAPPED","127.11","1.415","35.49","1.404","162.6","1.412","PASS"
-"MT5_F2_SPACE15_HIGHSPACE_H2_100K_UNCAPPED","103.41","1.425","40.18","1.483","143.59","1.44","PASS"

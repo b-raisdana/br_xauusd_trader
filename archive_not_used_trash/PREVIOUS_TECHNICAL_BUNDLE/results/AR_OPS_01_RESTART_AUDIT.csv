@@ -1,0 +1,5 @@
+﻿"run_id","restart_time","lock_events","same_day_fills_after_restart","later_day_fills","flat_fail","pending_cancel_fail","risk_overflow","technical_status","ops_status"
+"OPSFAST200_OPEN_A","2026.07.29 14:30:00","1","0","7","0","0","0","PASS","PASS"
+"OPSFAST300_MULTI_B","2026.08.07 04:46:00","1","0","10","0","0","0","PASS","PASS"
+"OPSFAST200_FLAT_RISK_C","2026.08.07 10:30:00","1","0","10","0","0","0","PASS","PASS"
+"OPSFAST300_FORWARD_D","2026.08.20 02:24:00","1","0","6","0","0","0","PASS","PASS"

@@ -40,7 +40,7 @@ A fallback key `ctrader_demo_account_login_number` is also read by
 1. Register an application at https://openapi.ctrader.com/apps and obtain its `client_id` and `client_secret`.
 2. Register `http://localhost:8080/callback` as an application redirect URI, or set `CTRADER_REDIRECT_URI` to another registered localhost URI with an explicit port.
 3. Put `CTRADER_CLIENT_ID` and `CTRADER_CLIENT_SECRET` in `.env` (never commit `.env`).
-4. Run any live data command. If no token exists, it opens cTrader authorization in the browser (using the Windows browser when invoked from WSL), captures the localhost callback, exchanges the code, saves `CTRADER_REFRESH_TOKEN` to `.env` with owner-only permissions, and continues the original command. If browser launch is unavailable, open the printed URL manually while the command waits for the callback.
+4. Run any live data command. If no token exists, it opens cTrader authorization in the host browser, captures the localhost callback, exchanges the code, saves `CTRADER_REFRESH_TOKEN` to `.env` with owner-only permissions, and continues the original command. If browser launch is unavailable, open the printed URL manually while the command waits for the callback.
 
 The default `accounts` scope is read-only and sufficient for market-data fetching. Set `CTRADER_OAUTH_SCOPE=trading` only for commands that genuinely need trading permission.
 

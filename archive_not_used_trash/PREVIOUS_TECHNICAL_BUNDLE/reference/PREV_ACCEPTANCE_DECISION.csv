@@ -1,0 +1,5 @@
+﻿"run_id","deposit","trades","pnl","pf","daily_loss_stop","max_concurrent","margin_blocked","train_pnl","train_pf","forward_pnl","forward_pf","technical_status","robust_status"
+"ACC_F1_MVP200_MAX3_B23","200","125","177.7","1.488","1","3","0","142.21","1.515","35.49","1.404","PASS","PASS"
+"ACC_F2_MVP200_MAX3_B23","200","109","143.97","1.463","1","3","0","103.79","1.455","40.18","1.483","PASS","PASS"
+"ACC_F1_MVP300_MAX5_B23","300","130","162.6","1.412","0","3","0","127.11","1.415","35.49","1.404","PASS","PASS"
+"ACC_F2_MVP300_MAX5_B23","300","113","143.59","1.44","0","3","0","103.41","1.425","40.18","1.483","PASS","PASS"

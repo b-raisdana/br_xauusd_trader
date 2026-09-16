@@ -1,7 +1,0 @@
-﻿AR_OPS_01_VALIDATION_GATE=FAIL
-GROSS15_200_CONTROL_EQUIVALENCE=PASS
-GROSS15_300_CONTROL_EQUIVALENCE=PASS
-ALL_REGRESSION_QA=FAIL
-ALL_RESTART_CASES=PASS
-RESTART_CASES=4
-NOTE=PASS means same-day restart is fail-closed: all EA exposure is flattened/cancelled, no new fills occur that broker day, and trading resumes on a later day.

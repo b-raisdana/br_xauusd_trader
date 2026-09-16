@@ -1,0 +1,5 @@
+﻿"run_id","phase","b31_duplicate_evaluations","duplicate_breakout_ids","pullback_parent_missing","pullback_parent_unknown","unclosed_positions","sl_loosen_violations","post_daily_stop_new_entries","daily_net_mismatches","high_ordinal_over_limit","missing_zone_days","status"
+"ACC_F1_MVP200_MAX3_B23","FINALIST_MT5","0","0","0","0","0","0","0","0","0","0","PASS"
+"ACC_F2_MVP200_MAX3_B23","FINALIST_MT5","0","0","0","0","0","0","0","0","0","0","PASS"
+"ACC_F1_MVP300_MAX5_B23","FINALIST_MT5","0","0","0","0","0","0","0","0","0","0","PASS"
+"ACC_F2_MVP300_MAX5_B23","FINALIST_MT5","0","0","0","0","0","0","0","0","0","0","PASS"

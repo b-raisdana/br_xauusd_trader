@@ -1,5 +1,6 @@
-MetaTrader5==5.0.6180
+MetaTrader5
 numba
+vectorbt[full,rust]
 
 br-logging-and-profiling>=0.6.5
 #ctrader-open-api
@@ -24,7 +25,7 @@ scipy==1.17.1 # pinned for reproducible analysis behavior
 optuna==4.9.0
 pytz==2026.3.post1
 prophet==1.4.0
-pandera==0.32.1 # conda install -c conda-forge pandera
+pandera==0.32.1
 optree>=0.14.0 # required by helper.pandera (optree.tree_map over nested DataFrame returns)
 
 deepdiff==9.1.0

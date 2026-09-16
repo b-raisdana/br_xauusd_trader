@@ -57,7 +57,7 @@ Do not assign Broker Days from UTC until the terminal time basis for that run is
 
 ## Fetch cTrader market data
 
-Register `http://localhost:8080/callback` in the cTrader Open API application, then store only `CTRADER_CLIENT_ID` and `CTRADER_CLIENT_SECRET` in `.env`. On the first invocation, each live data command opens browser authorization, including the Windows browser when run from WSL, stores the resulting refresh token in ignored `.env`, and continues automatically. If automatic launch fails, open the printed URL manually before the five-minute callback timeout:
+Register `http://localhost:8080/callback` in the cTrader Open API application, then store only `CTRADER_CLIENT_ID` and `CTRADER_CLIENT_SECRET` in `.env`. On the first invocation, each live data command opens browser authorization in the host browser, stores the resulting refresh token in ignored `.env`, and continues automatically. If automatic launch fails, open the printed URL manually before the five-minute callback timeout:
 
 ```bash
 ctrader-cli fetch-candles --symbol XAUUSD --timeframe 1min

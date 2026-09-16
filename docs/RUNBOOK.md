@@ -15,6 +15,17 @@ Run `powershell -ExecutionPolicy Bypass -File scripts/setup_pre_commit.ps1` from
 - Required external apps: MT5 terminal and compiler; Python environment for research/replay
 - GitHub CLI: 2.100.0; private `origin` is `https://github.com/behrad203-tech/XAAUSD-PAction-projectFolder.git`
 
+## Vectorbt
+
+Installed `vectorbt==0.28.2` in `.venv` on 2026-09-16, preserving NumPy 2.1.3 and pandas 3.0.5. Import, a three-price holding portfolio with expected 2% return, and `pip check` passed. Newer releases conflict with the project's NumPy/pandas constraints. Reinstall with:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install 'vectorbt==0.28.2' 'numpy>=1.26.4,<2.2' 'pandas==3.0.5' --index-url https://pypi.org/simple --extra-index-url https://pypi.org/simple
+.\.venv\Scripts\python.exe -m pip check
+```
+
+The explicit extra index overrides this host's failing NVIDIA index for this command. This optional installation is not part of the project dependency manifest.
+
 ## Setup
 ```powershell
 $env:UV_CACHE_DIR = Join-Path (Resolve-Path '.') '.uv-cache'

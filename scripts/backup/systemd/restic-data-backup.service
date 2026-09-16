@@ -1,0 +1,10 @@
+[Unit]
+Description=Restic snapshot of XAAUSD PAction data
+RequiresMountsFor=/mnt/d /mnt/c/Code/XAAUSD-PAction-projectFolder/data
+After=local-fs.target
+
+[Service]
+Type=oneshot
+Nice=10
+IOSchedulingClass=idle
+ExecStart=/mnt/c/Code/XAAUSD-PAction-projectFolder/scripts/backup/restic-data-backup.sh

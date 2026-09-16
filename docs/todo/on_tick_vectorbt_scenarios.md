@@ -46,15 +46,15 @@ close = sd.get('Close')
 
 ## Scenario 5: Event Loop Exception
 
-- **Setup**: Mock `EventLoop.process_tick()` raises `RuntimeError` on tick 25.
+- **Setup**: Mock `EventLoop.process_tick()` raises `RuntimeError` on tick 25 (call 25). All other calls return `True`.
 - **Action**: Call `on_tick()` for ticks 1–50.
-- **Expected**: Tick 25 returns `handled=False`, `event_loop_failed=True`. Ticks 26–50 return `handled=False`, `event_loop_failed=True`. `event_loop_failure_reported=True` on runtime after tick 25.
+- **Expected**: Tick 25 (index 24) returns `handled=False`, `event_loop_failed=True`. Ticks 1–24 and 26–50 return `handled=True`, `event_loop_failed=False`. `event_loop_failure_reported=True` on runtime after tick 25. Mock `process_tick` called for all 50 ticks (exception caught, processing continues).
 
 ## Scenario 6: Invalid Ticks (NaN/Zero Prices)
 
-- **Setup**: Inject bars where `bid=0.0` or `ask=NaN` in the random CSV.
-- **Action**: Call `on_tick()` for each bar including invalid ones.
-- **Expected**: `is_valid=False` on invalid ticks. Probe does not increment on invalid ticks (gate: `tick.is_valid`). `OnTickResult` still returned without exception.
+- **Setup**: Use bars where `bid=NaN/ask=NaN` and `bid=0.0/ask=0.0` from the random CSV. `run_current_event_loop=True`.
+- **Action**: Call `on_tick()` for invalid ticks.
+- **Expected**: `is_valid=False` on invalid ticks. Probe does not increment on invalid ticks (gate: `tick.is_valid`). Event loop IS still called for invalid ticks (only probe count is gated). `OnTickResult` returned for each without exception. `time_basis_probe_count` remains 0 if all ticks are invalid.
 
 ## Scenario 7: vectorbt Integration Loop
 

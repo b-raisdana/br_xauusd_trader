@@ -2,3 +2,4 @@
 /data/ranges.csv -text whitespace=trailing-space,space-before-tab,cr-at-eol
 /legacy_reference/** -text whitespace=-trailing-space,-space-before-tab,cr-at-eol
 /pre-commit text eol=lf
+/scripts/backup/** text eol=lf

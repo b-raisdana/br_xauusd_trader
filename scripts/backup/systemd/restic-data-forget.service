@@ -1,0 +1,10 @@
+[Unit]
+Description=Restic forget+prune for XAAUSD PAction data (14-day retention)
+RequiresMountsFor=/mnt/d
+After=local-fs.target
+
+[Service]
+Type=oneshot
+Nice=15
+IOSchedulingClass=idle
+ExecStart=/mnt/c/Code/XAAUSD-PAction-projectFolder/scripts/backup/restic-data-forget.sh

@@ -239,3 +239,54 @@ def test_process_current_event_loop_tick_failure(
     tick = make_tick(close.index[0], close.iloc[0])
     result = process_current_event_loop_tick(tick, mock_loop)
     assert result is False
+
+
+def test_backtest_report_generation(tmp_path: any) -> None:
+    import os
+
+    from scripts.vectorbt_backtest_report import generate_backtest_report
+
+    csv_in = "data/random_ohlcv.csv"
+    assert os.path.exists(csv_in), "random_ohlcv.csv not found; run scripts/generate_random_ohlcv.py first"
+
+    csv_out = str(tmp_path / "on_tick_vectorbt_report.csv")
+    report = generate_backtest_report(csv_path=csv_in, output_path=csv_out)
+
+    assert isinstance(report, pd.DataFrame)
+    assert len(report) > 0
+    expected_cols = [
+        "Datetime",
+        "Open",
+        "High",
+        "Low",
+        "Close",
+        "Entry",
+        "Exit",
+        "OnTick_Handled",
+        "Portfolio_Value",
+        "Returns",
+    ]
+    assert list(report.columns) == expected_cols
+    assert report["Portfolio_Value"].iloc[-1] > 0
+    assert (report["Entry"] | report["Exit"]).all()
+
+
+def test_backtest_report_columns_and_types(tmp_path: any) -> None:
+    import os
+
+    from scripts.vectorbt_backtest_report import generate_backtest_report
+
+    csv_in = "data/random_ohlcv.csv"
+    if not os.path.exists(csv_in):
+        pytest.skip("random_ohlcv.csv not found")
+
+    csv_out = str(tmp_path / "report.csv")
+    report = generate_backtest_report(csv_path=csv_in, output_path=csv_out)
+
+    numeric_cols = ["Open", "High", "Low", "Close", "Portfolio_Value", "Returns"]
+    for col in numeric_cols:
+        assert pd.api.types.is_numeric_dtype(report[col]), f"{col} should be numeric"
+
+    assert report["Entry"].dtype == bool
+    assert report["Exit"].dtype == bool
+    assert report["OnTick_Handled"].dtype == bool

@@ -1,0 +1,84 @@
+import sys
+from pathlib import Path
+
+import pandas as pd
+import vectorbt as vbt
+
+root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(root / "src"))
+
+from application.xauusd_trading_strategy_1.global_state_variable import StrategyRuntimeState  # noqa: E402
+from application.xauusd_trading_strategy_1.lifecycle import RuntimeEnvironment, Tick  # noqa: E402
+from application.xauusd_trading_strategy_1.on_tick import on_tick  # noqa: E402
+from application.xauusd_trading_strategy_1.settings import StrategySettings  # noqa: E402
+
+
+def generate_backtest_report(
+    csv_path: str = "data/random_ohlcv.csv",
+    output_path: str = "docs/todo/on_tick_vectorbt_report.csv",
+) -> pd.DataFrame:
+    df = pd.read_csv(csv_path, parse_dates=["Datetime"], index_col="Datetime")
+    sd = vbt.SyntheticData.from_data({"XAUUSD": df}, download_kwargs={})
+    close = sd.get("Close")
+    open_ = sd.get("Open")
+    high = sd.get("High")
+    low = sd.get("Low")
+
+    settings = StrategySettings(
+        run_current_event_loop=True,
+        emit_time_basis_probe=True,
+    )
+    runtime = StrategyRuntimeState()
+    environment = RuntimeEnvironment()
+
+    entries = pd.Series(False, index=close.index)
+    exits = pd.Series(False, index=close.index)
+    handled_flags = pd.Series(False, index=close.index)
+
+    for i in range(len(close)):
+        tick = Tick(time=close.index[i], bid=float(close.iloc[i]), ask=float(close.iloc[i]))
+        result = on_tick(tick, settings, runtime, environment, None)
+        handled_flags.iloc[i] = result.handled
+        if result.handled:
+            entries.iloc[i] = True
+        else:
+            exits.iloc[i] = True
+
+    entries.iloc[0] = True
+
+    port = vbt.Portfolio.from_signals(
+        close=close,
+        entries=entries,
+        exits=exits,
+        init_cash=200.0,
+        fees=0.0002,
+        slippage=0.0002,
+        freq="15min",
+    )
+
+    report = pd.DataFrame(
+        {
+            "Datetime": close.index,
+            "Open": open_.values,
+            "High": high.values,
+            "Low": low.values,
+            "Close": close.values,
+            "Entry": entries.values,
+            "Exit": exits.values,
+            "OnTick_Handled": handled_flags.values,
+            "Portfolio_Value": port.value(),
+            "Returns": port.returns(),
+        }
+    )
+    report.to_csv(output_path, index=False)
+
+    return report
+
+
+if __name__ == "__main__":
+    report = generate_backtest_report()
+    print("Report saved to docs/todo/on_tick_vectorbt_report.csv")
+    print(f"Rows: {len(report)}")
+    print(f"Entries: {report['Entry'].sum()}")
+    print(f"Exits: {report['Exit'].sum()}")
+    print(f"Final Portfolio Value: {float(report['Portfolio_Value'].iloc[-1]):.4f}")

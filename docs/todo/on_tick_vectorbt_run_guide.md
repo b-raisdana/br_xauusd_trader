@@ -31,6 +31,22 @@ Expected output: **10 passed**.
 
 This includes `test_dummy.py` (vectorbt/numba smoke test) and `test_on_tick_vectorbt.py` together.
 
+## Run Backtesting Report
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.vectorbt_backtest_report
+```
+
+Or directly:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ". $env:VIRTUAL_ENV\Scripts\Activate.ps1; python -m scripts.vectorbt_backtest_report"
+```
+
+This generates `docs/todo/on_tick_vectorbt_report.csv` — vectorbt backtest report with portfolio value and returns derived from on_tick signals.
+
+**Note**: The `-m` form is required so `pythonpath = ["src"]` from `pyproject.toml` resolves the `application` imports.
+
 ## What the Tests Cover
 
 | Test | Scenario |

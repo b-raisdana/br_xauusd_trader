@@ -12,10 +12,11 @@ Validate `src/application/xauusd_trading_strategy_1/on_tick.py` tick processing 
 - Event loop activation gate (`run_current_event_loop` setting)
 - Graceful failure when event loop is absent
 - Exception isolation in event loop processing
+- Vectorbt backtesting report generation from on_tick signals
 
 ## Test Data
 
-A randomly generated OHLCV CSV provides market data for vectorbt backtesting. The CSV must contain columns compatible with vectorbt's `SyntheticData`:
+A randomly generated OHLCV CSV provides market data for vectorbt backtesting and report generation. The CSV must contain columns compatible with vectorbt's `SyntheticData`:
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -27,6 +28,10 @@ A randomly generated OHLCV CSV provides market data for vectorbt backtesting. Th
 | `Datetime` | ISO 8601 | Candle timestamp (UTC), index column |
 
 The random generator produces realistic XAUUSD prices around `2300-2400` range with M15 bars across 50 candles, including edge cases: zero-volume bars, identical OHLC (doji), and monotonic price sequences.
+
+## Backtesting Report
+
+`scripts/vectorbt_backtest_report.py` processes ticks via `on_tick()`, converts `handled=True` results into entry signals, and runs a vectorbt `Portfolio.from_signals` backtest producing `docs/todo/on_tick_vectorbt_report.csv` with columns: `Datetime`, `Open`, `High`, `Low`, `Close`, `Entry`, `Exit`, `OnTick_Handled`, `Portfolio_Value`, `Returns`.
 
 ## Environment
 

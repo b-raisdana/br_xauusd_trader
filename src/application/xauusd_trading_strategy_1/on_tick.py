@@ -1,51 +1,57 @@
-import MetaTrader5 as mt5
-from global_state_variable import global_state
-from numba import njit
+from __future__ import annotations
 
-__all__ = ["global_state"]
-
-
-def initialize_execution_projection(param, XAU_ORDER_MARKET, XAU_BUY, param1, param2, param3, submitted_at):
-    raise NotImplementedError("initialize_execution_projection function is not implemented yet.")
+from .global_state_variable import StrategyRuntimeState
+from .lifecycle import EventLoop, OnTickResult, RuntimeEnvironment, Tick
+from .settings import StrategySettings
 
 
-def project_execution_outcome(param, XAU_ORDER_MARKET, XAU_BUY, param1, param2, param3, submitted_at):
-    raise NotImplementedError()
+def process_current_event_loop_tick(
+    tick: Tick,
+    event_loop: EventLoop,
+) -> bool:
+    return event_loop.process_tick(tick)
 
 
-@njit
-async def on_tick(tick: mt5.TICK):
-    # submitted_at = pd.Timestamp("2026.09.06 10:00:00")
+def on_tick(
+    tick: Tick,
+    settings: StrategySettings,
+    strategy_runtime: StrategyRuntimeState,
+    environment: RuntimeEnvironment | None = None,
+    event_loop: EventLoop | None = None,
+) -> OnTickResult:
+    if environment is None:
+        environment = RuntimeEnvironment()
+    probe_emitted = False
+    if settings.emit_time_basis_probe and strategy_runtime.time_basis_probe_count < 5 and tick.is_valid:
+        strategy_runtime.time_basis_probe_count += 1
+        probe_emitted = True
 
-    # position, success = initialize_execution_projection(
-    #     "REQ-M", XAU_ORDER_MARKET, XAU_BUY, 100.0, 96.0, 108.0, submitted_at
-    # )
-    # if not success:
-    #     return False
+    if not settings.run_current_event_loop:
+        return OnTickResult(handled=True, time_basis_probe_emitted=probe_emitted)
 
-    # position, success =
-    # project_execution_outcome("REQ-M", XAU_ORDER_MARKET, XAU_BUY, 100.0, 96.0, 108.0, submitted_at)
-    # if not success:
-    #     return False
+    if event_loop is None:
+        if not strategy_runtime.event_loop_failure_reported:
+            strategy_runtime.event_loop_failure_reported = True
+        return OnTickResult(
+            handled=False,
+            time_basis_probe_emitted=probe_emitted,
+            event_loop_failed=True,
+        )
 
-    # position, success = project_execution_outcome(
-    #     (XAU_EXECUTION_MODIFY_REJECT,
-    # submitted_at + 2, 0.0, 97.0, 110.0) or not nearly_equal(position.stop_loss, 96.0)
-    # )
-    # if not success:
-    #     return False
+    try:
+        handled = process_current_event_loop_tick(tick, event_loop)
+    except Exception:
+        handled = False
+    if not handled and not strategy_runtime.event_loop_failure_reported:
+        strategy_runtime.event_loop_failure_reported = True
 
-    # position, success = project_execution_outcome(
-    #     (XAU_EXECUTION_MODIFY, submitted_at + 3, 0.0, 97.0, 110.0)
-    #     or not NearlyEqual(position.stop_loss, 97.0)
-    #     or not NearlyEqual(position.take_profit, 110.0)
-    # )
-    # if not success:
-    #     return False
+    return OnTickResult(
+        handled=handled,
+        time_basis_probe_emitted=probe_emitted,
+        event_loop_failed=not handled,
+    )
 
-    # position, success =
-    # project_execution_outcome("REQ-M", XAU_ORDER_MARKET, XAU_BUY, 100.0, 96.0, 108.0, submitted_at)
-    # if not success:
-    #     return False
 
-    raise NotImplementedError("on_tick function is not implemented yet.")
+handle_tick = on_tick
+
+__all__ = ["handle_tick", "on_tick", "process_current_event_loop_tick"]

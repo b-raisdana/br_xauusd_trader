@@ -1,5 +1,6 @@
 import base64
 import hashlib
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal
@@ -119,7 +120,7 @@ class Config(BaseSettings):
         return self.environment == "development"
 
     id: str = ""
-    GLOBAL_CACHE: dict[str, object] = Field(default_factory=dict)
+    GLOBAL_CACHE: dict[str, Sequence[pd.Timestamp]] = Field(default_factory=dict)
 
     @computed_field  # type: ignore[prop-decorator]
     @property

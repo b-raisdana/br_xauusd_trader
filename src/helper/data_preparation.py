@@ -131,11 +131,11 @@ def to_timeframe(
     return rounded_time
 
 
-def check_time_in_cache(time: DatetimeIndex | pd.Series | datetime | Timestamp, timeframe: str) -> None:  # type: ignore[explicit-any]
+def check_time_in_cache(time: DatetimeIndex | pd.Series | datetime | Timestamp, timeframe: str) -> None:
     cache_key = f"valid_times_{timeframe}"
     if cache_key not in app_config.GLOBAL_CACHE:
         raise RuntimeError(f"{cache_key} not initialized in config.GLOBAL_CACHE")
-    cache_set: set[pd.Timestamp] = set(cast(pd.DatetimeIndex, app_config.GLOBAL_CACHE[cache_key]))
+    cache_set: set[pd.Timestamp] = set(app_config.GLOBAL_CACHE[cache_key])
     if isinstance(time, (DatetimeIndex, pd.Series)):
         if not time.isin(cache_set).all():
             raise RuntimeError(f"Some times: {time} not found in config.GLOBAL_CACHE[valid_times_{timeframe}]!")

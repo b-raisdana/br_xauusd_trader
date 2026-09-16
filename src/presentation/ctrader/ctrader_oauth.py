@@ -4,9 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-import platform
-import shutil
-import subprocess
 import webbrowser
 from dataclasses import replace
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -96,34 +93,8 @@ def _start_local_server(port: int, code_holder: dict[str, str]) -> HTTPServer:
     return HTTPServer(("localhost", port), handler)
 
 
-def _is_wsl() -> bool:
-    return "microsoft" in platform.release().lower() or bool(os.getenv("WSL_INTEROP"))
-
-
 def _open_browser(url: str) -> bool:
-    """Open a URL in the host browser, including from a headless WSL shell."""
-    powershell = shutil.which("powershell.exe") if _is_wsl() else None
-    if powershell:
-        child_env = os.environ.copy()
-        child_env["CTRADER_BROWSER_URL"] = url
-        try:
-            completed = subprocess.run(
-                [
-                    powershell,
-                    "-NoProfile",
-                    "-NonInteractive",
-                    "-Command",
-                    "Start-Process -FilePath $env:CTRADER_BROWSER_URL",
-                ],
-                check=False,
-                env=child_env,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=10,
-            )
-        except (OSError, subprocess.SubprocessError):
-            return False
-        return completed.returncode == 0
+    """Open a URL in the host browser."""
     try:
         return webbrowser.open(url)
     except webbrowser.Error:

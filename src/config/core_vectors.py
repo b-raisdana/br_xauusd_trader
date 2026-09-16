@@ -1,10 +1,18 @@
 from datetime import datetime
+from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, create_model
+from pydantic_settings import BaseSettings, JsonConfigSettingsSource, SettingsConfigDict
+
+DEFAULT_CORE_VECTORS_JSON = Path(__file__).resolve().parents[2] / "config" / "mt5" / "core_vectors.json"
 
 
-class CoreVectors(BaseModel):
-    model_config = ConfigDict(frozen=True)
+class CoreVectors(BaseSettings):
+    model_config = SettingsConfigDict(
+        extra="forbid",
+        frozen=True,
+        validate_assignment=True,
+    )
 
     vec_breakout_low: float = 100
     vec_breakout_high: float = 101
@@ -115,6 +123,37 @@ class CoreVectors(BaseModel):
     vec_causal_reference_low: float = 90
     vec_causal_previous: float = 99
     vec_causal_bid: float = 101
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls,
+        init_settings,
+        env_settings,
+        dotenv_settings,
+        file_secret_settings,
+    ):
+        return (
+            JsonConfigSettingsSource(settings_cls, json_file=DEFAULT_CORE_VECTORS_JSON),
+            init_settings,
+        )
+
+    @classmethod
+    def from_json(cls, path: str | Path) -> "CoreVectors":
+        payload_model = create_model(
+            "_CoreVectorsPayload",
+            __base__=BaseModel,
+            __config__=ConfigDict(extra="forbid"),
+            **{name: (field.annotation, field) for name, field in cls.model_fields.items()},
+        )
+        payload = payload_model.model_validate_json(Path(path).read_text(encoding="utf-8"))
+        return cls.model_construct(**payload.model_dump())
+
+
+def load_core_vectors(path: str | Path | None = None) -> CoreVectors:
+    if path is None:
+        return CoreVectors()
+    return CoreVectors.from_json(path)
 
 
 core_vectors = CoreVectors()

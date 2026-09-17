@@ -1,13 +1,8 @@
-# Test and Verification Status
+# گزارش جامع نتایج تست MVP
 
-## Pre-commit setup (2026-09-15)
-
-- `br_pre_commit` matches fetched `origin/main` at `5e07919592792a0c8a5c5f19f4e36640df994ec8`.
-- Reinstall with `powershell -ExecutionPolicy Bypass -File scripts/setup_pre_commit.ps1`; uses the active Python environment. Local Git settings ignore NTFS executable-bit differences; upstream shell launchers are normalized to LF without changing the submodule commit.
-- Staged `pre-commit run` and the installed shared wrapper pass Ruff, formatting and pytest. Current Windows pytest: 85 passed (one upstream Protobuf deprecation warning); earlier test counts below are historical.
-- Existing staged work relocates MQL files to `mt5/`, removes obsolete tests and TODO documents, and adds configuration and an MT5 initialization helper. This tooling check does not establish fresh MQL compile or trading parity evidence.
-
-این فایل فقط وضعیت Evidence قابل بازتولید در Repository فعلی را نشان می‌دهد. گزارش تاریخی بدون Artifact/Command/Commit، PASS جاری محسوب نمی‌شود.
+وضعیت: **مرحله ۷ تکمیل؛ Freeze نهایی هنوز وابسته به Gateهای مرحله ۴ و ۵ است**
+منبع عددی ماشین‌خوان: `docs/FINAL_TEST_EVIDENCE.json`
+قاعده استفاده: هر گزارش خلاصه بعدی باید از این فایل و Evidence همراه آن تولید شود؛ برای گزارش‌گیری مجدد نباید MetaTrader 5 اجرا شود.
 
 ## وضعیت فعلی Gateها
 
@@ -65,16 +60,4 @@
 | Safety | Session-5min flatten و restart fail-closed | PASS — session flatten/cancel, final zero exposure and same-day MQL restart zero-attempt/position/exposure pass. |
 | Audit/Report | Event/Rule/Zone/BO lineage، reject reasons، reusable result evidence | PASS Stage 7 — Python/MQL lifecycle audit plus final structured evidence/report synchronization pass. |
 
-## Evidence تاریخی در انتظار بازیابی
-
-| Evidence | ادعای تاریخی | وضعیت جاری |
-|---|---|---|
-| E-R0 | Compile و Control PASS | BLOCKED — Artifact/Commit missing |
-| E-R2 | ALL_FLAT بهتر از Carry | BLOCKED — Protocol/Timezone missing |
-| E-REV | 207/207 Replay و PnL نزدیک | BLOCKED — Fixtures/engines missing |
-| E-OPS | 4/4 Restart behavior | BLOCKED — Logs/commit missing |
-| Python bootstrap v4 | Data/cache validation successful | BLOCKED — script در Bundle موجود است؛ execution log/cache کامل و محیط بازتولیدشده موجود نیست |
-
-توضیح: Bundle فنی اکنون در بسته Migration موجود است، اما PASSهای تاریخی تا زمانی که Command/Environment و Artifactها در Repository بازتولید نشوند، PASS جاری Strategy محسوب نمی‌شوند.
-
-Statusها: `PASS`, `FAIL`, `NOT_RUN`, `BLOCKED`, `NOT_APPLICABLE`.
+Statuses: `PASS`, `FAIL`, `NOT_RUN`, `BLOCKED`, `NOT_APPLICABLE`.

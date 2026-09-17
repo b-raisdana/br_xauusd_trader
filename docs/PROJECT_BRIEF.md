@@ -1,13 +1,8 @@
 # Project Brief
 
-## هویت و نقش‌ها
+## هدف
 
-- نام پروژه: XAUUSD EA
-- سطح پروژه: STANDARD
-- مالک تصمیم‌های محصول و ریسک: Project Leader
-- شریک علمی و مستندسازی: ChatGPT Work
-- مالک اجرای فنی، تست، Debug، Git و GitHub: Codex
-- Source of Truth: فایل‌های Repository، نه گفتگو
+پیاده‌سازی الگوریتمیک یک روش Price Action آموزش‌داده‌شده برای اجرای دستی طلا، در قالب EA ماژولار و قابل Audit که قوانین Active Zone/Trend/Breakout/Reversal/Pullback/Risk را بدون تفسیر پنهان اجرا کند، در Python و MT5 رفتار قابل‌مقایسه داشته باشد و پس از عبور از Gateهای فنی و ثبت گزارش جامع نهایی وارد Shadow/Demo شود.
 
 ## بازار و محیط اجرا
 
@@ -18,10 +13,6 @@
 - Python/Polars: Research، Screening، Replay و QA سریع
 - Broker تاریخی: MetaQuotes-Demo؛ Broker نهایی Live هنوز انتخاب/ثبت نشده است
 - Zoneها: ورودی روزانه استاد؛ تولید خودکار Zone خارج از Scope MVP
-
-## هدف
-
-پیاده‌سازی الگوریتمیک یک روش Price Action آموزش‌داده‌شده برای اجرای دستی طلا، در قالب EA ماژولار و قابل Audit که قوانین Active Zone/Trend/Breakout/Reversal/Pullback/Risk را بدون تفسیر پنهان اجرا کند، در Python و MT5 رفتار قابل‌مقایسه داشته باشد و پس از عبور از Gateهای فنی و ثبت گزارش جامع نهایی وارد Shadow/Demo شود.
 
 ## مسیر تحویل
 
@@ -38,7 +29,7 @@ Real Money و افزایش ریسک خارج از این مسیر و نیازم�
 3. `TODO.md` — کارهای باقی‌مانده و Gateها.
 4. `CURRENT_STATE.md` — وضعیت جاری، Blocker و Next Action.
 
-`RULES_ARCHIVE_FUTURE.md`، `DECISIONS.md`، `EXPERIMENTS.md` و `TEST_STATUS.md` فایل‌های پشتیبان Audit هستند و عمدتاً توسط AI نگه‌داری می‌شوند.
+`RULES_ARCHIVE_FUTURE.md`، `DECISIONS.md`, `EXPERIMENTS.md` و `TEST_STATUS.md` فایل‌های پشتیبان Audit هستند و عمدتاً توسط AI نگه‌داری می‌شوند.
 
 ## Success Criteria
 

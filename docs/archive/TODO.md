@@ -1,50 +1,21 @@
 # TODO تا MVP
 
-نسخه: v2 — Consolidated Migration  
-این فایل تنها Ledger اجرایی تا Freeze MVP است. هر تغییر ابتدا اینجا ثبت می‌شود و سپس اجرا می‌شود.
-
 وضعیت هر مورد: `TODO → IMPLEMENTED → TESTED → PRODUCT OWNER ACCEPTED → FROZEN`
 
 ---
-
-## 0) مهاجرت به Repository استاندارد
-
-- [x] Repository واقعی، Branch فعال، آخرین Commit معتبر و Working Tree بررسی شود.
-- [x] این اسناد با نسخه‌های موجود Repository به‌صورت Diff/Merge ادغام شوند؛ فایل کامل‌تر حفظ شد و CI محلی از بین نرفت.
-- [x] نام‌های قدیمی Rule به نام‌های فعال این Rulebook Crosswalk شوند.
-- [ ] هر ادعای تاریخی PASS فقط پس از یافتن Artifact/Command/Commit متناظر در `TEST_STATUS.md` ثبت شود.
-- [x] پس از Merge، Git checkpoint منسجم `4cc06b1` ساخته شد؛ GitHub هنوز پیکربندی نشده است.
-- [x] ناسازگاری `SHA256_PATCH.txt` بدون تغییر Evidence بررسی و به‌عنوان مشکل Manifest/Path تاریخی ثبت شد.
-- [x] Merge و کنترل انسجام Rulebook پیش از شروع کدنویسی انجام شد.
-- [x] First-run audit: همه Source/Testهای جاری و Legacy inventory و static-inspect شدند؛ `_migration_inbox` وجود ندارد.
-- [x] Runtime baseline: Python 3.11 محلی، MT5/MetaEditor discovery و فرمان‌های قابل تکرار Windows تأیید شدند.
-- [x] Baseline quality gate: Ruff، format، mypy، pytest و `git diff --check` به‌صورت fail-closed اجرا شدند.
 
 ## 1) Baseline و مستندات
 
 - [x] Consolidate قوانین اولیه و ثانویه — قوانین فعال، لغوشده و آینده از فایل‌های قبلی جدا و یکپارچه شدند.
 - [x] اعمال اولویت Secondary — هرجا Secondary با Primary تضاد داشت، Rule جدید مبنا قرار گرفت.
 - [x] رفع ابهام R — در قوانین فعال، R مبهم حذف و `BASE_R_USD=6` از `ACTUAL_STOP_DISTANCE` جدا شد.
-- [x] تعریف نهایی Strict Pullback Trend — Current Candle و Same-Bar با Current Price نسبت به Candle Open ارزیابی می‌شوند.
+- [x] تعریف نهایی Strict Pullback Trend — Current Candle و Same-Bar با Current Price نسبت به Candle Open ارزیاسی می‌شوند.
 - [x] تعریف TP Extension — Extension یک‌مرحله‌ای، Restore قبل از TP اولیه و Market Close بعد از عبور TP اولیه مشخص شد.
 - [x] تعریف Pre-Zone Trigger — Baseline برابر 1 دلار و Crossing-based تعیین شد؛ Optimization انجام نمی‌شود.
 
 ---
 
-## 2) بازسازی مهندسی کد
-
-- [x] ساخت EA جدید ماژولار — Python full lifecycle و MQL real-tick signal/request/binding/Fill/Close/profit-protection/session-flatten/TP/restart برای profileهای 200/300 اجرا شد؛ گسترش multi-day در Gate جدا باقی است.
-- [x] ماژول Zone/Trend — Load/Merge/Priority، Engagement و Trend bootstrap روزانه مستقل پیاده و Contract-tested شد.
-- [x] ماژول Signalها — Breakout، Reversal و Pullback با State مشترک Order Slot و Lineage روشن پیاده و Contract-tested شدند.
-- [x] ماژول Strict Trend/Conflict/TP — closed/current momentum، Trigger crossing، Touch block و TP state برگشت‌پذیر پیاده و تست شدند.
-- [x] ماژول Risk/Execution — Initial SL/TP، Base R، RF، Profit Protection، Native input boundary، fixed volume/concurrency و Margin Gate پیاده و تست شدند.
-- [x] ماژول Safety — Daily loss، Portfolio risk، Broker session flatten و Restart fail-closed پیاده و Contract-tested شدند.
-- [ ] ماژول Audit/Report — Event/serialization و durable fail-closed JSONL Journal پیاده و تست شد؛ Evidence ساختاریافته و گزارش جامع نهایی باید با آخرین Acceptance همگام شوند.
-- [x] Compile Gate — current inert baseline با `#property strict` روی MetaEditor build 6151، صفر Error و صفر Warning compile شد؛ پس از هر توسعه باید تکرار شود.
-
----
-
-## 3) Contract Testهای سریع در Python
+## 2) Contract Testهای سریع در Python
 
 - [x] Trend bootstrap — رفتار `NONE → N1 → N2 → N3` روی شروع روز و عدم Carry روز قبل تست شد.
 - [x] Tick event order — Coordinator Trend و Touch را به‌ترتیب به‌روزرسانی می‌کند و Reversal Signal همان Tick از Trend جدید استفاده می‌کند.
@@ -81,7 +52,7 @@ Gate: همه Contract Testهای بالا PASS.
 
 ---
 
-## 4) Regression هدفمند MVP
+## 3) Regression هدفمند MVP
 
 - [x] Trend Bootstrap — رفتار Sticky تاریخی رد و مقایسه مجدد از Gate MVP حذف شد.
 - [x] Normal/High — هر دو Priority جزء ثابت Strategy هستند؛ PnL تفکیکی معیار حذف هیچ‌کدام نیست و از Gate MVP حذف شد.
@@ -95,7 +66,7 @@ Gate: اختلاف اجرایی بدون توضیح = صفر.
 
 ---
 
-## 5) Python ↔ MT5 Equivalence
+## 4) Python ↔ MT5 Equivalence
 
 - [x] Freeze test vectors — schema و 19 vector، شامل lifecycle و causal Tick order، در Python و isolated MQL Strategy Tester با tolerance صریح و generated-header drift gate PASS شد.
 - [x] Python replay — causal runner، UTC export/normalization، time-basis correlation، Zone-day attachment و fixture-driven Market/Pending Fill/Reject/Close/Modify/Cancel با atomic recovery برای Scope MVP PASS شد.
@@ -107,7 +78,7 @@ Gate: صفر اختلاف توضیح‌نشده.
 
 ---
 
-## 6) Final MT5 Acceptance
+## 5) Final MT5 Acceptance
 
 - [x] Broker/Symbol specification — Contract size، Tick size/value، Stops/Freeze level، Session و Cost model روز مرجع ثبت شد.
 - [x] سناریوی 200 دلار — real ticks، 0.01/max3: 10 attempt، 8 accepted، 2 known native reject، 3 Breakout accepted، max position=1 و failed=0.
@@ -119,7 +90,7 @@ Gate: Technical Acceptance PASS.
 
 ---
 
-## 7) گزارش جامع نهایی تست
+## 6) گزارش جامع نهایی تست
 
 - [x] Evidence ساختاریافته هر اجرای Acceptance شامل نسخه Code/Config/Data و تمام Counterهای فنی و عددی ذخیره شد.
 - [x] `docs/FINAL_TEST_REPORT.md` نتایج همه Profile/Dayهای اجراشده، Gateها، اختلاف‌ها، محدودیت‌ها و روش بازتولید را یکجا ثبت کرد.
@@ -128,7 +99,7 @@ Gate: Technical Acceptance PASS.
 
 ---
 
-## 8) Freeze MVP
+## 7) Freeze MVP
 
 - [x] Freeze Rulebook — نسخه تأییدشده با Tag نسخه MVP بدون Overwrite قفل شد.
 - [x] Freeze Code — سورس تأییدشده با Hash و Tag نسخه MVP قفل شد.

@@ -54,6 +54,9 @@ exclude = ["legacy_reference", "archive_not_used_trash"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "B"]
 
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Option", "typer.Argument"]
+
 [tool.mypy]
 python_version = "3.12"
 exclude = "^(legacy_reference|archive_not_used_trash)/"
@@ -72,3 +75,4 @@ module = [
     "twisted.internet.*",
 ]
 ignore_missing_imports = true
+

@@ -1,6 +1,6 @@
 # منطق فعلی سیستم معاملاتی XAUUSD، از خروجی تا ورودی
 
-این گزارش فقط رفتار فعال و فعلی را توضیح می‌دهد: منطق دامنه در Python، مسیر اجرایی کامل در MT5 Strategy Tester و قواعد فعال در `docs/RULES.md`. فایل‌های `legacy_reference/` و مسیر رسیدن پروژه به وضعیت فعلی عمداً کنار گذاشته شده‌اند.
+این گزارش فقط رفتار فعال و فعلی را توضیح می‌دهد. قواعد فعال در `docs/RULES.md`.
 
 ## خلاصه در یک نگاه
 
@@ -186,7 +186,7 @@ Engagement به‌تنهایی معامله نیست؛ فقط یکی از شرو
 
 ### Tick و کندل
 
-ورودی بازار شامل Bid/Ask و زمان Broker است. در Replay پایتون، `time_msc` تیک MT5 از UTC با offset صریحِ دقیقه‌ای به زمان Broker تبدیل و بر اساس بازه‌های 15 دقیقه‌ای گروه‌بندی می‌شود:
+ورودی بازار شامل Bid/Ask و زمان Broker است. در Replay، Tick از UTC با offset دقیقه‌ای به زمان Broker تبدیل و بر اساس بازه‌های 15 دقیقه‌ای گروه‌بندی می‌شود:
 
 - Open = اولین Bid
 - High = بیشترین Bid
@@ -205,8 +205,8 @@ Engagement به‌تنهایی معامله نیست؛ فقط یکی از شرو
 
 ## دو مرز مهم برای تفسیر وضعیت فعلی
 
-- موتور MT5 Strategy Tester مسیر کامل Signal → Gate → ORDER → Broker outcome → مدیریت Position را اجرا می‌کند. موتور Python قراردادهای دقیق دامنه و Replay قابل تکرار را پیاده کرده، اما outcomeهای Fill/Reject/Close/Modify/Cancel را فقط از fixture صریح می‌پذیرد و از حرکت قیمت حدس نمی‌زند؛ بنابراین Replay بدون fixture صرفاً Signal/Audit است.
-- `RULES.md` در بخش Free Space صریحاً می‌گوید Entry جدید Reversal/Pullback با فضای `<= 3` Block شود، ولی تابع اجرایی فعلی MQL یعنی `PrepareCandidateEntry` فیلتر `Free Space > 3` را برای Breakout نیز اعمال می‌کند. این گزارش رفتار فعلی کد را پنهان نمی‌کند: در Tester فعلی Breakout هم بدون Free Space کافی سفارش نمی‌شود. این اختلاف مستند/کد باید پیش از هر تغییر Rule یا اجرای Demo تعیین تکلیف شود.
+- موتور MT5 Strategy Tester مسیر کامل Signal → Gate → ORDER → Broker outcome → مدیریت Position را اجرا می‌کند. موتور Replay قراردادهای دقیق دامنه را پیاده کرده، اما outcomeهای Fill/Reject/Close/Modify/Cancel را فقط از fixture صریح می‌پذیرد و از حرکت قیمت حدس نمی‌زند؛ بنابراین Replay بدون fixture صرفاً Signal/Audit است.
+- `RULES.md` در بخش Free Space صریحاً می‌گوید Entry جدید Reversal/Pullback با فضای `<= 3` Block شود، ولی تابع اجرایی فعلی Breakout هم بدون Free Space کافی سفارش نمی‌شود. این اختلاف مستند/کد باید پیش از هر تغییر Rule یا اجرای Demo تعیین تکلیف شود.
 
 ## جمع‌بندی معنای معاملاتی
 

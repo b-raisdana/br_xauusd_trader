@@ -1,23 +1,11 @@
 # قوانین فعال XAUUSD تا MVP
 
-نسخه: v2 — Consolidated Migration  
-وضعیت: Baseline تأییدشده توسط رهبر پروژه؛ پیاده‌سازی و تست‌های مشخص‌شده در `TODO.md` هنوز باید انجام شوند.
-
-## 1) اصل سند
-
-این فایل فقط می‌گوید سیستم هدف MVP **چه رفتاری باید داشته باشد**. قوانین لغوشده، نسخه‌های قبلی و موارد Post-MVP در `RULES_ARCHIVE_FUTURE.md` هستند. Repository مرجع رسمی پروژه است و گفتگو فقط Evidence مهاجرت محسوب می‌شود.
+این فایل فقط می‌گوید سیستم هدف MVP **چه رفتاری باید داشته باشد**. قوانین لغوشده، نسخه‌های قبلی و موارد Post-MVP در `RULES_ARCHIVE_FUTURE.md` هستند. هیچ قانون معاملاتی جدید بدون تایید رهبر پروژه وارد کد نمی‌شود.
 
 اولویت در صورت تعارض:
 1. تصمیم مستقیم جدید رهبر پروژه
 2. قوانین ثانویه تاییدشده
 3. قوانین اولیه تاییدشده‌ای که با موارد بالا تضاد ندارند
-
-هیچ قانون معاملاتی جدید بدون تایید رهبر پروژه وارد کد نمی‌شود.
-
-قاعده نگارش:
-- عنوان فارسی Rule قبل از شناسه فنی Semantic نمایش داده شود.
-- شناسه فنی تا حد ممکن شبیه نام Function و قابل فهم باشد.
-- Legacy ID فقط به‌عنوان Alias برای Traceability حفظ شود و هویت اصلی Rule نباشد.
 
 ---
 
@@ -60,7 +48,6 @@ High تا Low کل دامنه کندل است و بخش خارج از Body، Wic
 - Symbol: XAUUSD
 - منطق کندلی: M15
 - Touch، Fill، Spread، SL/TP و Execution داخل کندل: Tick واقعی
-- Python برای Research/Screening و QA سریع مجاز است.
 - مرجع نهایی پذیرش MVP: MT5 با `Every Tick Based on Real Ticks`.
 
 ---
@@ -71,7 +58,7 @@ High تا Low کل دامنه کندل است و بخش خارج از Body، Wic
 - Zoneهای روزانه ورودی سیستم هستند و توسط استاد ارائه می‌شوند.
 - تولید خودکار Zone جزو MVP نیست.
 - Zoneها برای Broker Day مربوطه Load، Normalize و Sort می‌شوند.
-- `Enabled` و `Priority` رعایت می‌شوند.
+- `Enabled` و `Priority` رعایت می‌شود.
 - Hard Cap برای تعداد Zone وجود ندارد.
 
 ### نام‌های معادل (`ZONE_ALIAS`)
@@ -203,7 +190,7 @@ Pullback فقط در پنج کندل M15 بعد از Breakout معتبر، یع�
 
 ### مصرف روزانه Pullback (`PULLBACK_DAILY_USAGE`)
 - Normal Zone: حداکثر یک Pullback Fill در روز.
-- High Zone: بدون سقف مصرف روزانه Pullback.
+- High Zone: بدون سقف مصرح روزانه Pullback.
 - برای یک `Zone + Direction` هم‌زمان فقط یک Pending/Cycle فعال مجاز است.
 
 ### استقلال مصرف Signalها (`SIGNAL_USAGE_INDEPENDENCE`)
@@ -221,14 +208,14 @@ Reversal Consumption و Pullback Consumption دو Counter مستقل هستند.
 برای Pullback Buy روی `Ri` تا Zone بالاتر `Ri+1`:
 - اگر Trigger در کندلی بعد از کندل PB رخ دهد، تمام کندل‌های **بسته‌شده بعد از کندل PB** باید Bullish باشند.
 - کندل جاری در لحظه تصمیم نیز باید Bullish باشد: `Current Bid > Current M15 Open`.
-- اگر Trigger در همان کندل PB رخ دهد، همان کندل جاری با همین معیار `Current Bid > Open` ارزیابی می‌شود.
+- اگر Trigger در همان کندل PB رخ دهد، همان کندل جاری با همین معیار `Current Bid > Open` ارزیاسی می‌شود.
 - Doji یا هر کندل مخالف، Strict Trend را نقض می‌کند.
 
 برای Pullback Sell قواعد متقارن است:
 - تمام کندل‌های بسته‌شده بعد از PB باید Bearish باشند.
 - کندل جاری در لحظه تصمیم: `Current Ask < Current M15 Open`.
 
-وضعیت کندل جاری فقط در نقاط تصمیم لازم ارزیابی می‌شود؛ نه اینکه در تمام Tickها یک State نویزی روشن/خاموش شود.
+وضعیت کندل جاری فقط در نقاط تصمیم لازم ارزیاسی می‌شود؛ نه اینکه در تمام Tickها یک State نویزی روشن/خاموش شود.
 
 ### نقطه تصمیم قبل از Zone (`PRE_ZONE_DECISION_TRIGGER`)
 Pre-Zone Trigger نسبت به **Zoneای که TP جاری روی آن قرار دارد** تعریف می‌شود؛ شماره Zone ورود یا تعداد Zoneهای ردشده قبل از Target اهمیتی ندارد.
@@ -253,8 +240,6 @@ Reversal مخالف فقط **هنگام Touch واقعی مرز Zone بعدی** 
 برای Buy PB روی `Ri`، این Rule جلوی Sell Reversal روی مرز پایین `Ri+1` را در صورت حفظ Strict Trend می‌گیرد. برای Sell متقارن است.
 
 ### تمدید یک‌مرحله‌ای TP (`EXTEND_PULLBACK_TP`)
-این Rule باید قبل از MVP پیاده و تست شود.
-
 - فقط زمانی اعمال می‌شود که Zone در حال نزدیک‌شدن، همان Zone مربوط به **TP اولیه فعلی** باشد.
 - هر Zoneای که TP جاری روی آن باشد، وقتی قیمت به `PRE_ZONE_DECISION_TRIGGER` همان Zone رسید و Strict Trend معتبر بود، TP به **Zone بلافاصله بعدی در جهت معامله** منتقل می‌شود. محل Zone ورود و شماره Target قبلی در این تصمیم نقشی ندارد.
 - Extension برای MVP فقط **یک مرحله** است؛ Recursive Extension جزو MVP نیست.
@@ -315,8 +300,6 @@ Sell:
 
 اگر Target واجد شرایط وجود نداشته باشد، Trade رد می‌شود.
 
-مثال Buy: Entry=3400، Zone بعدی از 3404 شروع می‌شود و Zone بعد از آن از 3408. چون فاصله 3404 فقط 4 دلار است، Target نیست؛ 3408 با فاصله 8 دلار اولین Target معتبر است.
-
 ---
 
 ## 12) محافظت پله‌ای از سود
@@ -334,13 +317,6 @@ Buy:
 Sell:
 - اگر `Ask <= Entry - X × BASE_R_USD`
 - آنگاه `SL = RF - (X - 1) × BASE_R_USD`
-
-نمونه با `BASE_R_USD = 6`:
-- `+1 × BASE_R_USD`: SL به RF
-- `+2 × BASE_R_USD`: SL به `RF + 1 × BASE_R_USD`
-- `+3 × BASE_R_USD`: SL به `RF + 2 × BASE_R_USD`
-- `+4 × BASE_R_USD`: SL به `RF + 3 × BASE_R_USD`
-- و به همین شکل ادامه می‌یابد.
 
 SL هیچ‌وقت نباید شل‌تر شود یا به عقب برگردد.
 
@@ -378,17 +354,7 @@ SL هیچ‌وقت نباید شل‌تر شود یا به عقب برگردد.
 - Position باز صرفاً به علت این Rule Force-Close نمی‌شود.
 
 ### Portfolio Risk Budget (`PORTFOLIO_RISK_BUDGET`)
-Risk تجمعی با محاسبات Native کنترل می‌شود.
-
 Budget هدف MVP: `GROSS_DAILY = 15%` از Strategy Capital Basis.
-
-در محاسبه لحاظ شود:
-- Realized gross loss
-- Open-position risk تا SL فعلی
-- Pending-order reserved risk
-- Risk سفارش جدید
-
-Cash Risk با `OrderCalcProfit` و Margin با `OrderCalcMargin` محاسبه می‌شود.
 
 ---
 
@@ -410,8 +376,6 @@ Session از اطلاعات Symbol/Broker خوانده می‌شود و ساعت
 - Positionهای EA Flatten شوند.
 - تا Broker Day بعدی Fill جدید مجاز نباشد.
 
-این رفتار Baseline MVP برای Demo/Shadow است. بازیابی کامل Persistent State یک موضوع Post-MVP است.
-
 ---
 
 ## 15) Audit و Evidence نهایی تست
@@ -432,10 +396,9 @@ Session از اطلاعات Symbol/Broker خوانده می‌شود و ساعت
 - گزارش حداقل Dataset/Date range، Config و Hash، Build، Symbol/Session/Cost specification، شمارش Signal/Attempt/Fill/Reject/Close، PnL و Drawdown موجود، Risk/Safety/TP counters، خطاها، Gateها و محدودیت تفسیر را نگه دارد.
 - نتیجه مثبت و منفی هر دو ثبت شوند و هیچ مقدار ناموجودی تخمین زده نشود.
 - گزارش و Evidence باید برای تولید هر خلاصه بعدی کافی باشند؛ درخواست گزارش مجدد نباید باعث اجرای دوباره MT5 شود.
-- بررسی بصری Chart یا تایید چشمی رهبر، Gate فعال MVP نیست.
 
 ---
 
 ## 16) مواردی که عمداً در Active MVP نیستند
 
-Aggressive Pullback، تولید خودکار Zone، Dynamic Breakout Buffer، Indicator Filters، Dynamic Lot Sizing، Session-specific `BASE_R_USD`، Daily Profit Giveback، Recursive TP Extension، اثر Zone نهایی با عرض بزرگ‌تر از `BASE_R_USD`، Strategy 2 و Strategy 3 در این فایل Rule فعال نیستند. جزئیاتشان در Archive/Future آمده است.
+Aggressive Pullback، تولید خودکار Zone، Dynamic Breakout Buffer، Indicator Filters، Dynamic Lot Sizing، Session-specific `BASE_R_USD`، Daily Profit Giveback، Recursive TP Extension در این فایل Rule فعال نیستند.

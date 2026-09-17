@@ -1,5 +1,4 @@
---index-url https://mirror-pypi.runflare.com/simple
-
+pandas-ta
 
 MetaTrader5
 numba
@@ -23,7 +22,7 @@ pyarrow==25.0.1
 pyiceberg==0.11.1 # SqlCatalog (local sqlite catalog + filesystem warehouse) backing duckdb_cache's storage
 typer==0.27.1
 duckdb
-numpy>=1.26.4,<2.2 # compatible with pandas/scipy and br-logging-and-profiling
+numpy
 scipy==1.17.1 # pinned for reproducible analysis behavior
 optuna==4.9.0
 pytz==2026.3.post1

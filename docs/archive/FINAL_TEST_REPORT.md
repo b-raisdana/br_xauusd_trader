@@ -4,22 +4,6 @@
 منبع عددی ماشین‌خوان: `docs/FINAL_TEST_EVIDENCE.json`
 قاعده استفاده: هر گزارش خلاصه بعدی باید از این فایل و Evidence همراه آن تولید شود؛ برای گزارش‌گیری مجدد نباید MetaTrader 5 اجرا شود.
 
-## 1) محدوده و Provenance
-
-| مورد | مقدار ثبت‌شده |
-|---|---|
-| Repository checkpoint موجود | `871189ae632af525361f0041cd08c9206216eaa4` |
-| SHA-256 سورس EA | `78970C137D2FA580981026BDBF3413902AC1F55E8B3EC12264F4C58100501AFC` |
-| SHA-256 فایل کامپایل‌شده | `4C204E3DC861FFABE0FD9B7BA4BFFFCF042A3A0135810D1BB70FC5252F81490D` |
-| MT5 / MetaEditor | build 6151 |
-| Python | 3.11.15 |
-| Dataset Zone | `data/ranges.csv` |
-| Dataset SHA-256 | `D146FE4650EA52DA64B585A7A0EE15D874E68801F12764481E9EF8C773C9F4F3` |
-| Zone input | 444 ردیف، 23 Broker Day، 421 Zone ادغام‌شده |
-| Contract vectors | 19 مورد، Decimal-string، tolerance در MQL برابر `1e-9` |
-
-Checkpoint بالا والدِ تغییرات این گزارش است؛ Hashهای محتوایی، Config، Dataset و خروجی کامپایل امکان تطبیق دقیق Evidence را فراهم می‌کنند.
-
 ## 2) آزمون‌های خودکار موجود
 
 | آزمون | نتیجه | Evidence |
@@ -68,7 +52,7 @@ Configها به‌ترتیب `tester_200.ini` و `tester_300.ini`، با Real Ti
 
 ## 5) TP Extension و Lifecycle
 
-قراردادهای pure مربوط به Pre-Zone crossing، Strict Momentum، Extension، Restore و Market Close پاس شده‌اند. پروفایل 300 یک Extension/Restore داشت و اجرای 23روزه Market Close را نیز فعال کرد؛ صفر Modify/Close reject رخ داد.
+قراردهای pure مربوط به Pre-Zone crossing، Strict Momentum، Extension، Restore و Market Close پاس شده‌اند. پروفایل 300 یک Extension/Restore داشت و اجرای 23روزه Market Close را نیز فعال کرد؛ صفر Modify/Close reject رخ داد.
 
 ## 6) Gateهای باقی‌مانده
 

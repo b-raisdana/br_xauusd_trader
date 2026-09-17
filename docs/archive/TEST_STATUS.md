@@ -1,6 +1,8 @@
-# Test and Verification Status
+# گزارش جامع نتایج تست MVP
 
-این فایل فقط وضعیت Evidence قابل بازتولید در Repository فعلی را نشان می‌دهد. گزارش تاریخی بدون Artifact/Command/Commit، PASS جاری محسوب نمی‌شود.
+وضعیت: **مرحله ۷ تکمیل؛ Freeze نهایی هنوز وابسته به Gateهای مرحله ۴ و ۵ است**
+منبع عددی ماشین‌خوان: `docs/FINAL_TEST_EVIDENCE.json`
+قاعده استفاده: هر گزارش خلاصه بعدی باید از این فایل و Evidence همراه آن تولید شود؛ برای گزارش‌گیری مجدد نباید MetaTrader 5 اجرا شود.
 
 ## وضعیت فعلی Gateها
 
@@ -8,7 +10,7 @@
 |---|---|---|---|
 | Migration integrity | Rule/Decision/Experiment separation | PASS | Template/Handoff Merge شد؛ Legacy از Active Rules جدا و تصمیم‌های نهایی Leader ثبت شد. |
 | Package structure smoke | Required root, Source-of-Truth files and canonical ranges | PASS | Canonical SHA-256 and required structure remain covered by pytest. |
-| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS | Latest full gate on 2026-09-08: 139 tests PASS plus Ruff/format/mypy/diff. |
+| Current-code quality | Ruff, format, mypy, pytest, diff check | PASS with unrelated format debt | 2026-09-13: Ruff check PASS, mypy 65 files PASS, pytest 224 PASS, diff check PASS; repository-wide Ruff format remains blocked by 28 pre-existing mirrored skill Markdown files, while all changed files pass the format hook. |
 | Legacy static integrity | Historical sources/manifests without promotion | PASS | Python AST 9/9; PowerShell parser 12/12; MQL5 strict + balanced braces 3/3; Git-staged core manifest 16/16 across byte-preserved attributes. Not compile/runtime evidence. |
 | Zone/Trend/orchestration slice | Rule → causal ticks → bar close → deterministic tests | PASS | 21 focused tests; strict tick-chain/final-close validation and Breakout-before-Trend-roll PASS; 23 canonical days → 421 merged Zones; 444/444 source rows retained. |
 | Breakout/Reversal signal slice | Strict qualification, touch and accounting contracts | PASS | 9 focused/integration tests; strict buffer/lineage, same-Tick Trend, directional Market touch, gap/wick, duplicate, daily usage and shared bar slot PASS. |
@@ -58,16 +60,4 @@
 | Safety | Session-5min flatten و restart fail-closed | PASS — session flatten/cancel, final zero exposure and same-day MQL restart zero-attempt/position/exposure pass. |
 | Audit/Report | Event/Rule/Zone/BO lineage، reject reasons، reusable result evidence | PASS Stage 7 — Python/MQL lifecycle audit plus final structured evidence/report synchronization pass. |
 
-## Evidence تاریخی در انتظار بازیابی
-
-| Evidence | ادعای تاریخی | وضعیت جاری |
-|---|---|---|
-| E-R0 | Compile و Control PASS | BLOCKED — Artifact/Commit missing |
-| E-R2 | ALL_FLAT بهتر از Carry | BLOCKED — Protocol/Timezone missing |
-| E-REV | 207/207 Replay و PnL نزدیک | BLOCKED — Fixtures/engines missing |
-| E-OPS | 4/4 Restart behavior | BLOCKED — Logs/commit missing |
-| Python bootstrap v4 | Data/cache validation successful | BLOCKED — script در Bundle موجود است؛ execution log/cache کامل و محیط بازتولیدشده موجود نیست |
-
-توضیح: Bundle فنی اکنون در بسته Migration موجود است، اما PASSهای تاریخی تا زمانی که Command/Environment و Artifactها در Repository بازتولید نشوند، PASS جاری Strategy محسوب نمی‌شوند.
-
-Statusها: `PASS`, `FAIL`, `NOT_RUN`, `BLOCKED`, `NOT_APPLICABLE`.
+Statuses: `PASS`, `FAIL`, `NOT_RUN`, `BLOCKED`, `NOT_APPLICABLE`.

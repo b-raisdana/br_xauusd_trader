@@ -1,213 +1,404 @@
-# منطق فعلی سیستم معاملاتی XAUUSD، از خروجی تا ورودی
+# قوانین فعال XAUUSD تا MVP
 
-این گزارش فقط رفتار فعال و فعلی را توضیح می‌دهد: منطق دامنه در Python، مسیر اجرایی کامل در MT5 Strategy Tester و قواعد فعال در `docs/RULES.md`. فایل‌های `legacy_reference/` و مسیر رسیدن پروژه به وضعیت فعلی عمداً کنار گذاشته شده‌اند.
+این فایل فقط می‌گوید سیستم هدف MVP **چه رفتاری باید داشته باشد**. قوانین لغوشده، نسخه‌های قبلی و موارد Post-MVP در `RULES_ARCHIVE_FUTURE.md` هستند. هیچ قانون معاملاتی جدید بدون تایید رهبر پروژه وارد کد نمی‌شود.
 
-## خلاصه در یک نگاه
+اولویت در صورت تعارض:
+1. تصمیم مستقیم جدید رهبر پروژه
+2. قوانین ثانویه تاییدشده
+3. قوانین اولیه تاییدشده‌ای که با موارد بالا تضاد ندارند
 
-سیستم روی XAUUSD و کندل M15 کار می‌کند، اما لمس قیمت، تشخیص Reversal، اجرای سفارش، Spread و مدیریت SL/TP را با Tick واقعی می‌سنجد. زون‌های هر روز از بیرون وارد می‌شوند؛ سیستم از کندل‌های بسته‌شده روند روز را می‌سازد؛ از رابطه‌ی Tick/کندل با زون سه نوع سیگنال Breakout، Reversal و Pullback استخراج می‌کند؛ سپس فقط Candidateای که همه‌ی شروط ورود، ریسک و ایمنی را پاس کند به سفارش 0.01 lot دارای SL و TP تبدیل می‌شود.
+---
 
-```text
-Tick و کندل M15 + زون روزانه
-        ↓
-زون‌های مرتب و Merge‌شده + روند روز + Engagement
-        ↓
-Breakout / Reversal / Pullback Candidate
-        ↓
-Free Space + SL/TP + سهمیه‌ها + زیان روزانه + GROSS15 + تعداد Position + Margin
-        ↓
-ثبت پایدار ORDER → ارسال فقط در Strategy Tester → Fill یا Reject
-        ↓
-مدیریت TP پولبک + محافظت پله‌ای سود + خروج SL/TP/تعارض/پایان Session
-```
+## 2) ثابت‌های پایه
 
-## لایه خروجی: در نهایت چه چیزی تولید می‌شود؟
+### واحد پایه استراتژی (`BASE_R_USD`)
+- `BASE_R_USD = 6.00 USD`
+- این مقدار یک ثابت تجربی Strategy است و **از فاصله واقعی Entry تا Stop محاسبه نمی‌شود**.
+- در قوانین فعال هیچ `R` مستقل و مبهمی استفاده نمی‌شود؛ تمام ضرایب صریحاً بر پایه `BASE_R_USD` نوشته می‌شوند.
 
-خروجی سیستم صرفاً «Buy/Sell» نیست؛ زنجیره‌ای قابل ردگیری از رویدادهاست:
+### فاصله واقعی حدضرر (`ACTUAL_STOP_DISTANCE`)
+- تعریف: فاصله واقعی بین Entry و Initial SL.
+- این مقدار ممکن است کمتر یا مساوی `BASE_R_USD` باشد و با آن یکی نیست.
 
-- `SIGNAL`: یک موقعیت معاملاتی طبق قواعد دیده شده است.
-- `ORDER`: Candidate تمام Gateها را پاس کرده و درخواست سفارش، پیش از ارسال، پایدار ثبت شده است.
-- `FILL` یا `REJECT`: Broker/Tester سفارش را پذیرفته/پر کرده یا رد کرده است.
-- `MODIFY`: SL یا TP با پذیرش Native تغییر کرده است.
-- `CANCEL`: Pending لغو شده است.
-- `CLOSE`: Position با TP، SL، تعارض Breakout، شکست Momentum پس از TP extension یا پایان Session بسته شده است.
+### فاصله تصمیم قبل از ناحیه (`PRE_ZONE_TRIGGER_DISTANCE`)
+- `PRE_ZONE_TRIGGER_DISTANCE = 1.00 USD`
+- این عدد Baseline ثابت برای تست MVP است و به‌عنوان مقدار بهینه فرض نمی‌شود.
 
-هر رویداد به زمان Broker، Zone ID، نوع و جهت Signal، Entry/SL/TP، Rule ID و در Pullback به شناسه‌ی Breakout والد متصل است. بنابراین «وجود Signal» الزاماً به معنی «ارسال یا Fill سفارش» نیست.
+### نفوذ لازم برای Pullback (`PULLBACK_PENETRATION`)
+- `PULLBACK_PENETRATION = 0.20 USD`
+- این عدد مربوط به ورود Conservative Pullback است و با `PRE_ZONE_TRIGGER_DISTANCE` فرق دارد.
 
-مسیر ارسال سفارش فعلی عمداً فقط در MT5 Strategy Tester فعال می‌شود. اجرای غیرتستر و Live fail-closed است؛ این وضعیت مجوز Demo یا معامله‌ی واقعی نیست.
+---
 
-## لایه خروج از معامله و حفاظت سود
+## 3) تعریف کندل و بازار
 
-هر سفارش از لحظه ایجاد باید SL و TP معتبر داشته باشد؛ سفارش بدون حفاظت ساخته نمی‌شود.
+### کندل صعودی (`CANDLE_BULLISH`)
+کندل بسته‌شده صعودی است اگر `Close > Open`.
 
-### محافظت پله‌ای سود
+### کندل نزولی (`CANDLE_BEARISH`)
+کندل بسته‌شده نزولی است اگر `Close < Open`.
 
-ثابت پایه‌ی استراتژی `BASE_R_USD = 6` دلار است. این عدد واحد حرکت قیمت است، نه الزاماً فاصله‌ی واقعی Entry تا SL.
+### Doji
+اگر `Close == Open` باشد کندل نه صعودی است و نه نزولی. در قانون روند اکید، Doji شرط اکید را نقض می‌کند.
 
-برای Buy، در هر پله صحیح `X = 1, 2, 3, ...`:
+### محدوده کندل (`CANDLE_RANGE`)
+High تا Low کل دامنه کندل است و بخش خارج از Body، Wick/Shadow است.
 
-`اگر Bid >= Entry + X × 6`، آنگاه `SL = RF + (X - 1) × 6`
+### بازار و تایم‌فریم (`MARKET_TIMEFRAME`)
+- Symbol: XAUUSD
+- منطق کندلی: M15
+- Touch، Fill، Spread، SL/TP و Execution داخل کندل: Tick واقعی
+- مرجع نهایی پذیرش MVP: MT5 با `Every Tick Based on Real Ticks`.
 
-برای Sell به‌صورت متقارن:
+---
 
-`اگر Ask <= Entry - X × 6`، آنگاه `SL = RF - (X - 1) × 6`
+## 4) Zoneها
 
-`RF` قیمت سربه‌سر خالص پس از هزینه‌های واقعی قابل محاسبه Broker/Tester است. در پله اول SL به RF می‌رود، در پله دوم یک واحد 6 دلاری سود قفل می‌شود و این روند بدون سقف ادامه دارد. SL هیچ‌گاه شل یا عقب برده نمی‌شود.
+### ورودی Zone (`ZONE_INPUT`)
+- Zoneهای روزانه ورودی سیستم هستند و توسط استاد ارائه می‌شوند.
+- تولید خودکار Zone جزو MVP نیست.
+- Zoneها برای Broker Day مربوطه Load، Normalize و Sort می‌شوند.
+- `Enabled` و `Priority` رعایت می‌شود.
+- Hard Cap برای تعداد Zone وجود ندارد.
 
-### مدیریت ویژه TP پولبک
+### نام‌های معادل (`ZONE_ALIAS`)
+Zone، ناحیه، محدوده و خط در این پروژه به یک مفهوم اشاره می‌کنند.
 
-یک دلار پیش از Zoneای که TP فعلی روی آن است، نقطه تصمیم ساخته می‌شود:
+### Zone خطی (`ZONE_LINE_ALLOWED`)
+اگر `Low = High` باشد Zone همچنان معتبر است.
 
-- Buy: `Trigger = لبه پایین Target Zone - 1`
-- Sell: `Trigger = لبه بالای Target Zone + 1`
+### Merge Zoneها (`ZONE_MERGE`)
+اگر فاصله لبه‌به‌لبه دو Zone متوالی کمتر از `1.5 USD` باشد، Merge به‌صورت زنجیره‌ای انجام می‌شود و محدوده خروجی همه اعضا را پوشش می‌دهد.
 
-عبور Tick از Trigger کافی است و برخورد دقیق لازم نیست. اگر Momentum اکید پولبک برقرار باشد، TP فقط یک Zone جلوتر می‌رود؛ تمدید بازگشتی و چندمرحله‌ای فعال نیست. اگر بعداً Momentum اکید خراب شود:
+### Priority بعد از Merge (`ZONE_PRIORITY`)
+اگر حداقل یکی از اعضای Merge شده `High` باشد، Zone نهایی `High` است؛ در غیر این صورت `Normal`.
 
-- اگر قیمت هنوز TP اولیه را لمس نکرده باشد، TP به مقدار اولیه برمی‌گردد.
-- اگر TP اولیه قبلاً لمس/عبور شده باشد، Position با Market Close بسته می‌شود.
-- اگر Broker تغییر TP را نپذیرد، TP قبلی حفظ می‌شود.
+### طبقه‌بندی Zone (`ZONE_CLASSIFICATION`)
+هر Zone فعال یکی از دو نوع `Normal` یا `High` است و این Priority از ورودی روزانه استاد/داده Zone می‌آید.
 
-Momentum اکید برای Pullback Buy یعنی همه کندل‌های بسته‌شده بعد از کندل Pullback صعودی باشند و در لحظه تصمیم `Current Bid > Current M15 Open` باشد؛ برای Sell همه نزولی و `Current Ask < Current M15 Open` است. Doji یا کندل مخالف شرط را می‌شکند.
+### ممنوعیت Entry بدون Signal Zone (`ZONE_ONLY_ENTRY`)
+Trend به‌تنهایی مجوز معامله نیست. Entry فقط در اثر Signal معتبر مرتبط با Zone مجاز است.
 
-## لایه تصمیم ارسال سفارش
+### درگیرشدن Zone (`ZONE_ENGAGEMENT`)
+رفتار معتبر Legacy حفظ می‌شود:
+- اگر Open کندل M15 داخل Zone باشد، Zone برای Breakout هر دو جهت Engaged است.
+- عبور Bid از پایین به `ZoneLow`، سمت Buy Breakout را Engaged می‌کند.
+- عبور Bid از بالا به `ZoneHigh`، سمت Sell Breakout را Engaged می‌کند.
+- در Tick Gap چند-Zone مسیر مصنوعی ساخته نمی‌شود؛ فقط Zoneای که قیمت Tick جدید واقعاً داخل آن است Engaged می‌شود.
+- Engagement در ابتدای هر کندل M15 Reset و از Open همان کندل دوباره مقداردهی می‌شود.
 
-هر Signal ابتدا Candidate است. Candidate فقط در صورت عبور از همه فیلترهای زیر به درخواست سفارش تبدیل می‌شود:
+---
 
-- در آن کندل M15 هنوز Entry دیگری تلاش نشده باشد.
-- ظرفیت روزانه‌ی همان نوع Signal و Zone باقی مانده باشد.
-- فضای آزاد جهت معامله وجود داشته و strict بزرگ‌تر از 3 دلار باشد.
-- Stop Zone و Target Zone معتبر پیدا شوند.
-- Daily Loss قفل نشده باشد.
-- مجموع ریسک ناخالص با سفارش پیشنهادی از 15% سرمایه مبنا بیشتر نشود.
-- تعداد Positionهای باز از سقف Profile کمتر باشد.
-- Margin آزاد Native برای سفارش کافی باشد.
-- حجم دقیقاً 0.01 lot و SL/TP از نظر جهت معتبر باشند.
-- قفل پایان Session یا Restart فعال نباشد.
+## 5) Trend اصلی سیستم
 
-اول ORDER در Journal پایدار می‌شود، بعد درخواست به Tester فرستاده می‌شود. اولین درخواست واقعاً ارسال‌شده در هر M15 سهمیه همان کندل را مصرف می‌کند، حتی اگر Broker آن را رد کند؛ Signalهای دیگر همان کندل می‌توانند ثبت شوند ولی سفارش دوم نمی‌سازند.
+### شروع Trend در ابتدای روز (`DAY_START_TREND_BOOTSTRAP`)
+در هر Broker Day Trend از نو Bootstrap می‌شود:
+- کندل اول روز: `TREND_NONE`
+- از کندل دوم: مرجع `N=1`
+- از کندل سوم: مرجع `N=2`
+- از کندل چهارم به بعد: مرجع `N=3`
 
-### Free Space، SL و TP اولیه
+Trend روز قبل به‌عنوان Trend اولیه روز جدید استفاده نمی‌شود.
 
-برای Zone ورود `Ri`:
+### تشخیص جهت Trend (`TREND_DIRECTION`)
+با استفاده از N کندل بسته‌شده مرجع:
+- اگر Bid زنده بالاتر از بالاترین High مرجع برود: `TREND_UP`
+- اگر Bid زنده پایین‌تر از پایین‌ترین Low مرجع برود: `TREND_DOWN`
+- در محدوده بین این دو، Trend قبلی همان روز حفظ می‌شود.
+- تا قبل از تشکیل Trend معتبر، State برابر `TREND_NONE` است.
 
-- Buy: `Free Space = LowerEdge(Ri+1) - UpperEdge(Ri)`
-- Sell: `Free Space = LowerEdge(Ri) - UpperEdge(Ri-1)`
+### ترتیب پردازش Tick (`TICK_EVENT_ORDER`)
+ترتیب ثابت در هر Tick:
+1. Update Trend
+2. بررسی Directional Touch
+3. Evaluate Signal
 
-فقط مقدار `> 3.00 USD` مجاز است؛ مقدار مساوی 3 نیز رد می‌شود.
+اگر تغییر Trend و Touch در یک Tick رخ دهند، Signal باید Trend جدید را مصرف کند.
 
-SL اولیه از نزدیک‌ترین Zone پشت معامله و سقف فاصله 6 دلار ساخته می‌شود:
+---
 
-- Buy: `SL = max(High نزدیک‌ترین Zone پایین‌تر, Entry - 6)`
-- Sell: `SL = min(Low نزدیک‌ترین Zone بالاتر, Entry + 6)`
+## 6) Breakout
 
-TP اولیه اولین Zone در جهت معامله است که نزدیک‌ترین لبه‌اش حداقل 6 دلار از Entry فاصله داشته باشد:
+### Breakout معتبر (`BREAKOUT_VALIDATION`)
+Breakout مستقل از وجود یا عدم وجود Reversal ثبت می‌شود.
 
-- Buy: TP روی لبه پایین اولین Zone واجد شرایط بالاتر است.
-- Sell: TP روی لبه بالای اولین Zone واجد شرایط پایین‌تر است.
+Buy Breakout:
+- Zone در Candidate/Bar معتبر Engaged شده باشد.
+- Trend در Close کندل `UP` باشد.
+- `Close > ZoneHigh + 1.00`.
 
-نبود Zone مناسب برای SL یا TP باعث رد معامله می‌شود. فاصله واقعی SL می‌تواند کمتر از 6 دلار باشد.
+Sell Breakout:
+- Zone در Candidate/Bar معتبر Engaged شده باشد.
+- Trend در Close کندل `DOWN` باشد.
+- `Close < ZoneLow - 1.00`.
 
-### کنترل سرمایه و زیان
+Open داخل Zone معتبر است. شرط Buffer به‌صورت Strict اجرا می‌شود.
 
-- Profile سرمایه 200 دلار: حجم 0.01 lot و حداکثر 3 Position هم‌زمان.
-- Profile سرمایه 300 دلار: حجم 0.01 lot و حداکثر 5 Position هم‌زمان.
-- برای سرمایه زیر 300 دلار، رسیدن زیان خالص Realized روز به 20% سرمایه، Entry جدید را تا روز بعد قفل و Pendingها را لغو می‌کند؛ Position باز صرفاً به علت این قاعده بسته نمی‌شود. در Profile دقیق 300 دلار این Gate آستانه‌ای ندارد.
-- بودجه مستقل `GROSS15` برابر 15% سرمایه است و جمع `Realized gross loss + ریسک Positionهای باز تا SL + ریسک Pendingها + ریسک سفارش جدید` باید کمتر یا مساوی Budget باشد. سودها زیان ناخالص را خنثی نمی‌کنند.
-- Spread، Commission، Swap، Fee، PnL، Cash Risk و Margin از داده و توابع Native Broker/Tester می‌آیند؛ هزینه مصنوعی ثابت استفاده نمی‌شود.
+اگر Reversal مخالف باز باشد و Breakout معتبر همان Zone/جهت تشکیل شود، Reversal مخالف طبق منطق Breakout بسته می‌شود.
 
-## لایه Signal: چه زمانی Buy یا Sell ساخته می‌شود؟
+### شناسه والد Breakout (`BREAKOUT_LINEAGE`)
+هر Breakout یک `BO#` روزانه می‌گیرد. تمام Pullbackهای وابسته باید `parent_breakout_id` همان Breakout را تا پایان چرخه حفظ کنند.
 
-سه خانواده مستقل وجود دارد. جهت Signal همیشه جهت معامله است، نه جهت حرکت قبلی قیمت.
+---
 
-### Breakout: ادامه حرکت پس از شکست معتبر
+## 7) Reversal
 
-Breakout فقط در بسته‌شدن کندل M15 سنجیده می‌شود:
+### ورود Reversal با Market Order (`REVERSAL_DIRECTIONAL_TOUCH`)
+Reversal با **Market Order** و بر اساس Touch جهت‌دار Tick واقعی فعال می‌شود؛ Pending Order از قبل کاشته نمی‌شود.
 
-- Buy Breakout: Zone در همان کندل از سمت Buy درگیر شده، Trend در Close برابر UP و `Close > ZoneHigh + 1.00` باشد.
-- Sell Breakout: Zone از سمت Sell درگیر شده، Trend در Close برابر DOWN و `Close < ZoneLow - 1.00` باشد.
+- اگر Trend `UP` باشد و قیمت از پایین به `ZoneLow` برسد: Candidate برای `Sell Reversal`.
+- اگر Trend `DOWN` باشد و قیمت از بالا به `ZoneHigh` برسد: Candidate برای `Buy Reversal`.
+- در Tick Gap چند-Zone مسیر مصنوعی بین دو Tick ساخته نمی‌شود.
 
-Buffer اکید است؛ برابری با مرز به‌علاوه/منهای یک دلار کافی نیست. Open داخل Zone می‌تواند Engagement هر دو جهت را بسازد. هر Breakout شناسه روزانه `BO#` می‌گیرد، Candidate ورود Breakout می‌سازد و هم‌زمان پنجره Pullback همان Zone/جهت را باز می‌کند. Breakout معتبر می‌تواند Reversal بازِ مخالف همان Zone را ببندد.
+### Wick Penetration (`REVERSAL_WICK_VALIDITY`)
+عبور Shadow/Wick از Zone به‌تنهایی Reversal را باطل نمی‌کند. Breakout فقط با Close + Buffer خودش اثبات می‌شود.
 
-### Reversal: معامله خلاف روند هنگام برخورد جهت‌دار
+### سقف Reversal روزانه Normal (`NORMAL_REVERSAL_DAILY_LIMIT`)
+هر Normal Zone در هر Broker Day حداکثر **یک Reversal معتبر** دارد؛ مجموع Buy و Sell با هم این ظرفیت را مصرف می‌کنند.
 
-Reversal با Tick واقعی و Market Order ساخته می‌شود:
+### سقف Reversal روزانه High (`HIGH_REVERSAL_DAILY_LIMIT`)
+هر High Zone در هر Broker Day حداکثر **دو Reversal معتبر** دارد؛ مجموع Buy و Sell با هم این ظرفیت را مصرف می‌کنند.
 
-- Trend UP و رسیدن قیمت از پایین به `ZoneLow` → `Sell Reversal`.
-- Trend DOWN و رسیدن قیمت از بالا به `ZoneHigh` → `Buy Reversal`.
+### زمان مصرف سهمیه Reversal (`REVERSAL_USAGE_COMMIT`)
+- Signal معتبر که فقط ثبت شده و هیچ Market Order برای آن ارسال نشده است، سهمیه را مصرف نمی‌کند.
+- به‌محض ارسال Market Order، سهمیه مصرف می‌شود؛ چه Order/Fill موفق باشد و چه درخواست Market Order ناموفق بماند.
+- نتیجه نهایی معامله، سود یا زیان، سهمیه مصرف‌شده را برنمی‌گرداند.
 
-نفوذ Wick داخل/آن‌سوی Zone به‌تنهایی Reversal را باطل نمی‌کند؛ Breakout فقط با Close و Buffer خودش اثبات می‌شود. Tick Gap که هم‌زمان از چند Zone بپرد مسیر ساختگی تولید نمی‌کند، پس Reversal مصنوعی برای Zoneهای بین راه ساخته نمی‌شود.
+### جلوگیری از Signal تکراری (`REVERSAL_DUPLICATE_GUARD`)
+برای ترکیب `Day + M15 Bar + Zone + Direction` بیش از یک Reversal Signal ساخته نمی‌شود.
 
-در هر Broker Day، هر Normal Zone در مجموع Buy و Sell حداکثر یک Reversal ارسال‌شده و هر High Zone حداکثر دو مورد دارد. Signal صرفاً ثبت‌شده سهمیه را مصرف نمی‌کند؛ ارسال سفارش، چه پذیرفته شود چه رد، مصرف می‌کند. ترکیب `روز + کندل + Zone + جهت` نیز فقط یک Signal Reversal می‌سازد.
+Buy و Sell در تشخیص Duplicate مستقل‌اند، اما این استقلال **سهمیه روزانه Zone را دور نمی‌زند**. مثال: اگر Normal Zone قبلاً یک Reversal Buy مصرف کرده باشد، Reversal Sell بعدی همان روز نیز به علت پایان ظرفیت روزانه مجاز نیست.
 
-### Pullback: بازگشت کنترل‌شده پس از Breakout
+---
 
-پس از Breakout معتبر در کندل `t`، فقط کندل‌های `t+1` تا `t+5` پنجره Pullback هستند:
+## 8) Pullback محافظه‌کارانه
 
-- بعد از Buy Breakout، Bid باید حداقل 0.20 دلار از لبه بالای Zone به داخل آن نفوذ کند؛ Entry روی همان لبه بالایی است.
-- بعد از Sell Breakout، Bid باید حداقل 0.20 دلار از لبه پایین Zone به داخل آن نفوذ کند؛ Entry روی همان لبه پایینی است.
+### ورود Pullback (`PULLBACK_CONSERVATIVE_ENTRY`)
+- Aggressive Pullback در MVP فعال نیست.
+- بعد از Breakout معتبر، قیمت باید حداقل `0.20 USD` داخل Zone نفوذ کند.
+- بعد از ثبت Penetration، Entry روی لبه شکسته‌شده Zone انجام می‌شود.
+- اگر قیمت دقیق Entry در آن لحظه به علت شرایط Native Broker قابل ثبت نباشد، سیستم می‌تواند در همان Window برای همان قیمت Retry کند.
+- Trend Flip به‌تنهایی Cycle را Cancel نمی‌کند.
+- Maximum Penetration جداگانه در MVP تعریف نشده است.
+- Cycle به روز بعد منتقل نمی‌شود.
 
-Candidate پولبک از نوع Pending Stop است. اگر Pending از بین برود، سیستم تا پایان همان Window می‌تواند همان قیمت دقیق را دوباره امتحان کند. تغییر Trend به‌تنهایی Cycle را لغو نمی‌کند. در شروع `t+6` یا تغییر Broker Day پنجره منقضی و Pending مرتبط باید لغو شود.
+### Window پولبک (`PULLBACK_WINDOW`)
+Pullback فقط در پنج کندل M15 بعد از Breakout معتبر، یعنی `t+1` تا `t+5`، قابل بررسی است.
 
-Normal Zone حداکثر یک Pullback Fill در روز دارد؛ High Zone سقف روزانه Pullback ندارد. اولین Fill پنجره Breakout والد را نمی‌بندد و بعد از reset نفوذ، Pullback بعدی تا پایان Window ممکن است. برای هر `Zone + Direction` فقط یک Cycle/Pending هم‌زمان فعال است. سهمیه Pullback و Reversal مستقل‌اند.
+### چند Pullback از یک Breakout (`PULLBACK_MULTI_PER_BREAKOUT`)
+اولین Pullback Fill باعث بسته‌شدن خودکار Parent Breakout نمی‌شود. تا پایان Window پنج‌کندلی، Pullback معتبر بعدی نیز می‌تواند بررسی شود.
 
-اگر Position پولبک با Momentum اکید به Zone بعدی برسد، Reversal مخالف فقط هنگام Touch واقعی همان Zone و فقط تا وقتی Momentum اکید برقرار است Block می‌شود؛ عبور از Trigger یک‌دلاری به‌تنهایی Reversal را Block نمی‌کند.
+### مصرف روزانه Pullback (`PULLBACK_DAILY_USAGE`)
+- Normal Zone: حداکثر یک Pullback Fill در روز.
+- High Zone: بدون سقف مصرح روزانه Pullback.
+- برای یک `Zone + Direction` هم‌زمان فقط یک Pending/Cycle فعال مجاز است.
 
-## لایه Trend و ترتیب علّی محاسبه
+### استقلال مصرف Signalها (`SIGNAL_USAGE_INDEPENDENCE`)
+Reversal Consumption و Pullback Consumption دو Counter مستقل هستند. مصرف یک خانواده، ظرفیت خانواده دیگر را کم نمی‌کند.
 
-Trend در شروع هر Broker Day از `NONE` آغاز می‌شود و Trend روز قبل منتقل نمی‌شود:
+---
 
-- کندل اول: هیچ کندل مرجعی وجود ندارد، پس Trend برابر NONE است.
-- از کندل دوم: آخرین 1 کندل بسته‌شده مرجع است.
-- از کندل سوم: آخرین 2 کندل مرجع‌اند.
-- از کندل چهارم به بعد: فقط آخرین 3 کندل بسته‌شده مرجع‌اند.
+## 9) حرکت اکید Pullback، تعارض Reversal و TP Extension
 
-در هر Tick، اگر Bid بالاتر از بیشترین High مرجع برود Trend به UP، و اگر پایین‌تر از کمترین Low مرجع برود Trend به DOWN تغییر می‌کند. تا وقتی قیمت بین این دو حد است، آخرین Trend همان روز حفظ می‌شود.
+این سه قانون از یک تعریف مشترک استفاده می‌کنند.
 
-ترتیب هر Tick ثابت است: ابتدا Trend با Bid جدید به‌روز می‌شود، سپس Engagement/Touch بررسی می‌شود، بعد Reversal و Pullback ارزیابی می‌شوند. بنابراین اگر شکست Trend و Touch در یک Tick رخ دهد، Signal از Trend جدید استفاده می‌کند. در Close کندل نیز ابتدا Breakout با State نهایی همان کندل سنجیده می‌شود و فقط بعد از آن کندل به تاریخچه سه‌تایی Trend افزوده می‌شود؛ کندل جاری مرجع تشخیص Breakout خودش نیست.
+### روند اکید پس از Pullback (`STRICT_PULLBACK_TREND`)
+هدف این قانون تشخیص Momentum شدید بعد از Pullback است.
 
-## لایه Engagement: Zone چه زمانی برای Breakout معتبر می‌شود؟
+برای Pullback Buy روی `Ri` تا Zone بالاتر `Ri+1`:
+- اگر Trigger در کندلی بعد از کندل PB رخ دهد، تمام کندل‌های **بسته‌شده بعد از کندل PB** باید Bullish باشند.
+- کندل جاری در لحظه تصمیم نیز باید Bullish باشد: `Current Bid > Current M15 Open`.
+- اگر Trigger در همان کندل PB رخ دهد، همان کندل جاری با همین معیار `Current Bid > Open` ارزیاسی می‌شود.
+- Doji یا هر کندل مخالف، Strict Trend را نقض می‌کند.
 
-Engagement یعنی قیمت در کندل جاری واقعاً با Zone ارتباط داشته است:
+برای Sell متقارن است:
+- تمام کندل‌های بسته‌شده بعد از PB باید Bearish باشند.
+- کندل جاری در لحظه تصمیم: `Current Ask < Current M15 Open`.
 
-- اگر Open کندل داخل Zone باشد، هر دو سمت Buy و Sell درگیرند.
-- عبور Bid از پایین به `ZoneLow` سمت Buy را درگیر می‌کند.
-- عبور Bid از بالا به `ZoneHigh` سمت Sell را درگیر می‌کند.
-- State در شروع هر M15 پاک و از Open همان کندل دوباره ساخته می‌شود.
-- اگر یک Tick از چند Zone بپرد، Zoneهای فرضی بین دو قیمت Engaged نمی‌شوند؛ فقط Zoneای که Tick جدید واقعاً داخل آن قرار گرفته می‌تواند درگیر شود.
+وضعیت کندل جاری فقط در نقاط تصمیم لازم ارزیاسی می‌شود؛ نه اینکه در تمام Tickها یک State نویزی روشن/خاموش شود.
 
-Engagement به‌تنهایی معامله نیست؛ فقط یکی از شروط Breakout است.
+### نقطه تصمیم قبل از Zone (`PRE_ZONE_DECISION_TRIGGER`)
+Pre-Zone Trigger نسبت به **Zoneای که TP جاری روی آن قرار دارد** تعریف می‌شود؛ شماره Zone ورود یا تعداد Zoneهای ردشده قبل از Target اهمیتی ندارد.
 
-## لایه ورودی: زون‌ها، Tickها و کندل‌ها چگونه آماده می‌شوند؟
+برای Buy با TP جاری روی `TargetZone`:
+`Trigger = LowerEdge(TargetZone) - 1.00 USD`
 
-### زون‌های روزانه
+برای Sell با TP جاری روی `TargetZone`:
+`Trigger = UpperEdge(TargetZone) + 1.00 USD`
 
-زون‌ها در MVP محاسبه یا کشف نمی‌شوند؛ ورودی خارجی روزانه‌اند. CSV باید `date`, `lower`, `upper`, `priority`, `enabled` داشته باشد. فقط ردیف فعال خوانده می‌شود، Low/High معکوس اصلاح می‌شود، قیمت نامتناهی/نامعتبر رد می‌شود و Zone خطی با `Low = High` معتبر است.
+Trigger با اولین Crossing فعال می‌شود؛ Equality لازم نیست. اگر Tick Gap از سطح عبور کند، Trigger رخ‌داده محسوب می‌شود.
 
-زون‌های هر Broker Day بر اساس قیمت مرتب می‌شوند. اگر فاصله لبه‌به‌لبه دو Zone متوالی کمتر از 1.5 دلار باشد، به‌صورت زنجیره‌ای Merge می‌شوند؛ خروجی از کمترین Low تا بیشترین High را می‌پوشاند. اگر حتی یک عضو High باشد، Zone ادغام‌شده High است؛ وگرنه Normal. شناسه نهایی شکل `{روز}:R{ترتیب}` دارد. هیچ سقف ثابتی برای تعداد Zoneها وجود ندارد و روز بدون Zone معتبر اجرا نمی‌شود.
+این Trigger به‌تنهایی Reversal را Block نمی‌کند؛ فقط نقطه تصمیم برای بررسی Momentum و TP Extension است.
 
-### Tick و کندل
+### جلوگیری از Reversal مخالف (`BLOCK_OPPOSITE_REVERSAL`)
+Reversal مخالف فقط **هنگام Touch واقعی مرز Zone بعدی** تصمیم‌گیری می‌شود.
 
-ورودی بازار شامل Bid/Ask و زمان Broker است. در Replay پایتون، `time_msc` تیک MT5 از UTC با offset صریحِ دقیقه‌ای به زمان Broker تبدیل و بر اساس بازه‌های 15 دقیقه‌ای گروه‌بندی می‌شود:
+در همان لحظه Strict Pullback Trend دوباره بررسی می‌شود:
+- اگر هنوز معتبر باشد: Reversal مخالف آن Zone Block می‌شود.
+- اگر نقض شده باشد: Reversal طبق قوانین عادی خودش بررسی می‌شود.
 
-- Open = اولین Bid
-- High = بیشترین Bid
-- Low = کمترین Bid
-- Close = آخرین Bid
+برای Buy PB روی `Ri`، این Rule جلوی Sell Reversal روی مرز پایین `Ri+1` را در صورت حفظ Strict Trend می‌گیرد. برای Sell متقارن است.
 
-تیک‌ها باید زمانی عقب نروند، داخل بازه کندل و محدوده OHLC باشند و Bid آخر دقیقاً با Close برابر باشد. این کنترل‌ها جلوی استفاده از داده ناسازگار و ترتیب غیرعلّی را می‌گیرند.
+### تمدید یک‌مرحله‌ای TP (`EXTEND_PULLBACK_TP`)
+- فقط زمانی اعمال می‌شود که Zone در حال نزدیک‌شدن، همان Zone مربوط به **TP اولیه فعلی** باشد.
+- هر Zoneای که TP جاری روی آن باشد، وقتی قیمت به `PRE_ZONE_DECISION_TRIGGER` همان Zone رسید و Strict Trend معتبر بود، TP به **Zone بلافاصله بعدی در جهت معامله** منتقل می‌شود. محل Zone ورود یا تعداد Zoneهای ردشده قبل از Target اهمیتی ندارد.
+- Extension برای MVP فقط **یک مرحله** است؛ Recursive Extension جزو MVP نیست.
+- اگر Zone بعدی برای Extension وجود نداشته باشد، TP قبلی حفظ می‌شود.
 
-## ایمنی عملیاتی
+اگر بعد از Extension، Strict Trend نقض شود:
+1. اگر قیمت هنوز TP اولیه را لمس/عبور نکرده باشد: TP به مقدار اولیه برگردد.
+2. اگر قیمت TP اولیه را قبلاً لمس/عبور کرده باشد: Position فوراً با Market Close بسته شود.
 
-پنج دقیقه قبل از پایان Session نماد طبق زمان خود Broker، Entry جدید قفل، Pendingها و Cycleهای Pullback لغو و تمام Positionهای متعلق به EA بسته می‌شوند. ساعت محلی hard-code نشده است.
+اگر Broker/MT5 نتواند TP جدید را به شکل معتبر Modify کند، TP موجود نباید بدون جایگزین معتبر حذف شود.
 
-اگر EA در همان Broker Day دوباره attach/restart شود، fail-closed عمل می‌کند: Entry قفل، Pending و Cycle لغو و Positionهای EA بسته می‌شوند؛ قفل فقط در Broker Day بعد آزاد می‌شود.
+---
 
-همه عملیات Native فقط روی Symbol و Magic دقیق پروژه انجام می‌شوند و state معاملات دیگر حساب را وارد محاسبات پروژه نمی‌کنند.
+## 10) Free Space
 
-## دو مرز مهم برای تفسیر وضعیت فعلی
+### تعریف Free Space (`FREE_SPACE_DEFINITION`)
+برای Buy روی Zone `Ri`:
+`Free Space = LowerEdge(Ri+1) - UpperEdge(Ri)`
 
-- موتور MT5 Strategy Tester مسیر کامل Signal → Gate → ORDER → Broker outcome → مدیریت Position را اجرا می‌کند. موتور Python قراردادهای دقیق دامنه و Replay قابل تکرار را پیاده کرده، اما outcomeهای Fill/Reject/Close/Modify/Cancel را فقط از fixture صریح می‌پذیرد و از حرکت قیمت حدس نمی‌زند؛ بنابراین Replay بدون fixture صرفاً Signal/Audit است.
-- `RULES.md` در بخش Free Space صریحاً می‌گوید Entry جدید Reversal/Pullback با فضای `<= 3` Block شود، ولی تابع اجرایی فعلی MQL یعنی `PrepareCandidateEntry` فیلتر `Free Space > 3` را برای Breakout نیز اعمال می‌کند. این گزارش رفتار فعلی کد را پنهان نمی‌کند: در Tester فعلی Breakout هم بدون Free Space کافی سفارش نمی‌شود. این اختلاف مستند/کد باید پیش از هر تغییر Rule یا اجرای Demo تعیین تکلیف شود.
+برای Sell روی Zone `Ri`:
+`Free Space = LowerEdge(Ri) - UpperEdge(Ri-1)`
 
-## جمع‌بندی معنای معاملاتی
+یعنی فاصله خالی بین لبه Zone ورود و نزدیک‌ترین لبه Zone بعدی در جهت معامله.
 
-منطق اصلی چنین است: Zoneها نقشه سطوح مهم روز هستند؛ Trend می‌گوید قیمت نسبت به دامنه 1 تا 3 کندل بسته‌شده اخیر در کدام جهت شکسته است؛ Engagement ثابت می‌کند قیمت در همین کندل واقعاً با Zone تماس داشته؛ Breakout ادامه حرکت با Close قوی بیرون Zone است؛ Reversal واکنش خلاف Trend در لحظه لمس جهت‌دار Zone است؛ Pullback بازگشت قیمت به Zone شکسته‌شده و تلاش برای ادامه همان شکست است. هیچ‌یک به‌تنهایی سفارش قطعی نیستند: فضای حرکت، ساختار SL/TP، ظرفیت‌ها، ریسک نقدی، Margin و قفل‌های عملیاتی تصمیم نهایی را می‌سازند.
+### حداقل Free Space (`FREE_SPACE_MINIMUM`)
+Rule ثانویه هدف MVP:
+`Free Space must be strictly greater than 0.5 × BASE_R_USD = 3.00 USD`
+
+اگر Free Space کمتر از یا مساوی 3 دلار باشد، Entry جدید Reversal/Pullback Block می‌شود و هیچ درخواست Order ارسال نمی‌شود. فقط `FreeSpace > 3.00` از این Gate عبور می‌کند.
+
+---
+
+## 11) Initial SL و Initial TP
+
+### حدضرر اولیه (`INITIAL_STOP`)
+`BASE_R_USD = 6` سقف فاصله پایه Stop است؛ فاصله واقعی Stop می‌تواند با ساختار Zone کمتر شود.
+
+برای Buy:
+- Stop Zone = نزدیک‌ترین Zone پایین‌تر.
+- `InitialSL = max(StopZoneHigh, Entry - BASE_R_USD)`
+
+برای Sell:
+- Stop Zone = نزدیک‌ترین Zone بالاتر.
+- `InitialSL = min(StopZoneLow, Entry + BASE_R_USD)`
+
+اگر Stop Zone لازم وجود نداشته باشد، Trade رد می‌شود.
+
+### حد سود اولیه (`INITIAL_TARGET`)
+Target اولین Zone در جهت معامله است که نزدیک‌ترین مرزش حداقل `BASE_R_USD = 6 USD` از Entry فاصله داشته باشد.
+
+Buy:
+- Zoneهای بالاتر از Entry به‌ترتیب بررسی می‌شوند.
+- Target روی `LowerEdge` اولین Zone واجد شرایط قرار می‌گیرد.
+
+Sell:
+- Zoneهای پایین‌تر از Entry به‌ترتیب بررسی می‌شوند.
+- Target روی `UpperEdge` اولین Zone واجد شرایط قرار می‌گیرد.
+
+اگر Target واجد شرایط وجود نداشته باشد، Trade رد می‌شود.
+
+---
+
+## 12) محافظت پله‌ای از سود
+
+### Break-even خالص (`RISK_FREE_PRICE`)
+`RF` یا Risk-Free Price قیمتی است که بستن معامله در آن، پس از هزینه‌های Native قابل محاسبه Broker/Tester، PnL خالص را تقریباً صفر می‌کند.
+
+### محافظت پله‌ای از سود (`PROFIT_PROTECTION`)
+برای هر عدد صحیح `X = 1, 2, 3, ...`:
+
+Buy:
+- اگر `Bid >= Entry + X × BASE_R_USD`
+- آنگاه `SL = RF + (X - 1) × BASE_R_USD`
+
+Sell:
+- اگر `Ask <= Entry - X × BASE_R_USD`
+- آنگاه `SL = RF - (X - 1) × BASE_R_USD`
+
+SL هیچ‌وقت نباید شل‌تر شود یا به عقب برگردد.
+
+---
+
+## 13) Execution، هزینه و سرمایه
+
+### Order محافظت‌شده از لحظه ایجاد (`ORDER_PROTECTED_FROM_CREATION`)
+هر Order باید از زمان ایجاد دارای SL و TP معتبر باشد. نوع Entry (Market/Limit/Stop) نیز در Journal ثبت می‌شود و از Rule همان Signal می‌آید؛ Reversal طبق قانون خودش Market Order است.
+
+### هزینه‌های Native (`NATIVE_COSTS`)
+- هزینه مصنوعی ثابت وجود ندارد.
+- Spread از Bid/Ask واقعی.
+- PnL نهایی از Deal History.
+- Commission/Swap/Fee از مقادیر Native Broker/Tester.
+
+### تقریب آموزشی PnL (`PNL_APPROXIMATION_ONLY`)
+برای فهم سریع Strategy، در 0.01 lot حرکت 1 دلاری XAUUSD تقریباً معادل 1 دلار PnL ناخالص است؛ این فقط تقریب آموزشی است و Accounting واقعی همیشه از Deal History و مشخصات Native Broker می‌آید.
+
+### حجم ثابت و سقف Position (`FIXED_LOT_AND_CONCURRENCY`)
+- حساب مبنا 200 دلار: `0.01 lot` و حداکثر 3 Position هم‌زمان.
+- حساب مبنا 300 دلار: `0.01 lot` و حداکثر 5 Position هم‌زمان.
+- Dynamic Lot Sizing جزو MVP نیست.
+
+### حداکثر یک Entry جدید در هر کندل (`ONE_NEW_ORDER_PER_CANDLE`)
+- در هر کندل M15، EA حداکثر مجاز به ایجاد یک Entry جدید است؛ چه Entry به‌صورت Market Order باشد و چه Pending Order.
+- اولین تلاش ایجاد Order در کندل، سهمیه همان کندل را مصرف می‌کند؛ موفق یا ناموفق بودن درخواست اجازه تلاش برای Entry دوم در همان کندل نمی‌دهد.
+- Signalهای دیگر همان کندل می‌توانند برای Audit ثبت شوند، اما نباید Order/Position دوم ایجاد کنند.
+- این محدودیت جایگزین سهمیه‌های اختصاصی Zone/Signal نیست؛ همه محدودیت‌ها باید هم‌زمان رعایت شوند.
+
+### Daily Realized Loss Guard (`DAILY_REALIZED_LOSS_GUARD`)
+برای Strategy Capital زیر 300 دلار، اگر زیان خالص Realized روزانه به 20% سرمایه مبنا برسد:
+- Entry جدید تا روز بعد متوقف می‌شود.
+- Pendingهای EA Cancel می‌شوند.
+- Position باز صرفاً به علت این Rule Force-Close نمی‌شود.
+
+### Portfolio Risk Budget (`PORTFOLIO_RISK_BUDGET`)
+Budget هدف MVP: `GROSS_DAILY = 15%` از Strategy Capital Basis.
+
+---
+
+## 14) Session و Restart Safety
+
+### پایان Session (`SESSION_END_FLATTEN`)
+پنج دقیقه قبل از پایان Session معاملاتی XAUUSD طبق زمان Broker:
+- Entry جدید Block شود.
+- Pendingها Cancel شوند.
+- Pullback Cycleها Cancel شوند.
+- تمام Positionهای متعلق به EA بسته شوند.
+
+Session از اطلاعات Symbol/Broker خوانده می‌شود و ساعت محلی Hard-code نمی‌شود.
+
+### Restart امن (`RESTART_FAIL_CLOSED`)
+اگر EA در همان Broker Day Restart/Reattach شود:
+- Day Lock فعال شود.
+- Pendingهای EA Cancel شوند.
+- Positionهای EA Flatten شوند.
+- تا Broker Day بعدی Fill جدید مجاز نباشد.
+
+---
+
+## 15) Audit و Evidence نهایی تست
+
+### Journal قابل Trace (`AUDIT_JOURNAL`)
+هر Signal/Order/Fill/Close حداقل باید این موارد را ثبت کند:
+- Event ID
+- نام/ID قانون مرتبط
+- Time
+- Zone ID
+- Signal Type و Direction
+- Entry / SL / TP
+- Parent Breakout ID برای Pullback
+- دلیل Reject/Block در صورت عدم ورود
+
+### گزارش نهایی قابل بازاستفاده (`FINAL_TEST_REPORT`)
+- نتیجه هر اجرای نهایی باید به Evidence ساختاریافته و گزارش جامع انسانی منتقل شود.
+- گزارش حداقل Dataset/Date range، Config و Hash، Build، Symbol/Session/Cost specification، شمارش Signal/Attempt/Fill/Reject/Close، PnL و Drawdown موجود، Risk/Safety/TP counters، خطاها، Gateها و محدودیت تفسیر را نگه دارد.
+- نتیجه مثبت و منفی هر دو ثبت شوند و هیچ مقدار ناموجودی تخمین زده نشود.
+- گزارش و Evidence باید برای تولید هر خلاصه بعدی کافی باشند؛ درخواست گزارش مجدد نباید باعث اجرای دوباره MT5 شود.
+
+---
+
+## 16) مواردی که عمداً در Active MVP نیستند
+
+Aggressive Pullback، تولید خودکار Zone، Dynamic Breakout Buffer، Indicator Filters، Dynamic Lot Sizing، Session-specific `BASE_R_USD`، Daily Profit Giveback، Recursive TP Extension در این فایل Rule فعال نیستند.

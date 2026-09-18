@@ -51,37 +51,37 @@ from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrateg
 import pandas as pd
 
 # Create input DataFrame with MultiIndex
-tick_data = pd.DataFrame({
-    'bid': [...],
-    'ask': [...]
-})
-tick_data.index = pd.MultiIndex.from_arrays([
-    ['broker1'] * len(tick_data),  # broker
-    ['XAUUSD'] * len(tick_data),   # symbol
-    pd.date_range(...),            # datetime
-    pd.date_range(...).floor('s')  # date
-], names=['broker', 'symbol', 'datetime', 'date'])
+tick_data = pd.DataFrame({"bid": [...], "ask": [...]})
+tick_data.index = pd.MultiIndex.from_arrays(
+    [
+        ["broker1"] * len(tick_data),  # broker
+        ["XAUUSD"] * len(tick_data),  # symbol
+        pd.date_range(...),  # datetime
+        pd.date_range(...).floor("s"),  # date
+    ],
+    names=["broker", "symbol", "datetime", "date"],
+)
 
 # Initialize strategy with zone loader
 zone_loader = ZoneLoader()
 strategy = VectorizedXauUsdStrategy(zone_loader)
 
 # Process tick data
-result = strategy.process_tick_data(tick_data, preload_days=['2026-09-18'])
+result = strategy.process_tick_data(tick_data, preload_days=["2026-09-18"])
 
 # Result has same MultiIndex with 'action' column
-print(result[['action']])
+print(result[["action"]])
 ```
 
 ### Advanced Usage
 
 ```python
 # Custom zone loader
-custom_zone_loader = ZoneLoader(zones_file_path='custom/path/to/zones.mqh')
+custom_zone_loader = ZoneLoader(zones_file_path="custom/path/to/zones.mqh")
 strategy = VectorizedXauUsdStrategy(custom_zone_loader)
 
 # Preload specific days
-result = strategy.process_tick_data(tick_data, preload_days=['2026-09-18', '2026-09-19'])
+result = strategy.process_tick_data(tick_data, preload_days=["2026-09-18", "2026-09-19"])
 ```
 
 ## MT5 Alignment
@@ -158,8 +158,8 @@ state.loc[has_reference, "trend"] = np.where(
     np.where(
         state.loc[has_reference, "bid"] < state.loc[has_reference, "reference_low"],
         XauTrend.DOWN.value,
-        state.loc[has_reference, "trend"]
-    )
+        state.loc[has_reference, "trend"],
+    ),
 )
 ```
 

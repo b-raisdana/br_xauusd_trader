@@ -15,38 +15,38 @@
 
 ## Source-of-Truth files
 
-- `PROJECT_BRIEF.md`: هدف، Scope، محدودیت و Success Criteria
-- `RULES.md`: تنها قوانین فعال؛ ساختار تشریحی و نام‌های Function-like
-- `RULES_ARCHIVE_FUTURE.md`: Superseded/Rejected/Post-MVP و Crosswalk تاریخی
-- `DECISIONS.md`: دلیل تصمیم‌های پایدار
-- `EXPERIMENTS.md`: Evidence و آزمایش‌های برنامه‌ریزی‌شده
-- `TEST_STATUS.md`: وضعیت واقعی اثبات و Gateها
-- `TODO.md`: Ledger اجرایی تا Freeze
-- `CURRENT_STATE.md`: Recovery سریع و Next Action
+- `PROJECT_BRIEF.md`: goal, scope, limits and success criteria
+- `RULES.md`: the only active rules; detailed structure and function-like names
+- `RULES_ARCHIVE_FUTURE.md`: superseded/rejected/post-MVP and historical crosswalk
+- `DECISIONS.md`: rationale for stable decisions
+- `EXPERIMENTS.md`: evidence and planned experiments
+- `TEST_STATUS.md`: actual status of proofs and gates
+- `TODO.md`: execution ledger up to freeze
+- `CURRENT_STATE.md`: quick recovery and next action
 
-## Baseline فعال مستندی
+## Baseline active documented state
 
-- Zone ورودی روزانه استاد، merge زنجیره‌ای زیر 1.5 دلار و Priority High/Normal.
-- Trend روزانه `NONE → N1 → N2 → N3` بدون Carry روز قبل.
-- Breakout با Trend در Close و Buffer strict یک دلار.
-- Reversal Market Touch؛ Normal max1 و High max2 در Broker Day.
-- Pullback Conservative با penetration 0.20، Window پنج کندل، Normal1/High∞ و Multi-PB per BO.
-- Strict Pullback Trend با Current Candle/Same-Bar، pre-zone یک دلار، Reversal block در Touch واقعی و TP Extension یک‌مرحله‌ای برگشت‌پذیر.
-- Free Space باید strict بزرگ‌تر از سه دلار باشد (`<=3` Block)، Initial Stop cap شش دلار و Initial Target اولین Zone حداقل شش دلار دورتر است.
-- Native RF و Profit Protection نامحدود بر مضارب `BASE_R_USD=6`.
-- Lot ثابت 0.01، concurrency سه/پنج برای 200/300 دلار، Daily Loss 20% و GROSS15.
-- Session flatten پنج دقیقه قبل پایان و Restart fail-closed.
+- Daily input zones, chain merge under 1.5 USD, and Priority High/Normal.
+- Daily trend `NONE → N1 → N2 → N3` without prior-day carry.
+- Breakout with Trend at Close and strict 1 USD buffer.
+- Reversal Market Touch; Normal max1 and High max2 per broker day.
+- Pullback Conservative with 0.20 penetration, five-candle window, Normal1/High∞ and Multi-PB per BO.
+- Strict Pullback Trend with Current Candle/Same-Bar, pre-zone 1 USD, Reversal block on real touch, and reversible one-step TP extension.
+- Free Space must be strictly greater than 3 USD (`<=3` blocks), Initial Stop cap 6 USD, and Initial Target at least 6 USD from entry.
+- Native RF and unlimited Profit Protection on `BASE_R_USD=6`.
+- Fixed lot 0.01, concurrency 3/5 for 200/300 USD, Daily Loss 20% and GROSS15.
+- Session flatten 5 minutes before end and Restart fail-closed.
 
-این Baseline در نسخه `mvp-v2.0.0` برای Research/Strategy Tester، `IMPLEMENTED/TESTED/FROZEN` است؛ این وضعیت مجوز Demo/Live نیست.
+This baseline is `IMPLEMENTED/TESTED/FROZEN` at version `mvp-v2.0.0` for Research/Strategy Tester; this state is not authorization for Demo or Live.
 
 ## Status glossary
 
-- `CURRENT CONFIRMED RULE`: Rule تأییدشده، حتی اگر هنوز پیاده/تست نشده باشد.
-- `TESTED HISTORICAL CONTROL`: رفتار دارای Evidence تاریخی که ممکن است Superseded شده باشد.
-- `APPROVED FOR TEST`: قبل از Promotion، Rule اجرایی محسوب نمی‌شود.
-- `REJECTED / RETIRED`: نباید در MVP جاری پیاده شود.
-- `POST-MVP`: حفظ می‌شود ولی MVP blocker نیست.
-- `UNRESOLVED`: بدون تصمیم Project Leader قابل حدس‌زدن نیست.
+- `CURRENT CONFIRMED RULE`: a rule confirmed, even if not yet implemented/tested.
+- `TESTED HISTORICAL CONTROL`: behavior with historical evidence that may be superseded.
+- `APPROVED FOR TEST`: before promotion, a rule is not considered executable.
+- `REJECTED / RETIRED`: should not be implemented in the current MVP.
+- `POST-MVP`: retained but not an MVP blocker.
+- `UNRESOLVED`: not guessable without a Project Leader decision.
 
 ## Current blocker
 
@@ -55,9 +55,9 @@
 
 ## Leader decisions
 
-- برای شروع تولید کد تصمیم باز Leader وجود ندارد.
-- معیارهای کمی پذیرش عملکرد، مدت Shadow، Broker Live، سرمایه Live و هر افزایش ریسک بعد از ارائه Evidence نیازمند تصمیم Project Leader است.
+- No open decisions are needed to start code production.
+- Quantitative acceptance criteria, duration of Shadow, Broker Live, capital Live, and any subsequent risk increase all require a Project Leader decision after evidence is presented.
 
 ## Next autonomous action
 
-بسته فنی MVP آماده Freeze/Tag است. اقدام بعدی فقط پس از مجوز جداگانه رهبر، آماده‌سازی و اجرای Demo/Shadow در محیط Broker هدف است؛ Live و افزایش ریسک همچنان ممنوع است.
+The MVP package is ready for Freeze/Tag. The next action is preparation and execution of Demo/Shadow in the target broker environment only after separate leader authorization; Live and risk increases remain prohibited.

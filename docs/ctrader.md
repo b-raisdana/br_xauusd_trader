@@ -2,7 +2,7 @@
 
 ## Overview
 
-`src/infrastructure/ctrader_client/` is a Python package providing authenticated real-time streaming of XAUUSD market data (spots, order-book depth, tick history) via the cTrader Open API.
+A client providing authenticated real-time streaming of XAUUSD market data (spots, order-book depth, tick history) via the cTrader Open API.
 
 ## Environment Variables
 
@@ -19,45 +19,35 @@
 | `CTRADER_REDIRECT_URI` | no | Registered localhost callback (default `http://localhost:8080/callback`) |
 | `CTRADER_OAUTH_SCOPE` | no | `accounts` for read-only data (default) or `trading` |
 
-A fallback key `ctrader_demo_account_login_number` is also read by `CTraderSettings.from_env`.
+A fallback key `ctrader_demo_account_login_number` is also read by the settings loader.
 
-## OAuth2 Setup (one-time)
+## OAuth2 Flow (one-time)
 
-1. Register an application at https://openapi.ctrader.com/apps and obtain its `client_id` and `client_secret`.
-2. Register `http://localhost:8080/callback` as an application redirect URI, or set `CTRADER_REDIRECT_URI` to another registered localhost URI with an explicit port.
+1. Register an application and obtain its `client_id` and `client_secret`.
+2. Register a localhost callback URI, or set `CTRADER_REDIRECT_URI` to another registered localhost URI with an explicit port.
 3. Put `CTRADER_CLIENT_ID` and `CTRADER_CLIENT_SECRET` in `.env` (never commit `.env`).
 4. Run any live data command. If no token exists, it opens cTrader authorization in the host browser, captures the localhost callback, exchanges the code, saves `CTRADER_REFRESH_TOKEN` to `.env` with owner-only permissions, and continues the original command. If browser launch is unavailable, open the printed URL manually while the command waits for the callback.
 
 The default `accounts` scope is read-only and sufficient for market-data fetching. Set `CTRADER_OAUTH_SCOPE=trading` only for commands that genuinely need trading permission.
 
-The `OAuthClient` caches the access token and auto-refreshes using the refresh token when it expires (60-second safety margin).
+The OAuth client caches the access token and auto-refreshes using the refresh token when it expires (60-second safety margin).
 
 ## Usage
 
-```python
-from infrastructure.ctrader_client import CTraderClient, CTraderSettings, OAuthClient
+The client exposes event-based streaming:
 
-settings = CTraderSettings.from_env()
-oauth = OAuthClient.from_settings(settings)
-client = CTraderClient(settings, oauth=oauth)
-
-client.on("spot", lambda tick: print(f"bid={tick.bid} ask={tick.ask}"))
-
-ready = client.wait_ready()  # Deferred fires with account_id
-ready.addCallback(lambda acct_id: client.subscribe_live_price(100))
-client.connect()
-```
+- Register handlers via `on("spot", callback)` for spot price updates.
+- `wait_ready()` fires when the connection is established, providing the account ID.
+- `subscribe_live_price(symbol_id)` starts live price subscription after readiness.
+- `connect()` initiates the transport.
 
 ## Transport
 
-The live transport uses the `ctrader-open-api` Twisted client over SSL. For unit testing, `CTraderClient` accepts any `Transport` (Protocol) that implements `connect`, `send`, `close`, and the `on_*` callback registrations.
+The live transport uses an SSL connection to the cTrader API. For unit testing, the client accepts any transport that implements `connect`, `send`, `close`, and the `on_*` callback registrations.
 
-## Manual testing CLI
+## Manual Testing CLI
 
-A `typer`-based CLI lives under `src/presentation/` and exercises every implemented client capability without needing live credentials:
+A CLI exercises every implemented client capability without needing live credentials:
 
-```text
-cTrader CLI commands for settings, decoding, rate, building requests, parsing, simulating, OAuth, and live data operations.
-```
-
-Run it directly with `python src/presentation/ctrader_cli.py <command>`, as a module with `PYTHONPATH=src python -m presentation.ctrader_cli <command>`, or after an editable install via the `ctrader-cli` console script. The `oauth` subcommands perform live HTTP to the cTrader token endpoint and require real OAuth credentials in `.env`; `simulate`, `build`, `parse`, `decode`, `rate` and `settings` are offline and safe to run anywhere.
+- `settings`, `decode`, `rate`, `build`, `parse`, `simulate` — offline and safe to run anywhere.
+- `oauth` — performs live HTTP to the cTrader token endpoint and requires real OAuth credentials in `.env`.

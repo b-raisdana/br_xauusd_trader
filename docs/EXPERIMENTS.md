@@ -20,7 +20,7 @@
 - Input/config: `XAUUSD` در 2026-08-28، Every Tick Based on Real Ticks، M15، volume ثابت 0.01، profileهای versioned سرمایه 200/max3 و 300/max5؛ local tester only و live/remote/cloud خاموش.
 - Result 200: 14 attempt، 12 accepted، 2 invalid-price reject، net realized `-4.11`، gross loss `28.68`، max positions `1`، protection modify=`9`، TP extend/restore=`1/1`، margin/other/modify/TP reject=`0`، SL loosen=`0`، final zero exposure و lifecycle `failed=0`.
 - Result 300: 16 attempt، 14 accepted، 2 invalid-price reject، net realized `-16.03`، gross loss `40.60`، max positions `1`، protection modify=`9`، TP extend/restore=`1/1`، margin/other/modify/TP reject=`0`، SL loosen=`0`، final zero exposure و lifecycle `failed=0`.
-- Defect found/fixed: stop سربه‌سر یا بهتر ابتدا در exposure snapshot نامعتبر محسوب می‌شد؛ اکنون با ریسک باز صفر ثبت می‌شود و regression source test آن را قفل می‌کند.
+- Defect found/fixed: stop سربه‌سر یا بهتر در exposure snapshot نامعتبر محسوب می‌شد؛ اکنون با ریسک باز صفر ثبت می‌شود و regression source test آن را قفل می‌کند.
 - Same-day restart runtime: صفر attempt، صفر position، صفر exposure و `failed=0`؛ Symbol specification و Session روز مرجع نیز ثبت شد.
 - Interpretation limit: این فقط یک Broker Day است؛ نتایج PnL برای سنجش عملکرد کافی نیستند. Multi-day parity و targeted regression جدا باقی‌اند؛ گزارش جامع Stage 7 ثبت شده است.
 - Reproduce: ابتدا `scripts/compile_mt5.ps1`، سپس `scripts/run_mt5_tester_acceptance.ps1 -ConfigPath .\\config\\mt5\\tester_200.ini` و همان فرمان با `tester_300.ini`.

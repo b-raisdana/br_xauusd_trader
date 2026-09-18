@@ -1,5 +1,3 @@
-import base64
-import hashlib
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -8,12 +6,14 @@ from typing import Literal
 import pandas as pd
 import pytz
 from pydantic import Field, computed_field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import SettingsConfigDict
+
+from config.base import BaseConfig
 
 _ROOT_PATH = Path(__file__).resolve().parent.parent.parent
 
 
-class Config(BaseSettings):
+class Config(BaseConfig):
     """Runtime settings. Any field can be overridden via a `DLF_<FIELD_NAME>` env var
     (or a `.env` file), validated against its declared type/bounds on load and on
     every later `app_config.<field> = ...` assignment."""
@@ -26,6 +26,9 @@ class Config(BaseSettings):
     )
 
     root_path: Path = _ROOT_PATH
+
+    default_symbol: str = "XAUUSD"
+    default_broker: str = "opofinance"
 
     timeframe_shifter: dict[str, int] = {
         "structure": 0,
@@ -119,7 +122,6 @@ class Config(BaseSettings):
     def check_assertions(self) -> bool:
         return self.environment == "development"
 
-    id: str = ""
     GLOBAL_CACHE: dict[str, Sequence[pd.Timestamp]] = Field(default_factory=dict)
 
     @computed_field  # type: ignore[prop-decorator]
@@ -168,24 +170,25 @@ class Config(BaseSettings):
 
 app_config = Config()
 
-config_as_json = app_config.model_dump_json()
-
-config_digest = str.translate(
-    base64.b64encode(hashlib.md5(config_as_json.encode("utf-8")).digest()).decode("ascii"),
-    {
-        ord("+"): "",
-        ord("/"): "",
-        ord("="): "",
-    },
-)
-
-config_log_dir = app_config.path_of_logs / "config"
-config_log_dir.mkdir(parents=True, exist_ok=True)
-
-dump_filename = config_log_dir / f"Config.{config_digest}.json"
-
-if not dump_filename.exists():
-    dump_filename.write_text(config_as_json, encoding="utf-8")
-
-app_config.id = config_digest
+# config_as_json = app_config.model_dump_json()
+#
+# config_digest = str.translate(
+#     base64.b64encode(hashlib.md5(config_as_json.encode("utf-8")).digest()).decode("ascii"),
+#     {
+#         ord("+"): "",
+#         ord("/"): "",
+#         ord("="): "",
+#     },
+# )
+#
+# config_log_dir = app_config.path_of_logs / "config"
+# config_log_dir.mkdir(parents=True, exist_ok=True)
+#
+# dump_filename = config_log_dir / f"Config.{config_digest}.json"
+#
+# if not dump_filename.exists():
+#     dump_filename.write_text(config_as_json, encoding="utf-8")
+#
+# app_config.id = config_digest
+app_config.log(app_config.path_of_logs)
 BASE_TIMEFRAME = app_config.timeframes[0]

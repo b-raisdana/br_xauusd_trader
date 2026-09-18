@@ -123,7 +123,7 @@ Return success/failure
 
 - `time_basis_probe_count`: Counter for first 5 probe emissions
 - `execution_projections`: List of XauExecutionProjection tracking order lifecycle
-- `execution_bindings`: List of XauExecutionBinding mapping request_id to order_ticket/position_id
+- `execution_bindings`: 6y6yList of XauExecutionBinding mapping request_id to order_ticket/position_id
 - `runtime_requests`: List of XauRuntimeRequest for pending orders
 - `execution_bindings_file`: Path to persistent bindings file
 - `order_audit_file`: Path to order audit log

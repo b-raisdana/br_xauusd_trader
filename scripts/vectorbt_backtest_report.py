@@ -5,6 +5,9 @@ import pandas as pd
 import typer
 import vectorbt as vbt
 
+from helper.date_utils import yesterday
+from infrastructure.tick_source.tick import get_ticks
+
 root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(root / "src"))
 
@@ -25,27 +28,28 @@ app = typer.Typer()
 
 
 @app.command()
-def generate_backtest_report(
-    csv_path: str = typer.Option(
-        "data/random_ohlcv.csv",
-        "--csv-path",
-        help="Path to OHLCV CSV data file",
+async def generate_backtest_report(
+    in_parquest: Path | None = typer.Option(
+        None,
+        "--in-parquest",
+        help="Path to ticks input parquet data file",
     ),
-    output_path: str = typer.Option(
-        "docs/todo/on_tick_vectorbt_report.csv",
-        "--output-path",
-        help="Path to save the backtest report CSV",
+    output_parquet: Path = typer.Option(
+        "docs/todo/on_tick_vectorbt_report.parquet",
+        "--out-parquet",
+        help="Path to save the backtest report parquet",
     ),
 ) -> pd.DataFrame:
-    csv_path = str(app_config.root_path / csv_path)
-    output_path = str(app_config.root_path / output_path)
 
-    df = pd.read_csv(csv_path, parse_dates=["Datetime"], index_col="Datetime")
-    sd = vbt.SyntheticData.from_data({"XAUUSD": df}, download_kwargs={})
-    close = sd.get("Close")
-    open_ = sd.get("Open")
-    high = sd.get("High")
-    low = sd.get("Low")
+    if not in_parquest:
+        ticks = pd.read_parquet(str(in_parquest))
+    else:
+        ticks = get_ticks(yesterday())
+    tick_sd = vbt.SyntheticData.from_data({"XAUUSD": ticks}, download_kwargs={})
+    close = tick_sd.get("close")
+    open_ = tick_sd.get("open")
+    high = tick_sd.get("high")
+    low = tick_sd.get("low")
 
     settings = StrategySettings(
         run_current_event_loop=True,
@@ -93,9 +97,9 @@ def generate_backtest_report(
             "Returns": port.returns(),
         }
     )
-    report.to_csv(output_path, index=False)
+    report.to_csv(output_parquet, index=False)
 
-    typer.echo(f"Report saved to {output_path}")
+    typer.echo(f"Report saved to {output_parquet}")
     typer.echo(f"Rows: {len(report)}")
     typer.echo(f"Entries: {report['Entry'].sum()}")
     typer.echo(f"Exits: {report['Exit'].sum()}")

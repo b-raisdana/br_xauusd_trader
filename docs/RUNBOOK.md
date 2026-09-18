@@ -52,9 +52,7 @@ Do not assign Broker Days from UTC until the terminal time basis for that run is
 Register `http://localhost:8080/callback` in the cTrader Open API application, then store only `CTRADER_CLIENT_ID` and `CTRADER_CLIENT_SECRET` in `.env`. On the first invocation, each live data command opens browser authorization in the host browser, stores the resulting refresh token in ignored `.env`, and continues automatically. If automatic launch fails, open the printed URL manually before the five-minute callback timeout:
 
 ```text
-ctrader-cli fetch-candles --symbol XAUUSD --timeframe 1min
-ctrader-cli stream-orderbook --symbol XAUUSD
-ctrader-cli stream-trades --symbol XAUUSD
+cTrader market data commands for XAUUSD on 1min timeframe, order book, and trades.
 ```
 
 The default OAuth scope is read-only `accounts`. Override the registered callback with `CTRADER_REDIRECT_URI`; request `CTRADER_OAUTH_SCOPE=trading` only when a future command needs trading access.

@@ -1,73 +1,56 @@
-# Test Plan: on_init.py Numba Compatibility Extraction
+# Test Plan: on_init.py Validation
 
 ## Objective
 
-Validate that extracting `nearly_equal()` to a `@njit`-compiled numerical module preserves behavior and integrates correctly with smoke tests.
+Validate initialization and smoke test behavior with extracted utility functions.
 
 ## Scope
 
-- New file: `src/application/xauusd_trading_strategy_1/numerical.py`
-- Modified: `src/application/xauusd_trading_strategy_1/smoke.py` (import change)
-- Unchanged: `on_init.py`, `lifecycle.py`, `settings.py` (documented as impossible)
+- New utility functions for numerical comparisons
+- Modified initialization code using utility functions
+- Unchanged: initialization flow, lifecycle types, settings (documented as not applicable)
 
 ## Test Data
 
-No external test data needed. Tests use inline float values covering:
+No external test data needed. Tests use inline values covering:
 - Exact equality
 - Within tolerance
 - Outside tolerance
-- Edge cases: zero, negative, very small numbers, large numbers
+- Edge cases: zero, negative, very small, large numbers
 
 ## Test Cases
 
-### Unit Tests for `numerical.nearly_equal`
+### Utility Function Tests
 
-| Test | left | right | tolerance | Expected |
-|------|------|-------|-----------|----------|
-| exact_equal | 1.0 | 1.0 | 1e-9 | True |
-| within_tolerance | 1.0 | 1.0000000001 | 1e-9 | True |
-| outside_tolerance | 1.0 | 1.0000001 | 1e-9 | False |
-| zero_comparison | 0.0 | 1e-10 | 1e-9 | True |
-| negative_values | -100.0 | -100.000000001 | 1e-9 | True |
-| large_values | 1e10 | 1e10 + 1 | 1e-9 | False (relative) |
-| custom_tolerance | 1.0 | 1.1 | 0.2 | True |
-| custom_tolerance_fail | 1.0 | 1.1 | 0.05 | False |
+| Test | Input | Expected |
+|------|-------|----------|
+| Exact equal | Equal values | True |
+| Within tolerance | Close values | True |
+| Outside tolerance | Divergent values | False |
+| Zero comparison | Near-zero values | True |
+| Negative values | Negative inputs | True |
+| Large values | Very large inputs | False (relative) |
+| Custom tolerance | Custom tolerance | True/False |
 
 ### Integration Tests
 
-1. **Smoke test still passes** - Run existing `run_core_vector_smoke()` and verify all vector validations still produce expected `SmokeResult` outcomes
-2. **No behavioral change** - Compare smoke test results before/after extraction
-3. **Numba compilation** - Verify `@njit` function compiles without falling back to object mode
-
-## Environment
-
-```powershell
-.\.venv\Scripts\python.exe -c "import numba; print(numba.__version__)"
-.\.venv\Scripts\python.exe -c "from src.application.xauusd_trading_strategy_1.numerical import nearly_equal; print(nearly_equal(1.0, 1.0))"
-```
-
-Expected: Numba 0.59+ (compatible with project), function returns `True`
+1. **Smoke test passes** - Run existing smoke tests and verify all validations produce expected outcomes
+2. **No behavioral change** - Compare results before/after extraction
+3. **Utility function** - Verify utility function compiles correctly
 
 ## Approach
 
-1. Create `numerical.py` with `@njit` decorated `nearly_equal`
-2. Update `smoke.py` to import from `.numerical`
-3. Run targeted pytest on smoke tests
-4. Run full pre-commit gate
-5. Verify vectorbt integration tests still pass (if any use smoke)
+1. Create utility module with comparison functions
+2. Update initialization code to use utility module
+3. Run targeted tests
+4. Run full test suite
+5. Verify no behavioral changes
 
 ## Acceptance Criteria
 
-- [ ] `numerical.py` created with `@njit` function
-- [ ] `smoke.py` imports and uses `numerical.nearly_equal`
-- [ ] All existing smoke test vectors pass (230-line validation in `run_core_vector_smoke`)
-- [ ] Unit tests for `nearly_equal` pass with edge cases
-- [ ] Pre-commit passes (ruff-check, ruff-format, pytest)
-- [ ] No performance regression (Numba should be faster or equal for repeated calls)
-- [ ] Documentation in `on_init_numba_compatibility.md` updated with final status
-
-## Risk Mitigation
-
-- If Numba compilation fails (e.g., version incompatibility), keep Python fallback
-- Test with `NUMBA_DISABLE_JIT=1` to verify Python fallback path works
-- Ensure `nearly_equal` signature matches exactly (defaults, types)
+- Utility module created with required functions
+- Initialization code uses utility functions
+- All existing smoke test vectors pass
+- Unit tests pass with edge cases
+- Full test suite passes
+- No behavioral changes to initialization logic

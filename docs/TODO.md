@@ -7,7 +7,7 @@
 ## 1) Baseline و مستندات
 
 - [x] Consolidate قوانین اولیه و ثانویه — قوانین فعال، لغوشده و آینده از فایل‌های قبلی جدا و یکپارچه شدند.
-- [x] اعمال اولویت Secondary — هرجا Secondary با Primary تضاد داشت، Rule جدید مبنا قرار گرفت.
+- [x] اعمال اولیت Secondary — هرجا Secondary با Primary تضاد داشت، Rule جدید مبنا قرار گرفت.
 - [x] رفع ابهام R — در قوانین فعال، R مبهم حذف و `BASE_R_USD=6` از `ACTUAL_STOP_DISTANCE` جدا شد.
 - [x] تعریف نهایی Strict Pullback Trend — Current Candle و Same-Bar با Current Price نسبت به Candle Open ارزیاسی می‌شوند.
 - [x] تعریف TP Extension — Extension یک‌مرحله‌ای، Restore قبل از TP اولیه و Market Close بعد از عبور TP اولیه مشخص شد.

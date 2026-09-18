@@ -2,20 +2,7 @@
 
 ## Overview
 
-`src/infrastructure/ctrader_client/` is a Python package providing authenticated real-time
-streaming of XAUUSD market data (spots, order-book depth, tick history) via the
-cTrader Open API.
-
-## Architecture
-
-```
-auth.py     -- OAuth2 token exchange (refresh + authorization-code grants)
-settings.py -- CTraderSettings: env-based configuration
-models.py   -- Pure dataclasses: SpotTick, DepthQuote, SymbolInfo, TickPage, etc.
-rate.py     -- Integer-price decoding (raw integer -> float)
-streams.py  -- Pure Protobuf message builders + parsers (no I/O)
-client.py   -- CTraderClient state machine + RealtimeTransport (Twisted-backed)
-```
+`src/infrastructure/ctrader_client/` is a Python package providing authenticated real-time streaming of XAUUSD market data (spots, order-book depth, tick history) via the cTrader Open API.
 
 ## Environment Variables
 
@@ -32,8 +19,7 @@ client.py   -- CTraderClient state machine + RealtimeTransport (Twisted-backed)
 | `CTRADER_REDIRECT_URI` | no | Registered localhost callback (default `http://localhost:8080/callback`) |
 | `CTRADER_OAUTH_SCOPE` | no | `accounts` for read-only data (default) or `trading` |
 
-A fallback key `ctrader_demo_account_login_number` is also read by
-`CTraderSettings.from_env`.
+A fallback key `ctrader_demo_account_login_number` is also read by `CTraderSettings.from_env`.
 
 ## OAuth2 Setup (one-time)
 
@@ -44,8 +30,7 @@ A fallback key `ctrader_demo_account_login_number` is also read by
 
 The default `accounts` scope is read-only and sufficient for market-data fetching. Set `CTRADER_OAUTH_SCOPE=trading` only for commands that genuinely need trading permission.
 
-The `OAuthClient` caches the access token and auto-refreshes using the refresh
-token when it expires (60-second safety margin).
+The `OAuthClient` caches the access token and auto-refreshes using the refresh token when it expires (60-second safety margin).
 
 ## Usage
 
@@ -65,32 +50,14 @@ client.connect()
 
 ## Transport
 
-The live transport uses the `ctrader-open-api` Twisted client over SSL. For
-unit testing, `CTraderClient` accepts any `Transport` (Protocol) that
-implements `connect`, `send`, `close`, and the `on_*` callback registrations.
+The live transport uses the `ctrader-open-api` Twisted client over SSL. For unit testing, `CTraderClient` accepts any `Transport` (Protocol) that implements `connect`, `send`, `close`, and the `on_*` callback registrations.
 
 ## Manual testing CLI
 
-A `typer`-based CLI lives under `src/presentation/` and exercises every
-implemented client capability without needing live credentials:
+A `typer`-based CLI lives under `src/presentation/` and exercises every implemented client capability without needing live credentials:
 
 ```text
-ctrader-cli settings      # show env/.env-derived settings (or which vars are missing)
-ctrader-cli decode 260340000 5   # integer -> float price
-ctrader-cli rate 4 5            # pip_size / point helpers
-ctrader-cli build               # print every protobuf request builder
-ctrader-cli parse               # parse synthetic responses into domain models
-ctrader-cli simulate            # drive the full state machine offline (fake transport, no network)
-ctrader-cli oauth refresh       # live OAuth refresh-token exchange (needs .env credentials)
-ctrader-cli oauth auth-code --code CODE --redirect-uri URI   # live auth-code exchange
-ctrader-cli fetch-candles       # authorizes automatically on first use, then fetches data
-ctrader-cli stream-orderbook    # authorizes automatically on first use, then streams depth
-ctrader-cli stream-trades       # authorizes automatically on first use, then streams quotes
+cTrader CLI commands for settings, decoding, rate, building requests, parsing, simulating, OAuth, and live data operations.
 ```
 
-Run it directly with `python src/presentation/ctrader_cli.py <command>`, as a
-module with `PYTHONPATH=src python -m presentation.ctrader_cli <command>`, or
-after an editable install via the `ctrader-cli` console script. The `oauth`
-subcommands perform live HTTP to the cTrader token endpoint and require real
-OAuth credentials in `.env`; `simulate`, `build`, `parse`, `decode`, `rate` and
-`settings` are offline and safe to run anywhere.
+Run it directly with `python src/presentation/ctrader_cli.py <command>`, as a module with `PYTHONPATH=src python -m presentation.ctrader_cli <command>`, or after an editable install via the `ctrader-cli` console script. The `oauth` subcommands perform live HTTP to the cTrader token endpoint and require real OAuth credentials in `.env`; `simulate`, `build`, `parse`, `decode`, `rate` and `settings` are offline and safe to run anywhere.

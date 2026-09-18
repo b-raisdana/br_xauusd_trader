@@ -4,626 +4,101 @@ Before implementing the vectorized version, thoroughly investigate the existing 
 
 The purpose of this task is **investigation and documentation only**. Do not implement the vectorized strategy yet.
 
-## 1. Scope
+## Scope
 
-Reference implementation:
-
-`src\application\xauusd_trading_strategy_1\on_tick.py`
-
-Future implementation target:
-
-`src\application\xauusd_trading_strategy_1_vector\`
-
-Create and modify only:
-
-- `docs/todo/*.md`
-- documentation needed for the future work under `src\application\xauusd_trading_strategy_1_vector\`
-
-Do **not** modify the existing implementation under:
-
-`src\application\xauusd_trading_strategy_1\`
+Reference implementation: `src/application/xauusd_trading_strategy_1/on_tick.py`
+Future implementation target: `src/application/xauusd_trading_strategy_1_vector/`
+Create and modify only documentation under `docs/todo/`.
 
 Treat the existing implementation as read-only reference code.
 
 ---
 
-# 2. Primary Goal
+# Primary Goal
 
 Investigate the existing event-loop strategy deeply enough that the later implementation phase can be performed with **minimal additional code investigation**.
 
-The investigation must reconstruct the complete strategy logic and explain it clearly in English.
+The investigation must reconstruct the complete strategy logic and explain it clearly. The documentation should allow an implementer to understand:
 
-The documentation should allow an implementer to understand:
-
-- what happens;
-- in what order it happens;
-- what each calculation depends on;
-- which variables represent persistent state;
-- when state is read;
-- when state is updated;
-- when state is reset;
-- which results are produced;
-- which results depend on previous ticks;
-- which calculations are independent and can be vectorized;
-- which calculations may require sequential processing;
-- where each result originates in the original code;
-- how the original event-loop behavior maps conceptually to a future DataFrame/vectorized implementation.
-
-The objective is to turn the existing implementation into a **clear English description of the algorithm and execution flow**, so that the implementation phase does not require repeatedly reverse-engineering the original code.
+- what happens; in what order; what each calculation depends on; which variables represent persistent state; when state is read, updated, reset; which results are produced; which depend on previous ticks; which calculations are independent; which require sequential processing; where each result originates; how the event-loop behavior maps to a future data processing implementation.
 
 ---
 
-# 3. Investigate the Complete Execution Flow
+# Required Investigations
 
-Trace the complete execution flow of the existing strategy.
+## 1. Complete Execution Flow
 
-Document the sequence from input tick arrival through the final observable result.
+Trace the complete execution flow from input tick arrival through final observable result. For each step identify: inputs consumed, conditions evaluated, calculations performed, state variables read/changed, intermediate values created, results produced, conditions affecting later processing, state resets or boundary transitions, final outputs.
 
-For each step, identify:
+Do not document only functions individually. Reconstruct the **actual logical execution sequence**.
 
-1. Input data consumed.
-2. Conditions evaluated.
-3. Calculations performed.
-4. State variables read.
-5. State variables changed.
-6. Intermediate values created.
-7. Results produced.
-7. Results produced.
-7. Results produced.
-7. Results produced.ضضصثضصثصض
-8. Conditions that affect later processing.
-9. State resets or boundary transitions.
-10. Final outputs.
+## 2. Algorithm Explanation in Plain Terms
 
-Do not document only functions individually.
+Produce a clear explanation of the algorithm. Translate implementation details into understandable algorithmic descriptions. Include: major processing stages, decision points, state transitions, calculations, dependencies, boundaries, outputs.
 
-Reconstruct the **actual logical execution sequence**.
+## 3. Calculation and Result Inventory
 
-If execution moves between multiple functions/modules, follow those calls and document the resulting flow.
+Identify **every meaningful calculation, intermediate result, and observable result**. For each document: name, description, inputs, previous state dependency, calculation (plain terms), updated state, output destination, vectorization potential, dependency ordering.
 
-The documentation should answer questions such as:
+## 4. Persistent State Identification
 
-```text
-Tick arrives
-    ↓
-Which values are extracted?
-    ↓
-Which state is read?
-    ↓
-Which calculations happen first?
-    ↓
-Which conditions are evaluated?
-    ↓
-Which state changes?
-    ↓
-Which result/action is produced?
-    ↓
-Which values become state for the next tick?
-```
+Find every variable whose value persists between ticks. For each document: initialization, first-use behavior, read locations, update locations, reset locations, reset conditions, whether reset is unconditional or conditional, dependency on broker/symbol/date, whether previous value is required, whether observable, whether representable as data column.
 
----
+## 5. Previous-Row Semantics
 
-# 4. Explain the Algorithm in English
+Identify every calculation following the pattern: `state[t] = f(input[t], state[t-1])`. For each explain which value belongs to current tick, previous tick, or updated state. Identify operations requiring shift/diff/cumsum/cumprod/expanding/ewm/groupby cumulative/Numba equivalents.
 
-Produce a clear English explanation of the algorithm.
+## 6. Time and Ordering Semantics
 
-Do not merely copy Python code into the TODO.
+Document: timestamp comparisons, second/millisecond behavior, date/session boundaries, day changes, timing windows, time-based resets, ordering assumptions, end-of-stream behavior, implicit temporal assumptions. Document whether relative row order matters when timestamps are identical.
 
-Translate implementation details into understandable algorithmic descriptions.
+## 7. Broker and Symbol State Isolation
 
-For example, instead of only documenting:
+Document ownership of every state variable. Determine which calculations can use grouped operations vs require global state.
 
-```python
-x = previous_x + value
-```
+## 8. Vectorization Analysis
 
-explain:
+For every calculation or state transition, determine the most appropriate implementation strategy. Prefer: vectorized operations, grouped operations, cumulative formulations, then sequential mechanisms.
 
-> The current value is accumulated into the persistent `x` state. The value used for the current tick is therefore dependent on the state produced by the immediately preceding tick.
+## 9. Irreducibly Sequential Logic
 
-The explanation must make dependencies and ordering obvious.
+Explicitly identify calculations that genuinely require sequential processing. For each document: why sequential, why normal vectorization doesn't apply, alternatives considered, cumulative formulation exists, sequential part size, remaining pipeline vectorization.
 
-Include:
+## 10. Data Schema Design
 
-- major processing stages;
-- decision points;
-- state transitions;
-- calculations;
-- dependencies;
-- boundaries;
-- outputs.
+Plan for a single main data structure containing: input columns, derived columns, intermediate calculations, persistent state columns, event-level results, final action columns. Document proposed columns with purpose, source, calculation, dependency, type.
 
-The documentation should be sufficiently explicit that an implementer can understand the algorithm without repeatedly opening the original implementation.
+## 11. Output Contract
+
+Determine exact final output contract: column name `action`, exact action values and meanings, row count, row order, index structure, which input columns must remain.
 
 ---
 
-# 5. Build a Calculation and Result Inventory
-
-Identify **every meaningful calculation, intermediate result, and observable result** generated by the original implementation.
-
-For each item document:
-
-| Item                    | Description                            |
-| ----------------------- | -------------------------------------- |
-| Name                    | Variable/result name                   |
-| Source                  | Original function/module/location      |
-| Inputs                  | Values required                        |
-| Previous state          | Any previous-tick dependency           |
-| Calculation             | English description/formula            |
-| Updated state           | State changed by the calculation       |
-| Output                  | Where the result is consumed           |
-| Vectorization candidate | How it could potentially be vectorized |
-| Dependency              | Any ordering/sequential dependency     |
-
-Do not omit intermediate values merely because they are not part of the final public output.
-
-The purpose is to establish a complete mapping between the original algorithm and future DataFrame columns.
-
----
-
-# 6. Identify All Event-Loop State
-
-Find every variable whose value persists between ticks.
-
-For every state variable document:
-
-- initialization;
-- first-use behavior;
-- read locations;
-- update locations;
-- reset locations;
-- conditions causing reset;
-- whether reset is unconditional or conditional;
-- dependency on broker/symbol;
-- dependency on date/session/time;
-- whether its previous value is required;
-- whether it is observable;
-- whether it can be represented as a DataFrame column;
-- whether it appears vectorizable;
-- whether it appears inherently sequential.
-
-Do not invent reset behavior.
-
-Only document behavior supported by the original implementation.
-
-Pay particular attention to state that may be easy to accidentally replace with the current row's value instead of the previous row's value.
-
----
-
-# 7. Explicitly Document Previous-Row Semantics
-
-The future implementation represents the algorithm conceptually as:
-
-```text
-state[t] = f(input[t], state[t-1])
-```
-
-Identify every calculation that follows this pattern.
-
-For each one, explain exactly which value belongs to:
-
-- the current tick;
-- the previous tick;
-- the updated state after the current tick.
-
-Explicitly identify operations that will likely require equivalents such as:
-
-- `shift`;
-- `diff`;
-- `cumsum`;
-- `cumprod`;
-- `expanding`;
-- `ewm`;
-- grouped cumulative operations;
-- NumPy vectorized expressions;
-- or potentially Numba.
-
-Document any places where evaluation order matters.
-
----
-
-# 8. Analyze Time and Ordering Semantics
-
-The input will eventually be a pandas DataFrame with a MultiIndex containing:
-
-```text
-broker
-symbol
-datetime
-date
-```
-
-with:
-
-- `broker`: broker identifier;
-- `symbol`: symbol identifier;
-- `datetime`: UTC timezone-aware timestamp with millisecond-level event precision;
-- `date`: `datetime` floored to seconds.
-
-Investigate how the original implementation uses time.
-
-Document:
-
-- timestamp comparisons;
-- second-level behavior;
-- millisecond-level behavior;
-- date/session boundaries;
-- day changes;
-- timing windows;
-- time-based resets;
-- ordering assumptions;
-- end-of-stream behavior;
-- any implicit temporal assumptions.
-
-Duplicate timestamps are valid.
-
-Every row represents a distinct event, even when multiple rows have the same timestamp.
-
-Document whether relative row order matters when timestamps are identical.
-
----
-
-# 9. Broker and Symbol State Isolation
-
-Investigate whether state logically belongs to:
-
-```text
-broker
-symbol
-(broker, symbol)
-global strategy state
-```
-
-Document the ownership of every state variable.
-
-The future implementation should conceptually support independent state for each `(broker, symbol)` group even if the current dataset contains only one broker and one symbol.
-
-Identify which calculations can use:
-
-```python
-groupby(["broker", "symbol"])
-```
-
-or equivalent grouped operations.
-
-Do not introduce grouping merely for appearance. Base it on actual state ownership and algorithm semantics.
-
----
-
-# 10. Vectorization Analysis
-
-For every calculation or state transition, determine the most appropriate implementation strategy.
-
-Prefer this order:
-
-1. pandas vectorization;
-2. NumPy vectorization;
-3. pandas `groupby` specialized operations;
-4. `shift`, `diff`, `cumsum`, `cumprod`, `expanding`, `ewm`, `transform`, etc.;
-5. technical-analysis formulas available through pandas/pandas-ta where applicable;
-6. `pd.eval` / `DataFrame.eval` for large compound expressions where beneficial;
-7. Numba for genuinely sequential numerical dependencies;
-8. `groupby.apply` if necessary;
-9. `DataFrame.apply` only as a last resort.
-
-Python-level per-tick loops are prohibited in the future implementation.
-
-Do not propose:
-
-- `iterrows()`;
-- `itertuples()`;
-- manual `for tick in ...` processing;
-- other per-row Python iteration.
-
----
-
-# 11. Identify Irreducibly Sequential Logic
-
-Do not assume that every event-loop calculation can be vectorized.
-
-Explicitly identify calculations that genuinely require:
-
-```text
-result[t] = f(input[t], result[t-1])
-```
-
-where no practical pandas/NumPy cumulative formulation is available.
-
-For each such calculation, document:
-
-1. Why it is sequential.
-2. Why normal vectorization does not directly apply.
-3. Which vectorized alternatives were considered.
-4. Whether a cumulative formulation exists.
-5. Whether Numba could implement the dependency efficiently.
-6. The smallest part of the algorithm that would need sequential execution.
-7. How the remaining pipeline can still remain vectorized.
-
-Do not silently accept Python loops as the solution.
-
-The future implementation should isolate unavoidable sequential work rather than allowing sequential processing to spread through the entire strategy.
-
----
-
-# 12. `_temp_state` Design
-
-Plan for a single main DataFrame:
-
-```text
-_temp_state
-```
-
-It should contain:
-
-- required input columns;
-- derived input columns;
-- intermediate calculations;
-- persistent state represented as columns where appropriate;
-- event-level results;
-- final action/result columns.
-
-Avoid creating multiple large DataFrames unless there is a clear reason.
-
-RAM availability should not be treated as a primary constraint.
-
-The goal is to make the computation flow explicit and efficient while avoiding unnecessary copying.
-
-Document the proposed `_temp_state` columns.
-
-For every planned column explain:
-
-- purpose;
-- source;
-- calculation;
-- dependency;
-- whether it represents state, intermediate data, or output.
-
-Do not hesitate to add columns when they make the vectorized implementation clearer or more efficient.
-
----
-
-# 13. Output Contract
-
-Determine from the original implementation the exact final output contract.
-
-The final vectorized implementation must preserve:
-
-- exact column name `action`;
-- exact action values and meanings;
-- row count;
-- original row order;
-- original MultiIndex;
-- MultiIndex level names.
-
-Determine which original input columns must remain in the final public output and which can be discarded after all calculations.
-
-Do not invent action values or semantics.
-
-Document exactly where each action is generated in the original implementation.
-
----
-
-# 14. TODO Documentation to Create
-
-Create:
-
-```text
-docs/todo/
-```
-
-documentation as needed.
-
-At minimum create a **master TODO** covering the complete investigation and future implementation plan.
-
-Create additional focused TODO documents where they materially improve implementation clarity, for example:
-
-```text
-docs/todo/<master-vectorization>.md
-docs/todo/<state-analysis>.md
-docs/todo/<flow-analysis>.md
-docs/todo/<vectorization-analysis>.md
-docs/todo/<sequential-dependencies>.md
-```
-
-Use meaningful filenames.
-
-Do not create unnecessary documentation duplication.
-
-The master TODO must link/reference the supporting TODO documents.
-
----
-
-# 15. Master TODO Structure
-
-The master TODO should contain, at minimum:
-
-## Overview
-
-- objective;
-- reference implementation;
-- target implementation;
-- scope restrictions;
-- expected final output.
-
-## Current Algorithm
-
-A clear English description of the complete algorithm.
-
-## Execution Flow
-
-A step-by-step sequence of the complete event processing flow.
-
-## State Model
-
-Complete inventory of persistent state and transitions.
-
-## Input Model
-
-Expected DataFrame/index structure and time semantics.
-
-## Calculation Inventory
-
-Complete mapping of calculations, intermediate values, and results.
-
-## Vectorization Plan
-
-For every major calculation:
-
-- vectorized approach;
-- required pandas/NumPy operation;
-- grouping requirements;
-- state-column representation;
-- expected dependencies.
-
-## Sequential Dependency Report
-
-All calculations that may require Numba or another sequential mechanism.
-
-## `_temp_state` Schema
-
-Planned columns and their purposes.
-
-## Output Contract
-
-Exact expected output and action semantics.
-
-## Implementation Sequence
-
-A concrete ordered checklist for implementing the vectorized version.
-
-The implementation sequence should minimize the need for returning to the original source code.
-
----
-
-# 16. Make the Implementation Checklist Concrete
-
-The master TODO should not contain vague tasks such as:
-
-> Vectorize calculations.
-
-Instead use actionable tasks such as:
-
-```text
-- [ ] Create `_temp_state` from the normalized input DataFrame.
-- [ ] Derive `date` from UTC `datetime` using second-level flooring.
-- [ ] Create the previous-row columns required by calculation X.
-- [ ] Implement grouped cumulative calculation Y.
-- [ ] Implement state transition Z.
-- [ ] Generate the per-tick result column.
-- [ ] Generate `action` from the documented conditions.
-```
-
-Each implementation task should reference the relevant calculation/flow/state documentation where useful.
-
----
-
-# 17. Explicitly Separate Investigation from Implementation
-
-Do not implement the vectorized strategy during this task.
-
-The TODO documentation must clearly distinguish:
-
-### Completed during this task
-
-- source investigation;
-- execution-flow reconstruction;
-- state analysis;
-- calculation inventory;
-- vectorization analysis;
-- sequential dependency analysis;
-- `_temp_state` design;
-- output-contract analysis;
-- implementation plan.
-
-### Deferred to implementation phase
-
-- creating the actual vectorized implementation;
-- integrating all vectorized calculations;
-- performance optimization;
-- benchmarking;
-- correctness testing;
-- regression comparison.
-
-This separation is important because the purpose of this task is to prepare enough information that the implementation phase requires substantially less investigation.
-
----
-
-# 18. Deferred Correctness Validation and Testing
+# Deferred Correctness Validation and Testing
 
 Testing and correctness validation are intentionally **postponed**.
 
-Do not spend the implementation-planning phase building the complete test suite.
-
-However, the master TODO must contain an appendix documenting exactly what will eventually be validated and why it is deferred.
-
-Use a section titled:
-
-# Appendix — Deferred Correctness Validation and Testing
-
-Explain that correctness validation is deferred because the immediate objective is first to establish the vectorized implementation and its complete end-to-end computational flow. Once that implementation is operational, the deferred validation will compare it systematically against the original event-loop implementation.
-
-The appendix must include the following future validation requirements.
+However, the documentation must contain an appendix documenting exactly what will eventually be validated and why it is deferred.
 
 ### Reference comparison
-
-Run both implementations against the same deterministic input.
-
-Compare:
-
-- `action` for every row;
-- all observable per-tick results;
-- all observable state;
-- relevant intermediate results where needed to diagnose discrepancies.
+Run both implementations against the same deterministic input. Compare action for every row, all observable per-tick results, all observable state, relevant intermediate results.
 
 ### Numerical comparison
-
-Define explicit numerical comparison rules:
-
-- exact equality where appropriate;
-- `rtol` and `atol` for floating-point values;
-- clearly documented tolerance values;
-- handling of NaN/NA equality.
+Define explicit numerical comparison rules: exact equality where appropriate, tolerance for floating-point values, documented tolerance values, NaN/NA equality handling.
 
 ### Edge cases
-
-Eventually test:
-
-- empty input;
-- single-row input;
-- first-row behavior;
-- duplicate timestamps;
-- multiple rows at the same millisecond;
-- multiple rows at the same second;
-- multiple brokers;
-- multiple symbols;
-- multiple `(broker, symbol)` groups;
-- state isolation between groups;
-- day/session boundaries;
-- state reset conditions;
-- threshold transitions;
-- boundary conditions;
-- end-of-stream behavior;
-- any additional boundaries discovered during implementation.
+Eventually test: empty input, single-row, first-row, duplicate timestamps, multiple rows at same millisecond/second, multiple brokers/symbols, state isolation, day/session boundaries, state resets, threshold transitions, boundary conditions, end-of-stream.
 
 ### Determinism
-
-Use deterministic fixtures and inputs.
-
-Repeated execution with the same input must produce the same result.
+Use deterministic fixtures. Repeated execution with same input must produce same result.
 
 ### Regression tests
-
-Eventually create tests under the corresponding test directory for the vectorized implementation.
-
-Tests should establish that the vectorized implementation remains behaviorally equivalent to the original implementation for the documented contract.
+Eventually create tests establishing behavioral equivalence to original implementation.
 
 ### Why deferred
+Correctness validation is deferred because the immediate objective is first to establish the vectorized implementation and its complete end-to-end computational flow.
 
-Explicitly state in the TODO that this validation is deferred rather than omitted.
-
-The intended order is:
-
-```text
+The intended order:
 1. Investigate original algorithm
 2. Document algorithm and implementation plan
 3. Implement vectorized version
@@ -631,69 +106,5 @@ The intended order is:
 5. Then perform systematic correctness validation
 6. Add regression/edge-case tests
 7. Benchmark and optimize based on evidence
-```
 
 Do not mark deferred tests as completed.
-
----
-
-# 19. Investigation Quality Requirements
-
-During investigation:
-
-- read the actual source code rather than inferring behavior;
-- follow function calls where necessary;
-- identify actual state transitions;
-- identify actual reset conditions;
-- identify actual action-generation logic;
-- preserve exact semantics;
-- distinguish facts from assumptions;
-- explicitly mark anything that cannot yet be determined;
-- do not invent missing behavior.
-
-The documentation should be implementation-oriented rather than historical.
-
-Do not spend space documenting unrelated implementation history.
-
-Focus on:
-
-```text
-computation
-flow
-state
-dependencies
-conditions
-transitions
-results
-vectorization opportunities
-sequential dependencies
-implementation order
-```
-
----
-
-# 20. Completion Criteria for This Investigation Task
-
-This task is complete when:
-
-- [ ] The original strategy has been fully investigated.
-- [ ] The complete execution flow is explained in English.
-- [ ] The flow sequence is documented clearly enough to minimize source-code investigation during implementation.
-- [ ] Every persistent state variable has been identified and documented.
-- [ ] Reset behavior has been identified from the source.
-- [ ] Previous-row dependencies are documented.
-- [ ] All meaningful calculations and results have been inventoried.
-- [ ] The input/time/index semantics are documented.
-- [ ] Broker/symbol state ownership is documented.
-- [ ] Vectorization opportunities are identified.
-- [ ] Irreducibly sequential calculations are explicitly identified.
-- [ ] Potential Numba usage is documented where appropriate.
-- [ ] `_temp_state` has a proposed column design.
-- [ ] The exact output/action contract is documented.
-- [ ] A concrete implementation sequence exists.
-- [ ] Supporting TODO documents exist where useful.
-- [ ] The master TODO contains the deferred testing/correctness appendix.
-- [ ] No vectorized implementation has been created as part of this investigation task.
-- [ ] No files under the original reference implementation have been modified.
-
-The final TODO documentation should function as the **implementation blueprint** for the subsequent vectorization phase.

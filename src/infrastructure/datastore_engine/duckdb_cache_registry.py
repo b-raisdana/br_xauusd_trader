@@ -6,6 +6,7 @@ from helper.enum_utils import AutoSnakeEnum
 
 class DatastoreRegistry(AutoSnakeEnum):
     UnifiedNoNAN = auto()
+    Tick = auto()
 
     @staticmethod
     def _namespace() -> str:

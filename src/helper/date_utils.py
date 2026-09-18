@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, tzinfo
+from datetime import datetime, timedelta, timezone, tzinfo
 from functools import lru_cache
 from typing import Annotated, Literal
 
@@ -73,6 +73,9 @@ def time_range_of_data(data: pd.DataFrame) -> str:
     )
 
 
+EPSILON_TIME = timedelta(seconds=1)
+
+
 def today_morning(tz: tzinfo = pytz.utc) -> datetime:
     return morning(datetime.now(tz)) - timedelta(minutes=1)
 
@@ -80,6 +83,14 @@ def today_morning(tz: tzinfo = pytz.utc) -> datetime:
 def morning(date_time: datetime, tz: tzinfo = pytz.utc) -> datetime:
     date_time = date_time.replace(tzinfo=tz) if date_time.tzinfo is None else date_time.astimezone(tz)
     return date_time.replace(hour=0, minute=0, second=0)
+
+
+def yesterday(reference: datetime | None = None) -> str:
+    if reference is None:
+        reference = datetime.now(timezone.utc)
+    start = pd.to_datetime(reference.replace(hour=0, minute=0, second=0, microsecond=0).date() - timedelta(days=1))
+    end = start + timedelta(days=1) - EPSILON_TIME
+    return time_range_to_string(start=start, end=end)
 
 
 def _as_tz_aware(value: datetime, convert: bool = False) -> pd.Timestamp:
@@ -231,7 +242,7 @@ def multi_timeframe_timestamps(effective_freqs: list[str], requested_boundary: s
 
     freq_parts = []
     dt_parts = []
-    for frq in normalize_freqs(effective_freqs):
+    for frq in normalize_timeframes(effective_freqs):
         timestamps = all_timestamps(start, end, frq)
         freq_parts.append(np.full(len(timestamps), frq, dtype=object))
         dt_parts.append(np.asarray(timestamps))
@@ -249,29 +260,40 @@ def _clean_df_nans(df: pd.DataFrame, nan_means: Literal["not-cached", "not-avail
     return df.dropna(subset=subset, how="any") if subset else df
 
 
-def normalize_freqs(
-    freqs_of_timeframes: tuple[str, ...] | list[str] | set[str] | None,
+def normalize_timeframes(
+    timeframes: tuple[str, ...] | list[str] | set[str] | None,
     freqs_to_drop: tuple[str, ...] = (),
     all_if_empty: bool = False,
+    allowed_timeframes: tuple[str, ...] | None = None,
 ) -> tuple[str, ...]:
-    if freqs_of_timeframes is None or len(freqs_of_timeframes) == 0:
-        freqs_of_timeframes = app_config.timeframes if all_if_empty else ()
+    if allowed_timeframes is None:
+        allowed_timeframes = app_config.timeframes
+    if timeframes is None or len(timeframes) == 0:
+        timeframes = allowed_timeframes if all_if_empty else ()
         if not freqs_to_drop:
-            return freqs_of_timeframes
-    return _normalize_freqs(tuple(freqs_of_timeframes), freqs_to_drop)
+            return timeframes
+    return _normalize_freqs(tuple(timeframes), freqs_to_drop, allowed_timeframes)
 
 
 @lru_cache
 def _normalize_freqs(
-    freqs_of_timeframes: tuple[str, ...],
-    freqs_to_drop: tuple[str, ...] = (),
+    timeframes: tuple[str, ...],
+    freqs_to_drop: tuple[str, ...],
+    allowed_timeframes: tuple[str, ...],
 ) -> tuple[str, ...]:
-    invalid_freqs = set(freqs_of_timeframes) - set(app_config.timeframes)
+    invalid_freqs = set(timeframes) - set(allowed_timeframes)
+
+    # if allow_one_second_freq:
+    one_second = {"1second", "1s", "1sec"} - {timeframes}
+    timeframes = {timeframes} - {"1second", "1s", "1sec"}
+    if one_second:
+        timeframes |= {"1s"}
+    #     invalid_freqs -= {"1second", "1s", "1sec"}
 
     if invalid_freqs:
-        raise ValueError(f"@duckdb_cache: freqs={freqs_of_timeframes!r} contains unknown timeframes {invalid_freqs!r}")
+        raise ValueError(f"@duckdb_cache: freqs={timeframes!r} contains unknown timeframes {invalid_freqs!r}")
 
-    return tuple(sorted(set(freqs_of_timeframes) - set(freqs_to_drop), key=timeframe_to_period, reverse=True))
+    return tuple(sorted(timeframes - set(freqs_to_drop), key=timeframe_to_period, reverse=True))
 
 
 def _first_label_on_or_after(ts: pd.Timestamp, timeframe: str) -> pd.Timestamp:
@@ -382,7 +404,7 @@ def find_gaped_ranges(
     gets produced. Widening to full-candle coverage is applied per-gap in the fetch loop,
     not here, so the unioned window is widened once after all timeframes are merged.
     """
-    effective_freqs = normalize_freqs(effective_freqs)
+    effective_freqs = normalize_timeframes(effective_freqs)
     # An empty cache is not special-cased: `_per_timeframe_missing_time_ranges` yields one
     # full-span gap per timeframe, which `_union_time_ranges` collapses back to the request
     # window -- while still dropping coarse timeframes that have no candle label in range.

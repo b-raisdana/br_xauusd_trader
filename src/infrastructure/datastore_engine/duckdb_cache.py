@@ -11,7 +11,7 @@ from config import app_config
 from helper.date_utils import (
     find_gaped_ranges,
     get_floor,
-    normalize_freqs,
+    normalize_timeframes,
     time_range,
     timeframe_to_period,
 )
@@ -69,19 +69,19 @@ def _assemble_final_result(
 
 def duckdb_cache(
     datastore_registry: DatastoreRegistry,
-    # dataset_type: str,
     boundary_arg: str = "time_range_str",
     freqs: tuple[str, ...] | None = None,
     post_fetch: PostFetch | None = None,
     nan_means: Literal["not-cached", "not-available"] = "not-cached",
     drop_not_cacheable: _DropNotCacheable = _drop_not_finished_candles,
+    # allow_one_second_freq: bool = False,
 ) -> Callable[[Generator], Generator]:
     # Every @duckdb_cache dataset carries a 'timeframe' index level -- a nominally single-timeframe
     # artifact passes its native cadence (e.g. freqs=("1min",)). There is no no-timeframe path.
     # (app_config.default_cache_window_freq / cache_window_freq_overrides are now read only by the
     # legacy disk_cache path, not here -- gap detection is precise, not calendar-windowed.)
 
-    decorated_freqs = normalize_freqs(freqs, all_if_empty=True)
+    decorated_freqs = normalize_timeframes(freqs, all_if_empty=True)  # , allow_one_second_freq=allow_one_second_freq)
     if not decorated_freqs:
         raise ValueError("@duckdb_cache: freqs must be non-empty (pass the dataset's native cadence)")
 
@@ -114,9 +114,12 @@ def duckdb_cache(
 
             unexpected_runtime_freqs = set(runtime_freqs) - set(decorated_freqs)
             if unexpected_runtime_freqs:
-                log_exception("Runtime-freqs{runtime_freqs} are not in decorated-freqs:{decorated_freqs}", ValueError)
+                log_exception(f"Runtime-freqs{runtime_freqs} are not in decorated-freqs:{decorated_freqs}", ValueError)
 
-            effective_freqs = normalize_freqs(runtime_freqs if runtime_freqs else decorated_freqs)
+            effective_freqs = normalize_timeframes(
+                runtime_freqs if runtime_freqs else decorated_freqs,
+                allowed_timeframes=decorated_freqs,  # allow_one_second_freq=allow_one_second_freq
+            )
 
             cached_rows = iceberg_fetch_from_datastore(
                 datastore_registry,
@@ -149,6 +152,7 @@ def duckdb_cache(
                     effective_freqs,
                     datastore_registry,
                     drop_not_cacheable=drop_not_cacheable,
+                    # allow_one_second_freq=allow_one_second_freq,
                 )
                 log_d(f"{prefix} gap fetched at {gap}")
                 generated_frames.append(frame)
@@ -212,10 +216,14 @@ def _fetch_one_window(
     effective_freqs: tuple[str, ...],
     datastore_registry: DatastoreRegistry,
     drop_not_cacheable: _DropNotCacheable,
+    # allow_one_second_freq: bool,
 ) -> pd.DataFrame:
     # Bind the original call so a boundary_arg/timeframe passed positionally is overridden
     # in place rather than colliding as a duplicate keyword ("got multiple values for ...").
-    effective_freqs = normalize_freqs(effective_freqs)
+    effective_freqs = normalize_timeframes(
+        effective_freqs,
+        # allow_one_second_freq=allow_one_second_freq
+    )
     bound = signature.bind_partial(*args, **kwargs)
     bound.arguments[boundary_arg] = window
     accepts_var_kw = any(p.kind is inspect.Parameter.VAR_KEYWORD for p in signature.parameters.values())

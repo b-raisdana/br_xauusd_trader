@@ -17,7 +17,7 @@ Analyze and refactor `src/application/xauusd_trading_strategy_1/on_tick.py` to u
 | Function | Numba Feasibility | Reason |
 |----------|-------------------|--------|
 | `process_current_event_loop_tick()` | ❌ Impossible | Protocol dispatch (`event_loop.process_tick`), returns `bool` but calls Python object method |
-| `on_tick()` | ❌ Impossible | Uses `StrategySettings` (Pydantic), `StrategyRuntimeState` (dataclass with complex fields), `RuntimeEnvironment` (dataclass), `Tick` (dataclass with datetime), constructs `OnTickResult` dataclass, mutates runtime state, exception handling |
+| `on_tick()` | ❌ Impossible | Uses `StrategySettings` (Pydantic), `StrategyRuntimeState` (dataclass with complex fields), `RuntimeEnvironment` (dataclass), `ProceduralTick` (dataclass with datetime), constructs `OnTickResult` dataclass, mutates runtime state, exception handling |
 
 ### global_state_variable.py
 
@@ -31,7 +31,7 @@ Analyze and refactor `src/application/xauusd_trading_strategy_1/on_tick.py` to u
 ### lifecycle.py Types (from on_init analysis)
 
 All ❌ Impossible:
-- `Tick` - dataclass with `datetime` field
+- `ProceduralTick` - dataclass with `datetime` field
 - `RuntimeEnvironment` - dataclass
 - `OnTickResult` - dataclass
 - `EventLoop` - Protocol
@@ -49,7 +49,7 @@ The on_tick hot path is fundamentally about:
 3. Boolean gate checks
 4. Delegating to event loop
 
-**However**, the data structures passed in (`Tick`, `StrategySettings`, `StrategyRuntimeState`, `RuntimeEnvironment`) are all Python objects that Numba cannot natively consume or produce.
+**However**, the data structures passed in (`ProceduralTick`, `StrategySettings`, `StrategyRuntimeState`, `RuntimeEnvironment`) are all Python objects that Numba cannot natively consume or produce.
 
 ### Feasible Approach: Numerical Kernel Extraction
 

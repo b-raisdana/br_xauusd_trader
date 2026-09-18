@@ -52,7 +52,7 @@ Expected: `0.28.2` (pinned per Runbook).
    sd = vbt.SyntheticData.from_data({'XAUUSD': df}, download_kwargs={})
    close = sd.get('Close')
    ```
-3. Iterate `close` index, constructing `Tick` objects from OHLCV rows.
+3. Iterate `close` index, constructing `ProceduralTick` objects from OHLCV rows.
 4. Configure `StrategySettings` with `run_current_event_loop=True` and `emit_time_basis_probe=True`.
 5. Call `on_tick()` per bar, inspect `OnTickResult`.
 6. Run with `run_current_event_loop=False` to verify probe-only path.

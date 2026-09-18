@@ -203,12 +203,12 @@ This repo uses **two canonical names** for timestamps — each in a specific con
 
 | Name | Context | Type | Where |
 |------|---------|------|-------|
-| `"date"` | pandas index / MultiIndex level holding timestamps | `datetime64[ns, UTC]` | Domain schemas (`OHLC`, `ohlcv.py`, `OHLCVA`, `CausalExtremum`), `disk_cache_layout.index_by_date()`, query results, MultiIndex level alongside `"timeframe"` |
+| `"date"` | pandas index / MultiIndex level holding timestamps | `datetime64[ns, UTC]` | Domain schemas (`OHLC`, `tick.py`, `OHLCVA`, `CausalExtremum`), `disk_cache_layout.index_by_date()`, query results, MultiIndex level alongside `"timeframe"` |
 | `"timestamp"` | on-disk storage column (DuckDB/Iceberg) | `datetime64[ns, UTC]` | `_TIMESTAMP_COLUMN` in `duckdb_cache_helpers.py`, Iceberg filters, broker raw OHLCV (millisecond epoch) |
 
 **Round-trip pattern** (follow, don't ad-lib):
 1. Raw broker data arrives with `"timestamp"` (millisecond epoch integers).
-2. `ohlcv.py` converts: `df["date"] = pd.to_datetime(df["timestamp"], unit="ms", utc=True)`.
+2. `tick.py` converts: `df["date"] = pd.to_datetime(df["timestamp"], unit="ms", utc=True)`.
 3. `"date"` becomes the pandas index; `"timestamp"` column is dropped.
 4. Domain code works with `"date"` index only.
 5. On write to DuckDB/Iceberg, `to_storage_frame()` renames `"date"` → `"timestamp"` via `_TIMESTAMP_COLUMN`.

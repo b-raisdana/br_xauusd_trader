@@ -29,7 +29,7 @@ Analyze and refactor `src/application/xauusd_trading_strategy_1/on_init.py` to u
 
 ### lifecycle.py Types
 
-All dataclasses (`Tick`, `RuntimeEnvironment`, `SmokeResult`, `OnInitResult`, `OnTickResult`) and Protocols (`SmokeSuite`, `EventLoop`) are ❌ Impossible - Numba does not support Python classes, dataclasses, or Protocols.
+All dataclasses (`ProceduralTick`, `RuntimeEnvironment`, `SmokeResult`, `OnInitResult`, `OnTickResult`) and Protocols (`SmokeSuite`, `EventLoop`) are ❌ Impossible - Numba does not support Python classes, dataclasses, or Protocols.
 
 ### settings.py
 

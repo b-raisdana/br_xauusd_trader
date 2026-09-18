@@ -130,7 +130,7 @@ class RuntimeEnvironment:
 Even if converted to `np.array([False], dtype=np.bool_)`:
 - It adds **one boolean** to the call signature
 - The conversion overhead exceeds any Numba benefit
-- The function still can't be `@njit` due to all other parameters (`Tick`, `StrategySettings`, `StrategyRuntimeState`, `EventLoop`, `OnTickResult` return)
+- The function still can't be `@njit` due to all other parameters (`ProceduralTick`, `StrategySettings`, `StrategyRuntimeState`, `EventLoop`, `OnTickResult` return)
 
 ---
 

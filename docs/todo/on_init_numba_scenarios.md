@@ -105,7 +105,7 @@ def run_core_vector_smoke(vectors: CoreVectors = core_vectors) -> SmokeResult:
 ### lifecycle.py Types
 
 All are ❌ IMPOSSIBLE:
-- `Tick` - dataclass with `datetime` field
+- `ProceduralTick` - dataclass with `datetime` field
 - `RuntimeEnvironment` - dataclass
 - `OnInitStatus` - IntEnum (Numba has no enum support)
 - `SmokeResult` - dataclass with string fields

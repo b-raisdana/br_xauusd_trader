@@ -29,7 +29,7 @@ def process_current_event_loop_tick(
     return event_loop.process_tick(tick)
 ```
 **Verdict: ❌ IMPOSSIBLE**
-- Takes `Tick` (dataclass with `datetime`) and `EventLoop` (Protocol)
+- Takes `ProceduralTick` (dataclass with `datetime`) and `EventLoop` (Protocol)
 - Protocol dispatch (`event_loop.process_tick`) - Numba has no Protocol/interface support
 - Calls arbitrary Python method on unknown object
 - Returns `bool` but the computation happens in Python land
@@ -53,7 +53,7 @@ def on_tick(
 ```
 **Verdict: ❌ IMPOSSIBLE (as written)**
 - **Parameters**: All are Python objects Numba cannot natively handle:
-  - `Tick` - dataclass with `datetime` field
+  - `ProceduralTick` - dataclass with `datetime` field
   - `StrategySettings` - Pydantic BaseModel
   - `StrategyRuntimeState` - dataclass with 50+ fields including lists, domain objects, strings
   - `RuntimeEnvironment` - dataclass
@@ -92,7 +92,7 @@ class StrategyRuntimeState:
 
 ### lifecycle.py Types (relevant to on_tick)
 
-#### `Tick`
+#### `ProceduralTick`
 ```python
 @dataclass(frozen=True, slots=True)
 class Tick:

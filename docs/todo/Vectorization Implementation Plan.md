@@ -4,13 +4,17 @@
 
 **Objective**: Convert the event-loop-based XAUUSD trading strategy into a vectorized DataFrame implementation.
 
-**Reference implementation**: `src/application/xauusd_trading_strategy_1/on_tick.py` and `src/application/xauusd_trading_strategy_1/event_loop.py`
+**Primary source of truth**: `mt5/XAUUSD_MVP.mq5` (MT5 implementation)
+
+**Secondary reference**: `src/application/xauusd_trading_strategy_1/on_tick.py` and `src/application/xauusd_trading_strategy_1/event_loop.py` (Python implementation)
 
 **Target implementation**: `src/application/xauusd_trading_strategy_1_vector/`
 
 **Scope restrictions**: This document is investigation and planning only. No implementation code will be created during this phase.
 
-**Expected final output**: A pandas DataFrame with MultiIndex (broker, symbol, datetime, date) containing an `action` column with the same semantics as the original event-loop implementation.
+**Expected final output**: A pandas DataFrame with MultiIndex (broker, symbol, datetime, date) containing an `action` column with the same semantics as the MT5 implementation.
+
+**Critical divergence note**: The original documentation incorrectly assumed 1-minute bars. The MT5 implementation uses **15-minute bars (PERIOD_M15)** for all bar-based calculations (trend history, bar close/open, breakout signals). This has been corrected throughout this document to match the MT5 source of truth.
 
 ---
 
@@ -95,11 +99,13 @@ Update candidate counters (breakout, reversal, pullback)
 Return success/failure
 ```
 
+**Note**: This execution flow matches the MT5 implementation in `mt5/XAUUSD_MVP.mq5::ProcessCurrentEventLoopTick` (lines 1248-1335). The Python implementation in `src/application/xauusd_trading_strategy_1/event_loop.py::process_current_event_loop_tick` (lines 163-235) follows the same sequence.
+
 ### Key Decision Points
 
 **Day boundary**: When the broker day changes, all state is reinitialized. This includes zones, trend history, and all counters.
 
-**Bar boundary**: When the minute changes (bar_time), the previous bar is closed and a new bar begins. This is when breakout signals are generated and pullback windows are created.
+**Bar boundary**: When the 15-minute bar changes (bar_time), the previous bar is closed and a new bar begins. This is when breakout signals are generated and pullback windows are created. **Note**: The MT5 implementation uses PERIOD_M15 (15-minute bars), not 1-minute bars as might be assumed.
 
 **Zone engagement**: A zone becomes engaged when price enters its range. Engagement is required for breakout signals and is reset at each bar open.
 
@@ -231,7 +237,7 @@ Return success/failure
 
 ### Time Semantics
 
-**bar_time**: Derived from datetime by flooring to minute level (second=0, microsecond=0). Used for bar boundary detection.
+**bar_time**: Derived from datetime by flooring to 15-minute level (minute % 15 = 0, second=0, microsecond=0). Used for bar boundary detection. **Note**: The MT5 implementation uses PERIOD_M15 (15-minute bars), not 1-minute bars.
 
 **Day boundary**: Detected when broker_day (from datetime) changes. Triggers full reinitialization.
 
@@ -522,10 +528,11 @@ Return success/failure
 **Approach**: Use pandas rolling and expanding windows
 
 **Implementation**:
-- Create `bar_high` and `bar_low` columns from bar close data
+- Create `bar_high` and `bar_low` columns from 15-minute bar close data
 - Use `expanding().max()` and `expanding().min()` for reference_high/reference_low
 - Use vectorized comparison for trend updates
 - Handle the 3-candle initialization with cumulative count
+- Load historical M15 bars for trend history initialization (as in MT5 CopyRates with PERIOD_M15)
 
 **Grouping**: groupby(["broker", "symbol"])
 
@@ -741,7 +748,7 @@ This is a sequential accumulation with deduplication.
 - `ask`: float
 
 **Derived time columns**:
-- `bar_time`: datetime (floored to minutes)
+- `bar_time`: datetime (floored to 15-minute intervals: minute % 15 = 0, second=0, microsecond=0)
 - `broker_day`: string (format "YYYY.MM.DD")
 - `is_bar_boundary`: boolean (bar_time changed from previous row)
 - `is_day_boundary`: boolean (broker_day changed from previous row)
@@ -775,10 +782,10 @@ This is a sequential accumulation with deduplication.
 - `pullback_sequence`: int
 
 **Bar data columns**:
-- `bar_open`: float (opening bid of current bar)
-- `bar_high`: float (high of current bar)
-- `bar_low`: float (low of current bar)
-- `bar_close`: float (close bid of current bar)
+- `bar_open`: float (opening bid of current 15-minute bar)
+- `bar_high`: float (high of current 15-minute bar)
+- `bar_low`: float (low of current 15-minute bar)
+- `bar_close`: float (close bid of current 15-minute bar)
 
 **Signal candidate columns**:
 - `signal_candidate_id`: string
@@ -874,7 +881,7 @@ For the vectorized implementation, the `action` column should represent the sign
 - [ ] Create vectorized strategy module structure under `src/application/xauusd_trading_strategy_1_vector/`
 - [ ] Define input DataFrame schema with MultiIndex (broker, symbol, datetime, date)
 - [ ] Implement input validation (bid > 0, ask > bid, finite values)
-- [ ] Derive time columns: bar_time, broker_day, is_bar_boundary, is_day_boundary
+- [ ] Derive time columns: bar_time (15-minute intervals), broker_day, is_bar_boundary, is_day_boundary
 - [ ] Implement previous row columns: previous_bid, previous_ask, previous_bar_time
 - [ ] Group by (broker, symbol) for state isolation
 
@@ -888,12 +895,12 @@ For the vectorized implementation, the `action` column should represent the sign
 
 ### Phase 3: Trend Calculation
 
-- [ ] Implement bar high/low tracking (OHLC aggregation per bar)
+- [ ] Implement 15-minute bar high/low tracking (OHLC aggregation per M15 bar)
 - [ ] Implement trend reference calculation (expanding max/min)
 - [ ] Implement trend state update logic (sequential state machine)
-- [ ] Handle 3-candle initialization phase
+- [ ] Handle 3-candle initialization phase with historical M15 data loading
 - [ ] Implement candle array rolling logic
-- [ ] Test trend calculation against reference implementation
+- [ ] Test trend calculation against MT5 reference implementation
 
 ### Phase 4: Zone Engagement
 

@@ -33,7 +33,7 @@ class _MockEventLoop:
 
 @pytest.fixture
 def ohlcv_df() -> pd.DataFrame:
-    df = pd.read_csv("data/random_ohlcv.csv", parse_dates=["Datetime"], index_col="Datetime")
+    df = pd.read_csv("data/random_ohlcv.zip", compression="zip", parse_dates=["Datetime"], index_col="Datetime")
     return df
 
 

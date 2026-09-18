@@ -5,6 +5,7 @@
 *.pem
 *.key
 
+
 # Python
 .venv/
 venv/
@@ -33,6 +34,7 @@ output/*
 tmp/
 
 # Large/local market data
+data/
 data/raw/
 data/cache/
 data/vendor/

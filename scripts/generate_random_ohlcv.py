@@ -2,9 +2,11 @@ import csv
 import random
 from datetime import datetime, timedelta
 
+import pandas as pd
+
 
 def generate_random_ohlcv(
-    output_path: str = "data/random_ohlcv.csv",
+    output_path: str = "data/random_ohlcv.zip",
     bars: int = 50,
     price_start: float = 2350.0,
     price_min: float = 2300.0,
@@ -66,11 +68,17 @@ def generate_random_ohlcv(
             }
         )
         current_price = close_
-
-    with open(output_path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["Datetime", "Open", "High", "Low", "Close", "Volume"])
-        writer.writeheader()
-        writer.writerows(rows)
+    df = pd.DataFrame(rows)
+    df.to_csv(
+        output_path if output_path.endswith(".zip") else output_path + ".zip",
+        index=False,
+        compression="zip",
+        quoting=csv.QUOTE_NONNUMERIC,
+    )
+    # with open(output_path, "w", newline="") as f:
+    #     writer = csv.DictWriter(f, fieldnames=["Datetime", "Open", "High", "Low", "Close", "Volume"])
+    #     writer.writeheader()
+    #     writer.writerows(rows)
 
     return output_path
 

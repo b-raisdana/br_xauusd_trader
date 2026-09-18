@@ -26,7 +26,7 @@ class TickDataConfig:
     max_volume: float = 0
     max_volume_change_pct_per_second: float = 130.0
     seed: int | None = 42
-    output_path: Path = app_config.path_of_data / Path("tick_data.csv")
+    output_path: Path = app_config.path_of_data / Path("tick_data.zip")
 
 
 def get_yesterday_range() -> tuple[datetime, datetime]:
@@ -204,9 +204,9 @@ def generate_tick_data_command(
         help="Random seed. Use --seed with a value for reproducible output; omit with --no-seed.",
     ),
     output_path: str = typer.Option(
-        "data/tick_data.csv",
+        "data/tick_data.zip",
         "--output-path",
-        help="Output CSV path.",
+        help="Output ZIP path.",
     ),
 ) -> None:
     config = TickDataConfig(

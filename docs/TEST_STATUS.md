@@ -1,5 +1,6 @@
 # گزارش جامع نتایج تست MVP
 
+
 وضعیت: **مرحله ۷ تکمیل؛ Freeze نهایی هنوز وابسته به Gateهای مرحله ۴ و ۵ است**
 منبع عددی ماشین‌خوان: `docs/FINAL_TEST_EVIDENCE.json`
 قاعده استفاده: هر گزارش خلاصه بعدی باید از این فایل و Evidence همراه آن تولید شود؛ برای گزارش‌گیری مجدد نباید MetaTrader 5 اجرا شود.
@@ -61,3 +62,15 @@
 | Audit/Report | Event/Rule/Zone/BO lineage، reject reasons، reusable result evidence | PASS Stage 7 — Python/MQL lifecycle audit plus final structured evidence/report synchronization pass. |
 
 Statuses: `PASS`, `FAIL`, `NOT_RUN`, `BLOCKED`, `NOT_APPLICABLE`.
+
+## Candle-backed bar boundaries (2026-09-20)
+
+The vector runner passes M15 candles into `process_tick_data`, replacing tick OHLC aggregation when candles are supplied. Tick-only callers retain aggregation. Candles must cover every observed bar; trend uses preceding observed same-day ranges only. Broker OHLC may differ from incomplete tick aggregates. Two new regression tests pass for gaps, day reset, parity, causality and missing coverage. Focused state/breakout run: 35 passed, 2 existing symbol-isolation failures (`PYTHONBREAKPOINT=0` disables logger debugger stops). Scoped pre-commit: Ruff check/format pass; pytest collection fails on missing `sample_data`; incremental ratchet fails on missing `ratchet`. No commit created.
+
+## Explicit vector state granularity (2026-09-20)
+
+Renamed the strategy frame to `_per_tick_temp_state` and tick-processing locals/parameters to `per_tick_state`; daily partitions use `day_tick_state`, candle frames use `per_candle_state`, and pullback objects use `pullback_window_state`. `_per_candle_temp_state` retains observed open/high/low and trend-history columns across all days, indexed by broker/symbol/bar time; both frames reset per batch. Debug access, tests and active documentation use the new names. Focused state/breakout/where tests: 49 passed, the same 2 existing symbol-isolation failures. The new candle-state test verifies multiple days, history reset, repeat calls and empty batches. Ruff passes; pre-commit remains blocked by missing `sample_data` during pytest collection and missing `ratchet`. No commit created.
+
+## Required candle input (2026-09-20)
+
+`process_tick_data` and `_process_bar_boundaries` now require `candle_df: pd.DataFrame`; the optional-input and tick-aggregation fallback described above are removed. The runner forwards the already loaded frame, and all test callers supply synthetic candle frames. The bar-processing regression also forbids group aggregation. Focused tests: 49 passed, the same 2 existing symbol-isolation failures. Ruff check/format pass; repository pre-commit remains blocked by missing `sample_data` during pytest collection and missing `ratchet`. The existing MT5 OHLC loader fetches directly; no persistent cache was added.

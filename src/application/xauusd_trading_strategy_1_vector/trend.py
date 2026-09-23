@@ -8,72 +8,98 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from br_py_log_n_profile.do_log.log_it import NOT_TESTED, log_w
 
+from domain.schemas.xauusd_vector_strategy import PerTickBaseState, ReferenceInput, ReferenceResult
 from domain.xau_usd.enums import XauTrend
+from helper.importer import pt
+from helper.pandera import pandera_validate
 
 
-def compute_bar_time(datetime_series: pd.Series) -> pd.Series:
+@pandera_validate(allow_pandas_dataframe=True)
+def compute_bar_time(datetime_series: pt.Series[pd.Timestamp]) -> pt.Series[pd.Timestamp]:
     """Floor datetime to 15-minute intervals (PERIOD_M15)."""
-    if not isinstance(datetime_series, pd.DatetimeIndex):
-        datetime_series = pd.to_datetime(datetime_series)
+    if isinstance(datetime_series, pd.DatetimeIndex):
+        return datetime_series.floor("15min")
     return datetime_series.dt.floor("15min")
 
 
-def compute_reference_high(row: pd.Series) -> float:
+@pandera_validate(allow_pandas_dataframe=True)
+def compute_reference_high(tick_state_row: pd.Series) -> float:
     """Compute reference high from trend history for a single row."""
-    count = int(row["trend_count"])
+    log_w(NOT_TESTED)
+    count = int(tick_state_row["trend_count"])
     if count == 0:
         return 0.0
     if count == 1:
-        return float(row["trend_high_0"])
+        return float(tick_state_row["trend_high_0"])
     if count == 2:
-        return max(float(row["trend_high_0"]), float(row["trend_high_1"]))
+        return max(float(tick_state_row["trend_high_0"]), float(tick_state_row["trend_high_1"]))
     return max(
-        float(row["trend_high_0"]),
-        float(row["trend_high_1"]),
-        float(row["trend_high_2"]),
+        float(tick_state_row["trend_high_0"]),
+        float(tick_state_row["trend_high_1"]),
+        float(tick_state_row["trend_high_2"]),
     )
 
 
-def compute_reference_low(row: pd.Series) -> float:
+@pandera_validate(allow_pandas_dataframe=True)
+def compute_reference_low(tick_state_row: pd.Series) -> float:
     """Compute reference low from trend history for a single row."""
-    count = int(row["trend_count"])
+    log_w(NOT_TESTED)
+    count = int(tick_state_row["trend_count"])
     if count == 0:
         return 0.0
     if count == 1:
-        return float(row["trend_low_0"])
+        return float(tick_state_row["trend_low_0"])
     if count == 2:
-        return min(float(row["trend_low_0"]), float(row["trend_low_1"]))
+        return min(float(tick_state_row["trend_low_0"]), float(tick_state_row["trend_low_1"]))
     return min(
-        float(row["trend_low_0"]),
-        float(row["trend_low_1"]),
-        float(row["trend_low_2"]),
+        float(tick_state_row["trend_low_0"]),
+        float(tick_state_row["trend_low_1"]),
+        float(tick_state_row["trend_low_2"]),
     )
 
 
-def compute_references(state: pd.DataFrame) -> pd.DataFrame:
-    """Populate reference_high and reference_low columns on the state DataFrame."""
-    state["reference_high"] = state.apply(compute_reference_high, axis=1)
-    state["reference_low"] = state.apply(compute_reference_low, axis=1)
-    return state
+@pandera_validate(inplace=True)
+def compute_references(per_tick_state: pt.DataFrame[ReferenceInput]) -> pt.DataFrame[ReferenceResult]:
+    """Populate reference_high and reference_low columns on the per-tick DataFrame."""
+    log_w(NOT_TESTED)
+    counts = per_tick_state["trend_count"].to_numpy(dtype=np.int64)
+    for side, compare in (("high", np.greater), ("low", np.less)):
+        first = per_tick_state[f"trend_{side}_0"].to_numpy(dtype=float)
+        second = per_tick_state[f"trend_{side}_1"].to_numpy(dtype=float)
+        third = per_tick_state[f"trend_{side}_2"].to_numpy(dtype=float)
+        # Ordered comparisons retain Python max/min behavior for ties and NaNs.
+        first_two = np.where(compare(second, first), second, first)
+        first_three = np.where(compare(third, first_two), third, first_two)
+        per_tick_state[f"reference_{side}"] = np.where(
+            counts == 0, 0.0, np.where(counts == 1, first, np.where(counts == 2, first_two, first_three))
+        )
+    return per_tick_state
 
 
-def update_trend(state: pd.DataFrame) -> pd.DataFrame:
+@pandera_validate(allow_pandas_dataframe=True)
+def update_trend(per_tick_state: pt.DataFrame[PerTickBaseState]) -> pt.DataFrame[PerTickBaseState]:
     """Update trend column based on bid vs reference levels.
 
     Only rows with trend_count > 0 are updated. Trend becomes UP when bid
     exceeds reference_high, DOWN when bid falls below reference_low, and
     otherwise stays unchanged.
     """
-    compute_references(state)
-    has_reference = state["trend_count"] > 0
-    state.loc[has_reference, "trend"] = np.where(
-        state.loc[has_reference, "bid"] > state.loc[has_reference, "reference_high"],
-        XauTrend.UP.value,
+    log_w(NOT_TESTED)
+    compute_references(per_tick_state)
+    has_reference = per_tick_state["trend_count"] > 0
+    changes = pd.Series(
         np.where(
-            state.loc[has_reference, "bid"] < state.loc[has_reference, "reference_low"],
-            XauTrend.DOWN.value,
-            state.loc[has_reference, "trend"],
+            has_reference & (per_tick_state["bid"] > per_tick_state["reference_high"]),
+            XauTrend.UP.value,
+            np.where(
+                has_reference & (per_tick_state["bid"] < per_tick_state["reference_low"]), XauTrend.DOWN.value, np.nan
+            ),
         ),
+        index=per_tick_state.index,
     )
-    return state
+    per_tick_state["trend"] = (
+        changes.groupby(per_tick_state["broker_day"], sort=False).ffill().fillna(XauTrend.NONE.value).astype(int)
+    )
+    return per_tick_state

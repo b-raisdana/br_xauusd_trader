@@ -16,9 +16,9 @@ import optree
 import pandas as pd
 import pandera.pandas as pa
 from br_py_log_n_profile import log_d, log_w
+from br_py_log_n_profile.do_log.log_it import NOT_TESTED
 
 from config import app_config
-from helper.importer import NOT_TESTED
 
 Pandera_DFM_Type = TypeVar("Pandera_DFM_Type", bound=pa.DataFrameModel)
 _WARN_INACTIVE_N_RETURN_CHECK_ENFORCEMENT: bool = False
@@ -244,6 +244,7 @@ def pandera_validate[**P, R](
     func: Callable[P, R],
     *,
     allow_pandas_dataframe: bool = ...,
+    inplace: bool = ...,
     trim_to_n_return: bool = ...,
     warn_on_nan_fill: bool = ...,
     forbid_nan_fill: bool = ...,
@@ -258,6 +259,7 @@ def pandera_validate[**P, R](
     func: None = None,
     *,
     allow_pandas_dataframe: bool = ...,
+    inplace: bool = ...,
     trim_to_n_return: bool = ...,
     warn_on_nan_fill: bool = ...,
     forbid_nan_fill: bool = ...,
@@ -271,6 +273,7 @@ def pandera_validate[**P, R](
     func: Callable[P, R] | None = None,
     *,
     allow_pandas_dataframe: bool = False,
+    inplace: bool = False,
     trim_to_n_return: bool = True,
     warn_on_nan_fill: bool = True,
     forbid_nan_fill: bool = False,
@@ -313,7 +316,7 @@ def pandera_validate[**P, R](
         if app_config.environment == "production":
             return func
 
-        inner = pa.check_types(lazy=True)(func)
+        inner = pa.check_types(lazy=True, inplace=inplace)(func)
         n_return_in_sig = "n_return" in inspect.signature(func_obj).parameters
 
         @wraps(func)

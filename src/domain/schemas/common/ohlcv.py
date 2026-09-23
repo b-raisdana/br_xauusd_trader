@@ -1,3 +1,4 @@
+import numpy as np
 from pandera import typing as pt
 
 from domain.schemas.common.base_dataframe import MultiTimeframe, Timeseries
@@ -10,7 +11,16 @@ class OHLC(Timeseries):
     low: pt.Series[float]
 
 
+class TicksSpreadOHLC(OHLC):
+    tick_volume: pt.Series[np.uint64]
+    spread: pt.Series[np.int32]
+
+
 class MultiTimeframeOHLC(OHLC, MultiTimeframe):
+    pass
+
+
+class MultiTimeframeTicksSpreadOHLC(TicksSpreadOHLC, MultiTimeframe):
     pass
 
 

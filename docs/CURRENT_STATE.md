@@ -15,6 +15,8 @@
 
 ## Source-of-Truth files
 
+The 2026-09-20 entry-point review repaired CLI/debug dispatch, full-day fetch boundaries, causal candle context, export and MT5 error/symbol handling. Twenty focused tests pass; the repository gate remains blocked. Core edits were concurrent and execution placeholders remain; see [flow findings and remaining work](todo/vectorized-entrypoint-flow.md).
+
 - `PROJECT_BRIEF.md`: goal, scope, limits and success criteria
 - `RULES.md`: the only active rules; detailed structure and function-like names
 - `RULES_ARCHIVE_FUTURE.md`: superseded/rejected/post-MVP and historical crosswalk

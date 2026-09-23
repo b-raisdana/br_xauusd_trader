@@ -1,4 +1,4 @@
 from .vectorized_strategy import VectorizedXauUsdStrategy
-from .zone_loader import ZoneLoader
+from .zone_cache import ZoneCache
 
-__all__ = ["VectorizedXauUsdStrategy", "ZoneLoader"]
+__all__ = ["VectorizedXauUsdStrategy", "ZoneCache", "ZoneCache"]

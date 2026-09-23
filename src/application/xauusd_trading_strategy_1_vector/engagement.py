@@ -8,21 +8,28 @@ from __future__ import annotations
 
 from typing import List
 
+import numpy as np
 import pandas as pd
+from br_py_log_n_profile import NOT_TESTED, log_w
 
+from domain.schemas.xauusd_vector_strategy import EngagementInput, EngagementResult
 from domain.xau_usd.models import XauZone
+from helper.importer import pt
+from helper.pandera import pandera_validate
 
 
+@pandera_validate(allow_pandas_dataframe=True)
 def count_directional_crosses_vectorized(
     zones: List[XauZone],
-    previous_bid: pd.Series,
-    current_bid: pd.Series,
-) -> pd.Series:
+    previous_bid: pt.Series[float],
+    current_bid: pt.Series[float],
+) -> pt.Series[int]:
     """Count directional zone crosses for each row.
 
     An upward cross is previous_bid < zone.low <= current_bid.
     A downward cross is previous_bid > zone.high >= current_bid.
     """
+    log_w(NOT_TESTED)
     crosses = pd.Series(0, index=previous_bid.index)
     for zone in zones:
         upward_cross = (previous_bid < zone.low) & (current_bid >= zone.low)
@@ -32,35 +39,40 @@ def count_directional_crosses_vectorized(
     return crosses
 
 
+@pandera_validate(inplace=True)
 def update_zone_engagement(
-    state: pd.DataFrame,
+    per_tick_state: pt.DataFrame[EngagementInput],
     zones: List[XauZone],
-) -> pd.DataFrame:
+) -> pt.DataFrame[EngagementResult]:
     """Update buy/sell engagement based on bid movement across zone boundaries.
 
     Handles multi-zone tick gaps (crosses > 1) by setting engagement based on
     current bid position inside the zone. For single crosses, engagement is
     set incrementally only when not already engaged.
     """
-    previous_bid = state["last_bid"].shift(1)
-    previous_bid.iloc[0] = state.iloc[0]["bar_open"]
-    current_bid = state["bid"]
-
-    crosses = count_directional_crosses_vectorized(zones, previous_bid, current_bid)
-    state["multi_zone_tick_gap"] = crosses > 1
-
-    multi_zone_gap = state["multi_zone_tick_gap"]
-
+    log_w(NOT_TESTED)
+    bar_changed = per_tick_state["bar_time"].ne(per_tick_state["bar_time"].shift()).to_numpy()
+    bar_ids = bar_changed.cumsum()
+    current_bid = per_tick_state["bid"].to_numpy()
+    previous_bid = np.where(bar_changed, current_bid, per_tick_state["bid"].shift())
+    crosses = count_directional_crosses_vectorized(
+        zones, pd.Series(previous_bid, index=per_tick_state.index), per_tick_state["bid"]
+    )
+    multi_zone_gap = crosses.to_numpy() > 1
+    per_tick_state["multi_zone_tick_gap"] = multi_zone_gap
+    buy = np.zeros(len(per_tick_state), dtype=bool)
+    sell = np.zeros(len(per_tick_state), dtype=bool)
     for zone in zones:
         inside_zone = (current_bid >= zone.low) & (current_bid <= zone.high)
-
-        state.loc[multi_zone_gap & inside_zone, "buy_engaged"] = True
-        state.loc[multi_zone_gap & inside_zone, "sell_engaged"] = True
-
-        buy_cross = (~state["buy_engaged"]) & (previous_bid < zone.low) & (current_bid >= zone.low)
-        state.loc[buy_cross, "buy_engaged"] = True
-
-        sell_cross = (~state["sell_engaged"]) & (previous_bid > zone.high) & (current_bid <= zone.high)
-        state.loc[sell_cross, "sell_engaged"] = True
-
-    return state
+        opened_inside = bar_changed & inside_zone
+        buy_cross = (previous_bid < zone.low) & (current_bid >= zone.low)
+        sell_cross = (previous_bid > zone.high) & (current_bid <= zone.high)
+        zone_buy = pd.Series(np.where(multi_zone_gap, inside_zone, opened_inside | buy_cross))
+        zone_sell = pd.Series(np.where(multi_zone_gap, inside_zone, opened_inside | sell_cross))
+        per_tick_state[f"buy_engaged:{zone.id}"] = zone_buy.groupby(bar_ids, sort=False).cummax().to_numpy()
+        per_tick_state[f"sell_engaged:{zone.id}"] = zone_sell.groupby(bar_ids, sort=False).cummax().to_numpy()
+        buy |= per_tick_state[f"buy_engaged:{zone.id}"].to_numpy()
+        sell |= per_tick_state[f"sell_engaged:{zone.id}"].to_numpy()
+    per_tick_state["buy_engaged"] = pd.Series(buy, index=per_tick_state.index).groupby(bar_ids, sort=False).cummax()
+    per_tick_state["sell_engaged"] = pd.Series(sell, index=per_tick_state.index).groupby(bar_ids, sort=False).cummax()
+    return per_tick_state

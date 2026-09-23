@@ -1,74 +1,74 @@
 MT5-Name,Py-Difference,MT5 Used as Input,MT5 Modifies the Value,Py Used as Input,Py Modifies the Value
-g_time_basis_probe_count,time_basis_probe_count,"XAUUSD_MVP.mq5:1405,1411",XAUUSD_MVP.mq5:1414,on_tick.py:25,on_tick.py:26
-g_execution_projections,execution_projections,NA,NA,NA,NA
-g_execution_bindings,execution_bindings,NA,NA,NA,NA
-EXECUTION_BINDINGS_FILE,execution_bindings_file,NA,NA,global_state_variable.py:19,NA
-ORDER_AUDIT_FILE,order_audit_file,NA,NA,global_state_variable.py:20,NA
-g_market_state,market_state,NA,NA,"event_loop.py:102,110,116,177,183,189,190,207,222,226","event_loop.py:102,110,116"
-g_current_bar_time,current_bar_time,"XAUUSD_MVP.mq5:866,869,873,1251,1269,1273,1286",XAUUSD_MVP.mq5:650,"event_loop.py:183,207","event_loop.py:125,207"
-g_event_loop_ready,event_loop_ready,XAUUSD_MVP.mq5:1254,"XAUUSD_MVP.mq5:651,1269",event_loop.py:170,"event_loop.py:126,178"
-g_event_loop_failure_reported,event_loop_failure_reported,"XAUUSD_MVP.mq5:1421,1441",XAUUSD_MVP.mq5:1424,"on_tick.py:33,45","on_tick.py:34,46"
-g_breakout_candidate_count,breakout_candidate_count,"XAUUSD_MVP.mq5:1289,1436",XAUUSD_MVP.mq5:1289,event_loop.py:208,event_loop.py:208
-g_reversal_candidate_count,reversal_candidate_count,"XAUUSD_MVP.mq5:1326,1437",XAUUSD_MVP.mq5:1326,NA,event_loop.py:232
-g_pullback_candidate_count,pullback_candidate_count,"XAUUSD_MVP.mq5:1328,1437",XAUUSD_MVP.mq5:1328,NA,event_loop.py:234
-g_tester_attempt_count,tester_attempt_count,"XAUUSD_MVP.mq5:1197,1438",XAUUSD_MVP.mq5:1197,on_deinit.py:34,NA
-g_tester_accept_count,tester_accept_count,"XAUUSD_MVP.mq5:1230,1438",XAUUSD_MVP.mq5:1230,on_deinit.py:35,NA
-g_tester_reject_count,tester_reject_count,"XAUUSD_MVP.mq5:1204,1438",XAUUSD_MVP.mq5:1204,on_deinit.py:36,NA
-g_request_sequence,request_sequence,XAUUSD_MVP.mq5:1176,XAUUSD_MVP.mq5:1176,NA,NA
-g_event_sequence,event_sequence,XAUUSD_MVP.mq5:1178,XAUUSD_MVP.mq5:1178,NA,NA
-g_daily_loss_locked,daily_loss_locked,"XAUUSD_MVP.mq5:1142,1163","XAUUSD_MVP.mq5:652,1141",event_loop.py:127,event_loop.py:127
-g_operational_lock,operational_lock,"XAUUSD_MVP.mq5:811,851,890","XAUUSD_MVP.mq5:653,851",NA,event_loop.py:128
-g_session_cancel_count,session_cancel_count,"XAUUSD_MVP.mq5:849,1439",XAUUSD_MVP.mq5:849,on_deinit.py:37,NA
-g_session_close_count,session_close_count,"XAUUSD_MVP.mq5:850,1439",XAUUSD_MVP.mq5:850,on_deinit.py:38,NA
-g_session_zero_exposure,session_zero_exposure,"XAUUSD_MVP.mq5:852,1440","XAUUSD_MVP.mq5:654,852",event_loop.py:129,event_loop.py:129
-g_restart_lock,restart_lock,"XAUUSD_MVP.mq5:817,819,853","XAUUSD_MVP.mq5:655,853",event_loop.py:130,event_loop.py:130
-g_max_open_positions,max_open_positions,"XAUUSD_MVP.mq5:1139,1451",XAUUSD_MVP.mq5:1140,NA,NA
-g_gate_rejections,gate_rejections,"XAUUSD_MVP.mq5:1171,1172,1173,1452,1453,1454,1455,1456,1457,1458",XAUUSD_MVP.mq5:1172,NA,NA
-g_final_net_realized,final_net_realized,XAUUSD_MVP.mq5:1451,XAUUSD_MVP.mq5:842,on_deinit.py:31,NA
-g_final_gross_loss,final_gross_loss,XAUUSD_MVP.mq5:1451,XAUUSD_MVP.mq5:843,on_deinit.py:32,NA
-g_invalid_price_rejections,invalid_price_rejections,"XAUUSD_MVP.mq5:1208,1458",XAUUSD_MVP.mq5:1208,on_deinit.py:33,NA
-g_other_broker_rejections,other_broker_rejections,"XAUUSD_MVP.mq5:1210,1459",XAUUSD_MVP.mq5:1210,on_deinit.py:33,NA
-g_protection_modifies,protection_modifies,"XAUUSD_MVP.mq5:1114,1459",XAUUSD_MVP.mq5:1114,NA,NA
-g_protection_modify_rejects,protection_modify_rejects,"XAUUSD_MVP.mq5:1116,1460",XAUUSD_MVP.mq5:1116,NA,NA
-g_sl_loosen_violations,sl_loosen_violations,"XAUUSD_MVP.mq5:1100,1460",XAUUSD_MVP.mq5:1100,NA,NA
-g_tp_extensions,tp_extensions,"XAUUSD_MVP.mq5:976,1463",XAUUSD_MVP.mq5:976,NA,NA
-g_tp_restores,tp_restores,"XAUUSD_MVP.mq5:999,1463",XAUUSD_MVP.mq5:999,NA,NA
-g_tp_market_closes,tp_market_closes,"XAUUSD_MVP.mq5:1013,1463",XAUUSD_MVP.mq5:1013,NA,NA
-g_tp_modify_rejects,tp_modify_rejects,"XAUUSD_MVP.mq5:978,1001,1464",XAUUSD_MVP.mq5:978,NA,NA
-g_tp_close_rejects,tp_close_rejects,"XAUUSD_MVP.mq5:1010,1464",XAUUSD_MVP.mq5:1010,NA,NA
-g_breakout_conflict_closes,breakout_conflict_closes,"XAUUSD_MVP.mq5:1053,1466",XAUUSD_MVP.mq5:1053,NA,NA
-g_symbol_spec_emitted,symbol_spec_emitted,"XAUUSD_MVP.mq5:89,117",XAUUSD_MVP.mq5:117,NA,NA
-g_attribution_attempts,attribution_attempts,"XAUUSD_MVP.mq5:1201,1470,1471,1472,1473,1474,1475",XAUUSD_MVP.mq5:1201,NA,NA
-g_attribution_accepts,attribution_accepts,"XAUUSD_MVP.mq5:1231,1470,1471,1472,1473,1474,1475",XAUUSD_MVP.mq5:1231,NA,NA
-g_attribution_rejects,attribution_rejects,"XAUUSD_MVP.mq5:1205,1470,1471,1472,1473,1474,1475",XAUUSD_MVP.mq5:1205,NA,NA
-g_runtime_requests,runtime_requests,"XAUUSD_MVP.mq5:719,720,721,794,795,906,907,908,932,933,934","XAUUSD_MVP.mq5:663,664,666,667,668,669,671",event_loop.py:141,event_loop.py:141
-XauMarketCoordinator.broker_day,broker_day,"XauCoordinator.mqh:854,855,857","XauCoordinator.mqh:612,621",event_loop.py:177,coordinator.py:86
-XauMarketCoordinator.bar_id,bar_id,"XauCoordinator.mqh:220,231,257","XauCoordinator.mqh:646,120",coordinator.py:232,coordinator.py:87
-XauMarketCoordinator.day_active,day_active,XauCoordinator.mqh:212,XauCoordinator.mqh:88,coordinator.py:212,coordinator.py:88
-XauMarketCoordinator.bar_active,bar_active,"XauCoordinator.mqh:106,132","XauCoordinator.mqh:89,109,121",coordinator.py:135,"coordinator.py:109,121"
-XauMarketCoordinator.bar_open,bar_open,XauCoordinator.mqh:142,"XauCoordinator.mqh:91,122",coordinator.py:142,coordinator.py:122
-XauMarketCoordinator.last_bid,last_bid,"XauCoordinator.mqh:138,140","XauCoordinator.mqh:92,123","coordinator.py:138,140","coordinator.py:123,198"
-XauMarketCoordinator.last_ask,last_ask,NA,"XauCoordinator.mqh:93,124",coordinator.py:199,"coordinator.py:124,199"
-XauMarketCoordinator.breakout_sequence,breakout_sequence,XauCoordinator.mqh:226,"XauCoordinator.mqh:93,197",coordinator.py:226,"coordinator.py:93,226"
-XauMarketCoordinator.trend,trend,XauCoordinator.mqh:223,XauCoordinator.mqh:98,coordinator.py:223,coordinator.py:98
-XauMarketCoordinator.zones,zones,"XauCoordinator.mqh:144,175,176","XauCoordinator.mqh:94,95","event_loop.py:177,183,189,207,221,222,226","coordinator.py:94,119,120"
-XauMarketCoordinator.pullbacks,pullbacks,"XauCoordinator.mqh:174,175,177,196,199","XauCoordinator.mqh:95,96,112,174,175,196,199","coordinator.py:174,181,244,249","coordinator.py:95,112,247,249"
-XauMarketCoordinator.reversal_keys,reversal_keys,XauCoordinator.mqh:158,"XauCoordinator.mqh:96,158",coordinator.py:158,coordinator.py:97
-XauMarketCoordinator.attempted_bars,attempted_bars,"XauCoordinator.mqh:158,162,163,197,198,201","XauCoordinator.mqh:97,162,163,197,198,199,201",coordinator.py:251,coordinator.py:97
-XauTrendReferenceState.trend,trend,"XauState.mqh:223,226,227,357,367,321","XauState.mqh:315,306","coordinator.py:149,223",state.py:315
-XauTrendReferenceState.count,count,"XauState.mqh:329,325,340,356,367,361","XauState.mqh:292,295,298,299,329",state.py:307,"state.py:293,295,296,298,299"
-XauTrendReferenceState.highs,highs,"XauState.mqh:327,332,333,334,346","XauState.mqh:293,298,317,318,327,332,333,346",state.py:307,"state.py:293,294,307,317,318,327,332,333,346"
-XauTrendReferenceState.lows,lows,"XauState.mqh:328,333,334,335,347","XauState.mqh:294,299,317,318,328,333,334,347",state.py:308,"state.py:294,295,308,317,318,328,333,334,347"
-XauDailyZoneSignalState.zone,zone,"XauState.mqh:12,248,249,250,252,253,256,258,259,260,270","XauState.mqh:221,227","state.py:222,245,248,249,250,252,253,256,258,259,260,270",state.py:222
-XauDailyZoneSignalState.buy_engaged,buy_engaged,XauState.mqh:222,"XauState.mqh:249,252,256,270",coordinator.py:222,"state.py:236,252,256,257"
-XauDailyZoneSignalState.sell_engaged,sell_engaged,XauState.mqh:222,"XauState.mqh:250,253,269,271",coordinator.py:222,"state.py:237,253,258,259"
-XauDailyZoneSignalState.reversal_usage,reversal_usage,XauState.mqh:272,"XauState.mqh:273,293,295",NA,state.py:273
-XauDailyZoneSignalState.pullback_fills,pullback_fills,"XauState.mqh:165,203,204",XauState.mqh:206,coordinator.py:181,state.py:203
-XauPullbackWindowState.parent_breakout_id,parent_breakout_id,"XauState.mqh:169,187,174","XauState.mqh:143,174,187,198",coordinator.py:187,state.py:132
-XauPullbackWindowState.zone,zone,"XauState.mqh:145,164,165,166,174,178,179,188,199,200,201,202,203,204","XauState.mqh:133,145,174,188,199,200","coordinator.py:175,189",state.py:133
-XauPullbackWindowState.direction,direction,"XauState.mqh:144,179,181,182","XauState.mqh:134,179,181,182",coordinator.py:191,state.py:134
-XauPullbackWindowState.bar_offset,bar_offset,"XauState.mqh:148,149,160,163,160","XauState.mqh:135,148,149,151,152,160","state.py:149,163","state.py:135,148"
-XauPullbackWindowState.active,active,"XauState.mqh:145,157,158,159,161,162,164,165,166,169,176,177,191,195,199,200","XauState.mqh:136,148,152,165,199,204,211,214","state.py:145,161,162,163,164,169,176,177,191,207","state.py:136,148,149,152,204,211,214"
-XauPullbackWindowState.penetration_latched,penetration_latched,"XauState.mqh:176,177,178,180","XauState.mqh:148,149,170,176,180,182,205,209","state.py:176,177","state.py:137,170,176,205"
-XauPullbackWindowState.pending_active,pending_active,"XauState.mqh:164,191,195,199,200","XauState.mqh:149,151,152,164,199,204,205,211,214","state.py:164,191,195,200","state.py:138,149,151,152,191,204,205,211,214"
-XauPullbackWindowState.sequence,sequence,"XauState.mqh:179,187","XauState.mqh:139,179","state.py:179,180","state.py:139,179"
+g_time_basis_probe_count,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1405,1411,1414","mt5/XAUUSD_MVP.mq5:27,1414",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_execution_projections,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:701,704,706,709,786,789,790,910,915,919,968,992,1084,1087,1110,1182,1212,1214","mt5/XAUUSD_MVP.mq5:28,709,790,968,992,1110,1182,1214",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_execution_bindings,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:694,709,772,773,774,784,900,903,1040,1078,1081,1223,1224","mt5/XAUUSD_MVP.mq5:29,709,773,1223",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+EXECUTION_BINDINGS_FILE,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:711,774,1224",mt5/XAUUSD_MVP.mq5:30,NOT_IMPLEMENTED,NOT_IMPLEMENTED
+ORDER_AUDIT_FILE,NOT_IMPLEMENTED,mt5/XAUUSD_MVP.mq5:1181,mt5/XAUUSD_MVP.mq5:31,NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_market_state,self._per_tick_temp_state; self._per_candle_temp_state (partial frame representations),"mt5/XAUUSD_MVP.mq5:620,639,646,657,724,727,735,736,738,742,747,798,802,803,844,855,885,918,924,933,942,947,948,952,960,961,962,1134,1146,1147,1148,1177,1191,1199,1200,1265,1266,1267,1278,1282,1322","mt5/XAUUSD_MVP.mq5:32,620,639,646,735,736,738,803,846,847,1191,1278,1282,1322","src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:37,40,42,45,50","src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:28,29,34,35,48,49,166"
+g_current_bar_time,bar_time,"mt5/XAUUSD_MVP.mq5:866,869,873,1273","mt5/XAUUSD_MVP.mq5:33,650,1286","src/application/xauusd_trading_strategy_1_vector/engagement.py:49; src/application/xauusd_trading_strategy_1_vector/signals.py:31,64,69,126,131; src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:130,140,164","src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:65,164"
+g_event_loop_ready,NOT_IMPLEMENTED,mt5/XAUUSD_MVP.mq5:1254,"mt5/XAUUSD_MVP.mq5:34,651,1269",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_event_loop_failure_reported,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1421,1441","mt5/XAUUSD_MVP.mq5:35,1424",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_breakout_candidate_count,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1289,1436","mt5/XAUUSD_MVP.mq5:36,1289",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_reversal_candidate_count,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1326,1437","mt5/XAUUSD_MVP.mq5:37,1326",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_pullback_candidate_count,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1328,1437","mt5/XAUUSD_MVP.mq5:38,1328",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_tester_attempt_count,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1197,1438","mt5/XAUUSD_MVP.mq5:39,1197",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_tester_accept_count,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1230,1438","mt5/XAUUSD_MVP.mq5:40,1230",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_tester_reject_count,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1204,1438","mt5/XAUUSD_MVP.mq5:41,1204",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_request_sequence,NOT_IMPLEMENTED,mt5/XAUUSD_MVP.mq5:1176,"mt5/XAUUSD_MVP.mq5:42,1176",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_event_sequence,NOT_IMPLEMENTED,mt5/XAUUSD_MVP.mq5:1178,"mt5/XAUUSD_MVP.mq5:43,1178",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_daily_loss_locked,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1142,1163","mt5/XAUUSD_MVP.mq5:44,652,1141",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_operational_lock,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:811,890,1029,1068,1123","mt5/XAUUSD_MVP.mq5:45,653,851",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_session_cancel_count,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:849,1439","mt5/XAUUSD_MVP.mq5:46,849",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_session_close_count,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:850,1439","mt5/XAUUSD_MVP.mq5:47,850",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_session_zero_exposure,NOT_IMPLEMENTED,mt5/XAUUSD_MVP.mq5:1440,"mt5/XAUUSD_MVP.mq5:48,654,852",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_restart_lock,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:817,819,853","mt5/XAUUSD_MVP.mq5:49,655",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_max_open_positions,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1139,1451","mt5/XAUUSD_MVP.mq5:50,1140",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_gate_rejections,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1172,1173,1452,1453,1454,1455,1456,1457,1458","mt5/XAUUSD_MVP.mq5:51,1173",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_final_net_realized,NOT_IMPLEMENTED,mt5/XAUUSD_MVP.mq5:1451,"mt5/XAUUSD_MVP.mq5:52,842",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_final_gross_loss,NOT_IMPLEMENTED,mt5/XAUUSD_MVP.mq5:1451,"mt5/XAUUSD_MVP.mq5:53,843",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_invalid_price_rejections,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1208,1458","mt5/XAUUSD_MVP.mq5:54,1208",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_other_broker_rejections,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1210,1459","mt5/XAUUSD_MVP.mq5:55,1210",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_protection_modifies,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1114,1459","mt5/XAUUSD_MVP.mq5:56,1114",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_protection_modify_rejects,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1116,1460","mt5/XAUUSD_MVP.mq5:57,1116",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_sl_loosen_violations,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1100,1460","mt5/XAUUSD_MVP.mq5:58,1100",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_tp_extensions,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:976,1463","mt5/XAUUSD_MVP.mq5:59,976",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_tp_restores,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:999,1463","mt5/XAUUSD_MVP.mq5:60,999",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_tp_market_closes,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1013,1463","mt5/XAUUSD_MVP.mq5:61,1013",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_tp_modify_rejects,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:978,1001,1464","mt5/XAUUSD_MVP.mq5:62,978,1001",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_tp_close_rejects,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1010,1464","mt5/XAUUSD_MVP.mq5:63,1010",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_breakout_conflict_closes,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1053,1466","mt5/XAUUSD_MVP.mq5:64,1053",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_symbol_spec_emitted,NOT_IMPLEMENTED,mt5/XAUUSD_MVP.mq5:89,"mt5/XAUUSD_MVP.mq5:65,117",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_attribution_attempts,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1201,1470,1471,1472,1473,1474,1475","mt5/XAUUSD_MVP.mq5:66,1201",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_attribution_accepts,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1231,1470,1471,1472,1473,1474,1475","mt5/XAUUSD_MVP.mq5:67,1231",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_attribution_rejects,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:1205,1470,1471,1472,1473,1474,1475","mt5/XAUUSD_MVP.mq5:68,1205",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+g_runtime_requests,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:663,664,678,679,721,724,725,727,742,746,795,798,799,908,913,918,923,934,938,940,945,950,959,983,997,1045,1046,1047","mt5/XAUUSD_MVP.mq5:80,664,666,667,668,669,670,671,672,744,752,921,929,950,972,997",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+XauMarketCoordinator.broker_day,,"mt5/XAUUSD_MVP.mq5:855,1177,1265,1266,1267",mt5/include/XauCoordinator.mqh:87,"src/application/xauusd_trading_strategy_1_vector/trend.py:95; src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:42,129,145,199",src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:66
+XauMarketCoordinator.bar_id,bar_time; bar_id (derived local string; no persistent bar_id),"mt5/include/XauCoordinator.mqh:148,152,169,198","mt5/include/XauCoordinator.mqh:88,120,219","src/application/xauusd_trading_strategy_1_vector/engagement.py:49; src/application/xauusd_trading_strategy_1_vector/signals.py:31,64,69,126,131,150,151; src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:130,140,164","src/application/xauusd_trading_strategy_1_vector/signals.py:131; src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:65,164"
+XauMarketCoordinator.day_active,,mt5/include/XauCoordinator.mqh:106,mt5/include/XauCoordinator.mqh:89,src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:172,"src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:83,120"
+XauMarketCoordinator.bar_active,,"mt5/include/XauCoordinator.mqh:106,132,185","mt5/include/XauCoordinator.mqh:90,121,218",NONE,"src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:82,172"
+XauMarketCoordinator.bar_open,,mt5/XAUUSD_MVP.mq5:942,"mt5/include/XauCoordinator.mqh:91,122",NONE,"src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:79,171"
+XauMarketCoordinator.last_bid,,"mt5/XAUUSD_MVP.mq5:947; mt5/include/XauCoordinator.mqh:134,186","mt5/include/XauCoordinator.mqh:92,123,175",NONE,"src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:80,173,189"
+XauMarketCoordinator.last_ask,,mt5/XAUUSD_MVP.mq5:948,"mt5/include/XauCoordinator.mqh:93,124,176",NONE,"src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:81,174,190"
+XauMarketCoordinator.breakout_sequence,breakout_sequence; sequence (event enumeration),"mt5/include/XauCoordinator.mqh:197; mt5/include/XauState.mqh:286,287","mt5/include/XauCoordinator.mqh:94,197; mt5/include/XauState.mqh:286",src/application/xauusd_trading_strategy_1_vector/signals.py:61,"src/application/xauusd_trading_strategy_1_vector/signals.py:25,58,107; src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:91"
+XauMarketCoordinator.trend,trend; trend_count; trend_high_0; trend_high_1; trend_high_2; trend_low_0; trend_low_1; trend_low_2,"mt5/XAUUSD_MVP.mq5:432,443,639,657; mt5/include/XauCoordinator.mqh:135,145,195,216","mt5/XAUUSD_MVP.mq5:432,639; mt5/include/XauCoordinator.mqh:98,135,216","src/application/xauusd_trading_strategy_1_vector/signals.py:36,129; src/application/xauusd_trading_strategy_1_vector/trend.py:26,30,32,34,35,36,43,47,49,51,52,53,60,62,63,64,83","src/application/xauusd_trading_strategy_1_vector/trend.py:94; src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:69,70,71,72,73,74,75,76,148,149,160,161,169,170"
+XauMarketCoordinator.zones,ZaoneCache._cached_zones; zones; per-zone engagement columns (partial state),"mt5/XAUUSD_MVP.mq5:508,727,736,738,742,747,885,918,924,933,952,960,961,962,1146,1147,1148,1199,1200; mt5/include/XauCoordinator.mqh:85,119,137,140,145,148,152,161,166,188,193,194,195,199,202,212; mt5/include/XauRequests.mqh:28,35,36,44,45,118,125,126,129","mt5/XAUUSD_MVP.mq5:736,738; mt5/include/XauCoordinator.mqh:85,119,137; mt5/include/XauRequests.mqh:129","src/application/xauusd_trading_strategy_1_vector/engagement.py:30,54,60; src/application/xauusd_trading_strategy_1_vector/signals.py:38,59,88,123,136; src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:179,185,186,187,199,200; src/application/xauusd_trading_strategy_1_vector/zone_cache.py:30","src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:183,199; src/application/xauusd_trading_strategy_1_vector/zone_cache.py:19,25"
+XauMarketCoordinator.pullbacks,pullback_windows_opened; windows; latest_windows; opened_windows (opening snapshots and lineage; partial lifecycle),"mt5/XAUUSD_MVP.mq5:443,445,735,802,803,844; mt5/include/XauCoordinator.mqh:75,76,109,111,114,159,161,166,169,170,171,203,207,208; mt5/include/XauRequests.mqh:42,43,138","mt5/XAUUSD_MVP.mq5:735,803,846,847; mt5/include/XauCoordinator.mqh:95,114,166,208,211; mt5/include/XauRequests.mqh:138","src/application/xauusd_trading_strategy_1_vector/signals.py:28,75,82,90,109; src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:37,50","src/application/xauusd_trading_strategy_1_vector/signals.py:22,24,28,53,54,82,83,84,109; src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:111"
+XauMarketCoordinator.reversal_keys,,"mt5/include/XauCoordinator.mqh:62,63,65,66,150","mt5/include/XauCoordinator.mqh:66,68,96,150",NONE,src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:92
+XauMarketCoordinator.attempted_bars,,"mt5/XAUUSD_MVP.mq5:508; mt5/include/XauRequests.mqh:17,18,26,122,127,138; mt5/include/XauState.mqh:195,303,304,306,307","mt5/include/XauCoordinator.mqh:97; mt5/include/XauRequests.mqh:122,127,138; mt5/include/XauState.mqh:195,307,309",NONE,src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:93
+XauTrendReferenceState.trend,,"mt5/include/XauCoordinator.mqh:145,195; mt5/include/XauState.mqh:356,357,367","mt5/include/XauState.mqh:315,356","src/application/xauusd_trading_strategy_1_vector/signals.py:36,129",src/application/xauusd_trading_strategy_1_vector/trend.py:94; src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:69
+XauTrendReferenceState.count,trend_count,"mt5/XAUUSD_MVP.mq5:350,443,657; mt5/include/XauState.mqh:325,327,328,329,340,344,356","mt5/include/XauState.mqh:316,329","src/application/xauusd_trading_strategy_1_vector/trend.py:26,43,60,83","src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:70,148,149"
+XauTrendReferenceState.highs,trend_high_0; trend_high_1; trend_high_2,"mt5/include/XauState.mqh:332,342,346","mt5/include/XauState.mqh:317,327,332","src/application/xauusd_trading_strategy_1_vector/trend.py:30,32,34,35,36,62,63,64","src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:71,72,73,160,169"
+XauTrendReferenceState.lows,trend_low_0; trend_low_1; trend_low_2,"mt5/include/XauState.mqh:333,343,347","mt5/include/XauState.mqh:318,328,333","src/application/xauusd_trading_strategy_1_vector/trend.py:47,49,51,52,53,62,63,64","src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:74,75,76,161,170"
+XauDailyZoneSignalState.zone,zone (XauZone values; no daily-zone state object),"mt5/XAUUSD_MVP.mq5:375,747,924,952,960,961,962,1148,1199; mt5/include/XauCoordinator.mqh:145,148,152,195,199,202,212; mt5/include/XauRequests.mqh:35,44,125; mt5/include/XauState.mqh:204,239,248,260,266,274,275,277,278,292",mt5/include/XauState.mqh:227,"src/application/xauusd_trading_strategy_1_vector/engagement.py:31,33,61,63,64,67,68,69,70; src/application/xauusd_trading_strategy_1_vector/signals.py:43,45,47,65,80,91,140,141,146,147,150,151","src/application/xauusd_trading_strategy_1_vector/engagement.py:30,60; src/application/xauusd_trading_strategy_1_vector/signals.py:38,59,88,136; src/application/xauusd_trading_strategy_1_vector/zone_cache.py:22"
+XauDailyZoneSignalState.buy_engaged,buy_engaged:{zone.id}; buy_engaged (aggregate),mt5/XAUUSD_MVP.mq5:365; mt5/include/XauCoordinator.mqh:193; mt5/include/XauState.mqh:274,"mt5/include/XauState.mqh:228,249,269,276",src/application/xauusd_trading_strategy_1_vector/engagement.py:69; src/application/xauusd_trading_strategy_1_vector/signals.py:43,"src/application/xauusd_trading_strategy_1_vector/engagement.py:67,71; src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:87"
+XauDailyZoneSignalState.sell_engaged,sell_engaged:{zone.id}; sell_engaged (aggregate),mt5/include/XauCoordinator.mqh:194; mt5/include/XauState.mqh:277,"mt5/include/XauState.mqh:229,250,270,279",src/application/xauusd_trading_strategy_1_vector/engagement.py:70; src/application/xauusd_trading_strategy_1_vector/signals.py:43,"src/application/xauusd_trading_strategy_1_vector/engagement.py:68,72; src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:88"
+XauDailyZoneSignalState.reversal_usage,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:508; mt5/include/XauRequests.mqh:36,126,129; mt5/include/XauState.mqh:293,295","mt5/include/XauRequests.mqh:129; mt5/include/XauState.mqh:230,295",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+XauDailyZoneSignalState.pullback_fills,NOT_IMPLEMENTED,"mt5/XAUUSD_MVP.mq5:377,381,383,738; mt5/include/XauCoordinator.mqh:166; mt5/include/XauRequests.mqh:45; mt5/include/XauState.mqh:206","mt5/XAUUSD_MVP.mq5:738; mt5/include/XauState.mqh:206,231",NOT_IMPLEMENTED,NOT_IMPLEMENTED
+XauPullbackWindowState.parent_breakout_id,window.parent_breakout_id; pullback:{zone.id}:{direction}:parent; pullback_window_state.parent_breakout_id (partial lifecycle),mt5/include/XauCoordinator.mqh:169; mt5/include/XauState.mqh:187,mt5/include/XauState.mqh:143,NONE,src/application/xauusd_trading_strategy_1_vector/signals.py:102; src/domain/xau_usd/models.py:117; src/domain/xau_usd/state.py:132
+XauPullbackWindowState.zone,window.zone; pullback_window_state.zone (partial lifecycle),"mt5/include/XauCoordinator.mqh:76,161,170; mt5/include/XauState.mqh:175,180,182,188,204",mt5/include/XauState.mqh:144,NONE,src/domain/xau_usd/models.py:118; src/domain/xau_usd/state.py:133
+XauPullbackWindowState.direction,window.direction; pullback_window_state.direction (partial lifecycle),"mt5/include/XauCoordinator.mqh:76,171; mt5/include/XauState.mqh:179,188",mt5/include/XauState.mqh:145,NONE,src/domain/xau_usd/models.py:119; src/domain/xau_usd/state.py:134
+XauPullbackWindowState.bar_offset,window.bar_offset; pullback_bar_offset; pullback:{zone.id}:{direction}:offset; pullback_window_state.bar_offset (partial lifecycle),"mt5/XAUUSD_MVP.mq5:445; mt5/include/XauState.mqh:159,160,174","mt5/include/XauState.mqh:146,159",src/application/xauusd_trading_strategy_1_vector/signals.py:105,"src/application/xauusd_trading_strategy_1_vector/signals.py:81,87,103,105; src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:97; src/domain/xau_usd/models.py:120; src/domain/xau_usd/state.py:135"
+XauPullbackWindowState.active,window.active; pullback_active; pullback_window_state.active (partial lifecycle),"mt5/XAUUSD_MVP.mq5:390; mt5/include/XauCoordinator.mqh:111,203; mt5/include/XauRequests.mqh:42; mt5/include/XauState.mqh:157,174,195,204,214","mt5/XAUUSD_MVP.mq5:846; mt5/include/XauState.mqh:147,164","src/application/xauusd_trading_strategy_1_vector/signals.py:104,171","src/application/xauusd_trading_strategy_1_vector/signals.py:86,104; src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:96; src/domain/xau_usd/models.py:121; src/domain/xau_usd/state.py:136"
+XauPullbackWindowState.penetration_latched,window.penetration_latched; pullback_penetration_latched; pullback_window_state.penetration_latched (partial lifecycle),"mt5/include/XauState.mqh:177,184","mt5/include/XauState.mqh:148,180,182,208",NONE,src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:98; src/domain/xau_usd/models.py:122; src/domain/xau_usd/state.py:137
+XauPullbackWindowState.pending_active,window.pending_active; pullback_window_state.pending_active (partial lifecycle),"mt5/XAUUSD_MVP.mq5:802; mt5/include/XauRequests.mqh:43; mt5/include/XauState.mqh:162,174,195,204,214","mt5/XAUUSD_MVP.mq5:847; mt5/include/XauState.mqh:149,163,198,207,216",NONE,src/domain/xau_usd/models.py:123; src/domain/xau_usd/state.py:138
+XauPullbackWindowState.sequence,window.sequence; pullback_sequence; pullback_window_state.sequence (partial lifecycle),"mt5/include/XauState.mqh:186,187","mt5/include/XauState.mqh:150,186",NONE,src/application/xauusd_trading_strategy_1_vector/vectorized_strategy.py:99; src/domain/xau_usd/models.py:124; src/domain/xau_usd/state.py:139

@@ -1,0 +1,16 @@
+[
+  {
+    "calculation": "references",
+    "rows": 100000,
+    "before_ms": 13.037,
+    "after_ms": 2.321,
+    "speedup": 5.62
+  },
+  {
+    "calculation": "engagement",
+    "rows": 100000,
+    "before_ms": 30.203,
+    "after_ms": 20.307,
+    "speedup": 1.49
+  }
+]

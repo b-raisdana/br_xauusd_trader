@@ -37,73 +37,154 @@ Rules:
 
 ## Code layers and folder ownership
 
-Trigger: adding/moving a module/file under `src/`, or reviewing a layer boundary. This repository uses DDD inside a hexagonal architecture for an offline trading pipeline. It is not MVC and has no request/response cycle.
+Trigger: adding/moving a module/file under `src/`, reviewing a layer boundary, or designing a feature/use case.
 
-Dependency direction:
+Target architecture: **Clean Architecture + DDD + Repository Pattern + feature/vertical-slice organization**. This repository is an offline trading pipeline, so `Presentation` includes CLI, report, notebook, and plotting adapters; an HTTP request/response cycle is not required.
 
-- `presentation -> application -> domain`
-- `infrastructure -> application/domain port contracts`
-- `helper ->` pure utilities only; it must not become a dependency hub
-- Domain imports no in-house layer.
+### Conceptual layers
 
-### Required folders
-
-Paths below are physical paths under the `src/` package root; Python imports omit the leading `src.`. Empty required folders are tracked with `.gitkeep`; remove the marker when the first real module is added. Do not create `__init__.py` solely to make an empty folder importable.
-
-| Folder | Owns | Allowed dependencies | Forbidden |
+| Layer | Owns | May depend on | Must not depend on |
 |---|---|---|---|
-| `src/domain/` | DDD model and business invariants: entities, value objects, domain services, domain events, specifications, and domain schemas | Standard library, third-party libraries, and its own contracts | Filesystem/network/framework/config/logging I/O |
-| `src/application/` | Hexagonal application layer: use cases and application services, one cohesive workflow per use case, orchestration, transaction boundaries, command/query DTOs, and port contracts in `application/ports/` | Domain contracts and injected port interfaces | Concrete infrastructure adapters, direct I/O, or presentation code |
-| `src/infrastructure/` | Hexagonal driven adapters and technical concerns: broker/exchange/MT5/cTrader, persistence, filesystem, config loading, logging, clock, serialization, and framework setup | Domain contracts/value objects and application port interfaces | Business policy or presentation behavior |
-| `src/presentation/` | Hexagonal driving adapters and user-facing boundaries: CLI, API, UI, notebooks, reports, plots, and entrypoint composition | Application use cases and DTOs | Persistence, broker calls, or trading-rule decisions |
-| `src/helper/` | Optional cross-cutting utility namespace, not a DDD or hexagonal layer: import aliases, date/time formatting, path/string/serialization helpers | Standard library, third-party libraries, and other helpers | Orchestration, business rules, I/O, or framework setup |
+| `Presentation` | HTTP/API/UI/CLI controllers, request/response schemas, and user-facing adapters | `Application`; `Domain` only when genuinely required | `Infrastructure`; orchestration or business-policy bypasses |
+| `Application` | Use cases, application services, orchestration, transaction boundaries, application DTOs/schemas, and application-defined ports | `Domain` and its own port contracts | Concrete infrastructure, Presentation, or framework-specific code |
+| `Domain` | Entities, value objects, domain services, business rules, domain events, specifications, and repository interfaces | Standard library, third-party libraries, and its own contracts | `Application`, `Infrastructure`, `Presentation`, configuration mechanisms, frameworks, databases, and external I/O |
+| `Infrastructure` | Databases, external services, messaging, filesystem, framework-specific implementations, and adapters | `Domain` contracts/value objects; `Application` ports only when implementing them | Presentation behavior and independent business policy |
+| `Configuration` | Application-wide and cross-cutting settings loaded at the outer boundary | Standard-library or third-party settings mechanisms only | Domain or business logic |
 
-Any layer may use `helper`; `helper` must not import a layer module. Subfolders are created only when they contain code. Use focused subfolders such as `domain/price_action/`, `application/use_cases/`, `application/ports/`, `infrastructure/adapters/`, `infrastructure/persistence/`, `infrastructure/config/`, `presentation/cli/`, `presentation/reports/`, and `helper/dates/` when the responsibility is large enough to warrant one.
+### DDD and Clean Architecture mapping
 
-### DDD and hexagonal mapping
+Paths are physical paths under `src/`; Python imports omit the leading `src.`. Create subfolders only when they contain code. Track an empty required folder with `.gitkeep`, remove the marker when the first module is added, and do not create `__init__.py` solely for an empty folder.
 
-| Concept | Folder | Responsibility |
+| Concept | Place it in | Responsibility |
 |---|---|---|
-| Entity | `domain/entities/` | Identity and lifecycle |
-| Value object | `domain/value_objects/` | Immutable value without persistent identity |
-| Domain service | `domain/services/` | Stateless business operation that does not naturally belong to an entity/value object |
-| Domain event | `domain/events/` | Business fact recorded by the domain; no side effects |
-| Specification | `domain/` | Reusable business predicate or rule |
-| Repository/specification port | `domain/ports/` or `application/ports/` | Contract owned by the layer that consumes it |
-| Use case | `application/use_cases/` | Transaction/workflow orchestration |
-| Adapter | `infrastructure/adapters/` | Implementation of a port for an external system or persistence mechanism |
+| Shared entity | `domain/<concept>/entities/` | Identity and lifecycle |
+| Shared value object | `domain/<concept>/value_objects/` | Immutable value without persistent identity |
+| Shared domain service | `domain/<concept>/services/` | Stateless business operation that does not naturally belong to an entity/value object |
+| Domain event | `domain/<concept>/events/` | Business fact recorded by the domain; no side effects |
+| Shared specification/rule | `domain/<concept>/` | Reusable business predicate or rule |
+| Feature-private rule/value object | `application/<feature>/` | Rule or value owned by one use case |
+| Repository/specification port | `domain/<concept>/repositories/` or `application/<feature>/ports/` | Contract owned by the layer/use case that consumes it |
+| Use case | `application/<feature>/` | Transaction/workflow orchestration |
+| Adapter | `infrastructure/<feature>/` | Implementation of a port for an external system or persistence mechanism |
+| API/UI/CLI controller and schema | `presentation/<feature>/` | Driving adapter and transport-specific contract |
 
-### Hexagonal/DDD placement
+No separate global `interfaces/` folder is required: port contracts live beside their consumer, and implementations live in the owning Infrastructure feature adapter. Any layer may use `helper/` for a genuinely cross-cutting pure utility; `helper/` must not import a layer module or become a dependency hub.
 
-- Domain model or business rule -> `domain/`.
-- Use case or workflow -> `application/use_cases/`.
-- Port interface consumed by application -> `application/ports/`.
-- Domain-side repository/specification port, when needed -> `domain/ports/`.
-- Adapter implementing a port -> `infrastructure/adapters/`.
-- External system, persistence, config loading, logging, or clock -> `infrastructure/`.
-- CLI, API, UI, notebook, report, or plot -> `presentation/`.
-- Generic pure utility -> `helper/`.
-- If one module does two jobs, split it at the layer boundary; never use `helper/` as a catch-all.
-- No separate `interfaces/` folder is required: port contracts live beside their consumer (`application/ports/` or `domain/ports/`), and implementations live in `infrastructure/adapters/`.
+### Dependency rules
 
-### Existing repository mapping
+Dependencies point inward toward the Domain.
 
-- `src/xauusd/` is the current strategy implementation and currently mixes domain/application responsibilities. Do not duplicate it; migrate or extend it in coherent batches while preserving tests.
-- `src/ctrader_client/` is an infrastructure adapter package. Keep its external-client boundary and move implementation under `infrastructure/` when refactored.
-- `scripts/` contains legacy entrypoints. `scripts/presentations.py` is a presentation adapter, not application or domain logic. New entrypoints belong in `presentation/`.
-- `config/` holds non-secret configuration data. Config loading belongs in `infrastructure/config/`, not `helper/`.
-- `integrations/` contains integration documentation and instructions. Executable adapters belong in `infrastructure/`.
+Allowed dependencies:
+
+```text
+Presentation -> Application
+Presentation -> Domain          # only when genuinely required
+Application -> Domain
+Infrastructure -> Domain
+Infrastructure -> Application   # only when implementing an application-defined port/interface
+```
+
+Avoid:
+
+```text
+Domain -> Application
+Domain -> Infrastructure
+Domain -> Presentation
+Application -> Presentation
+Application -> Infrastructure
+Presentation -> Infrastructure
+```
+
+Repository interfaces belong on the Domain side or in an explicitly defined Application port package. Repository implementations belong in Infrastructure. Application code depends on the abstraction; concrete adapters are supplied through dependency injection or outer-boundary composition.
+
+### Request/use-case flow
+
+A typical flow is:
+
+```text
+Client
+  -> Presentation validates/parses the request
+  -> Application use case/service orchestrates the operation
+  -> Domain entities/value objects/services apply business rules
+  -> Repository interface
+  -> Infrastructure repository implementation
+  -> Database or external system
+  -> Application result/DTO
+  -> Presentation serializes the response
+  -> Client
+```
+
+For this offline pipeline, `Client` may be a CLI command, report, notebook, or backtest runner. Infrastructure is normally reached indirectly through an Application/Domain port; do not put broker, database, filesystem, or configuration calls in Domain business logic.
+
+### Feature/use-case locality
+
+Organize code around features/use cases, not only technical categories. Do not create global `schemas/`, `services/`, `validators/`, or `utils/` directories for code owned by one feature. Keep a complete feature-private set together, for example:
+
+```text
+src/
+├── application/<feature>/
+│   ├── service.py
+│   ├── schemas.py
+│   ├── rules.py
+│   ├── value_objects.py
+│   └── exceptions.py
+├── domain/<shared-concept>/
+├── infrastructure/<feature>/
+│   └── repositories/
+├── presentation/<feature>/
+│   └── schemas.py
+└── config/
+```
+
+A feature-private file may contain domain logic while physically living inside the feature package, such as `application/<feature>/rules.py`, when the rule is meaningful only to that use case. Promote a concept to shared `domain/` only when it is genuinely shared or independently meaningful. Prefer high cohesion and locality over large global technical-category directories.
+
+### Configuration ownership
+
+- Application-wide and cross-cutting configuration belongs in `src/config/`.
+- Infrastructure configuration belongs in Infrastructure or in `src/config/` when shared.
+- Presentation configuration belongs in Presentation.
+- Feature/use-case-specific configuration belongs inside that feature.
+- Domain business rules and constants belong in Domain when they represent business concepts rather than deployment settings.
+- Load configuration at the application boundary and inject it into components. Domain code must not read environment variables, `.env` files, configuration frameworks, databases, or infrastructure settings directly.
+
+Maintain `src/config/README.md` as a **registry only**. It must contain only the list of configuration file paths under `src/config/`; do not describe file contents, purpose, ownership, settings, behavior, or implementation details. Update it whenever a configuration file is added, removed, renamed, or moved.
+
+### Placement rules
+
+| Responsibility | Place it in |
+|---|---|
+| Feature-private code | Its feature/use-case package |
+| Shared domain concepts | `domain/` |
+| Use-case orchestration | `application/<feature>/` |
+| Application-specific DTO/schema | `application/<feature>/` |
+| API/request/response schema | `presentation/<feature>/` |
+| Repository abstraction/interface | `domain/.../repositories/` or an explicit `application/.../ports/` |
+| Persistence/external-service implementation | `infrastructure/<feature>/` |
+| Global configuration | `src/config/` |
+| Feature-specific configuration | The owning feature package |
+| Genuinely cross-cutting pure utility | `helper/`, only when it is not feature or domain logic |
+
+Do not move code to a shared layer merely because it is technically reusable. Do not use `helper/` as a catch-all. If one module has two responsibilities, split it at the layer boundary. Do not fork duplicate modules for a new pipeline; migrate or extend the existing module in a coherent, tested batch.
+
+Existing mappings and migration constraints:
+
+- `src/xauusd/` currently mixes Domain and Application responsibilities. Do not duplicate it; migrate or extend it in coherent batches while preserving tests.
+- `src/ctrader_client/` is an Infrastructure adapter package. Preserve its external-client boundary and move implementation under `infrastructure/` when refactored.
+- `scripts/` contains legacy entrypoints. New entrypoints belong in `Presentation`.
+- Legacy `config/` data is not a reason to add configuration coupling to Domain; new global configuration belongs in `src/config/`.
+- `integrations/` contains integration documentation; executable adapters belong in `Infrastructure`.
 - `tests/` mirrors the layer or concern under test and is not production code.
 
-### Rules
+Hard rules:
 
-- Never import Presentation, Application, or Infrastructure from Domain.
+- Never import Presentation, Application, Infrastructure, or Configuration from Domain.
 - Application depends on port contracts, not concrete adapters.
 - Infrastructure may depend on Domain/Application contracts, never on Presentation.
-- Presentation calls Application; it must not bypass Application to call Domain or Infrastructure directly.
-- Helper imports only standard-library, third-party, or other helper modules; it must not import a layer module.
-- Keep config and state explicit; do not pull globals from a module.
-- Do not fork duplicate modules for a new pipeline; move or extend the existing module.
+- Presentation calls Application; it must not bypass Application to call Infrastructure directly. Presentation may call Domain only when genuinely required.
+- Keep configuration and state explicit; inject them instead of reading module globals from Domain.
+- Keep feature-private code close to its owner while preserving the dependency direction above.
+- Keep `src/config/README.md` synchronized with the actual configuration files.
+
 
 Splitting an oversized file (~500+ lines, by responsibility not raw count): extract one cohesive cluster per commit (few/no external callers first — check via grep), re-export moved names (`from new_module import name as name`) so callers keep working unchanged in that commit, log remaining clusters as follow-up instead of a full-file rewrite in one pass.
 

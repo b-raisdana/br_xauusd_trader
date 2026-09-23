@@ -11,5 +11,3 @@ pa = pa
 pt = pt
 go = go
 pya = pya
-
-NOT_TESTED = "Not tested!"

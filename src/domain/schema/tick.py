@@ -6,13 +6,13 @@ from pandera import DataFrameModel
 from pandera.typing import Index, Series
 
 from config import app_config
-from helper.date_utils import get_floor
 from helper.importer import pt
 
 
 class Tick(DataFrameModel):
     symbol: Index[str]
     broker: Index[str]
+    date: Index[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
     datetime: Index[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
     bid: Series[float]
     ask: Series[float]
@@ -28,7 +28,7 @@ class Tick(DataFrameModel):
         *,
         symbol: str | None = None,
         broker: str | None = None,
-        date_index_freq: str = "1s",
+        # date_index_freq: str = "1s",
     ) -> pt.DataFrame["Tick"]:
         broker = broker if broker else app_config.default_broker
         symbol = symbol if symbol else app_config.default_symbol
@@ -40,8 +40,8 @@ class Tick(DataFrameModel):
             df.pop("time_msc"),
             unit="ms",
             utc=True,
-        ).astype("datetime64[ns, UTC]")
-        df["date"] = get_floor(df["datetime"].astype(pd.Timestamp), date_index_freq)
+        ).astype(pd.DatetimeTZDtype(unit="ns", tz="UTC"))
+        df["date"] = df["datetime"].dt.floor(freq="1s")
         df = df.set_index(["symbol", "broker", "date", "datetime"])
 
         return cls.validate(df)

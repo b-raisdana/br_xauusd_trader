@@ -6,7 +6,7 @@ import typer
 import vectorbt as vbt
 
 from helper.date_utils import yesterday
-from infrastructure.tick_source.tick import get_ticks
+from infrastructure.mt5.tick import get_ticks
 
 root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(root / "src"))
@@ -40,7 +40,6 @@ async def generate_backtest_report(
         help="Path to save the backtest report parquet",
     ),
 ) -> pd.DataFrame:
-
     if not in_parquest:
         ticks = pd.read_parquet(str(in_parquest))
     else:

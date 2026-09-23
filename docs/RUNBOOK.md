@@ -6,6 +6,21 @@ Codex keeps this file updated with exact repeatable commands.
 
 Run the pre-commit setup script from the Windows checkout. This installs the pinned shared hook and normalizes its shell launchers. Git commits run the shared wrapper in the active Python environment. Use a feature branch because the wrapper protects `main`. Reinstall after moving the checkout.
 
+## Local Python checks
+
+Use the existing project environment. Direct pre-commit invocations need the same shared-tool paths that `.git/hooks/pre-commit` exports:
+
+```powershell
+$env:PATH = "$PWD\.venv\Scripts;$env:PATH"
+$env:PYTHONPATH = "$PWD\br_pre_commit\src"
+$env:BR_PRE_COMMIT_REPO_ROOT = "$PWD\br_pre_commit"
+$env:USER_REPO_ROOT = "$PWD"
+python -m pytest
+python -m pre_commit run --all-files
+```
+
+`pandera_validate` validates copies by default. Mutating state transforms opt into `inplace=True`; input normalization then affects the supplied frame, while output schemas reject dtype drift without coercion.
+
 ## Environment
 
 - Main platform: MetaTrader 5 / MQL5

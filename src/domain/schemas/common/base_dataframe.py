@@ -1,4 +1,4 @@
-from typing import Annotated, TypeVar
+from typing import TypeVar
 
 import pandas as pd
 
@@ -7,7 +7,7 @@ from helper.pandera import pandera_validate
 
 
 class Timeseries(pa.DataFrameModel):
-    date: pt.Index[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
+    date: pt.Index[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
 
 
 class MultiTimeframe(pa.DataFrameModel):

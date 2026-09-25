@@ -45,8 +45,9 @@ packages = ["src/xauusd", "src/infrastructure", "src/helper", "src/presentation"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
 pythonpath = ["src"]
+markers = ["unit: fast isolated unit tests"]
+addopts = "-q -n auto"
 
 [tool.ruff]
 target-version = "py312"

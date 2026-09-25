@@ -16,7 +16,7 @@ from application.xauusd_trading_strategy_1.domain.zone import (
     pullback_window_active,
     strict_pullback_trend,
 )
-from config.core_vectors import CoreVectors, core_vectors
+from application.xauusd_trading_strategy_1_vector.config.core_vectors import CoreVectors, core_vectors
 from domain.xau_usd.enums import XauDirection, XauExecutionEvent, XauExecutionStatus, XauOrderType, XauTrend
 from domain.xau_usd.models import XauZone
 from domain.xau_usd.zone import (

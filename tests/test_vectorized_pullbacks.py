@@ -10,7 +10,7 @@ from application.xauusd_trading_strategy_1_vector.domain.schema import (
     XauPullbackWindowState,
 )
 from application.xauusd_trading_strategy_1_vector.signals import generate_breakout_signals, generate_pullback_signals
-from application.xauusd_trading_strategy_1_vector.vectorized_strategy import VectorizedXauUsdStrategy
+from application.xauusd_trading_strategy_1_vector.the_strategy import VectorizedXauUsdStrategy
 from domain.xau_usd.enums import XauDirection, XauOrderType, XauSignalFamily
 from domain.xau_usd.models import XauZone
 

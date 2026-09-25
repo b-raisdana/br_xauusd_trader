@@ -1,6 +1,6 @@
 """Action generation utilities for the vectorized XAUUSD strategy.
 
-Extracted from vectorized_strategy.py to keep individual function complexity
+Extracted from the_strategy.py to keep individual function complexity
 at Xenon rank B (low nesting, few branches per function).
 """
 

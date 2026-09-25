@@ -32,7 +32,7 @@ The vectorized strategy processes data through the following sequence:
 ### Core Components
 
 - **`__main__.py`**: Main entry point that orchestrates the complete strategy flow
-- **`vectorized_strategy.py`**: Main strategy implementation that processes tick data using vectorized pandas operations
+- **`the_strategy.py`**: Main strategy implementation that processes tick data using vectorized pandas operations
 - **`zone_loader.py`**: Zone data loading and management, corresponding to MT5's `LoadGeneratedRawZones`
 
 ### Key Design Principles

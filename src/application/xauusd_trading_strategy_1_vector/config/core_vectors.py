@@ -2,12 +2,14 @@ from datetime import datetime
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, create_model
-from pydantic_settings import BaseSettings, JsonConfigSettingsSource, SettingsConfigDict
+from pydantic_settings import JsonConfigSettingsSource, SettingsConfigDict
+
+from config.base import BaseConfig
 
 DEFAULT_CORE_VECTORS_JSON = Path(__file__).resolve().parents[2] / "config" / "mt5" / "core_vectors.json"
 
 
-class CoreVectors(BaseSettings):
+class CoreVectors(BaseConfig):
     model_config = SettingsConfigDict(
         extra="forbid",
         frozen=True,
@@ -156,4 +158,4 @@ def load_core_vectors(path: str | Path | None = None) -> CoreVectors:
     return CoreVectors.from_json(path)
 
 
-core_vectors = CoreVectors()
+core_vectors = CoreVectors().log()

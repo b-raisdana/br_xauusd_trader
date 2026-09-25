@@ -7,12 +7,12 @@ from vectorized_fixtures import candles_from_ticks
 
 from application.xauusd_trading_strategy_1_vector.engagement import update_zone_engagement
 from application.xauusd_trading_strategy_1_vector.signals import generate_reversal_signals
+from application.xauusd_trading_strategy_1_vector.the_strategy import VectorizedXauUsdStrategy
 from application.xauusd_trading_strategy_1_vector.trend import (
     compute_reference_high,
     compute_reference_low,
     compute_references,
 )
-from application.xauusd_trading_strategy_1_vector.vectorized_strategy import VectorizedXauUsdStrategy
 from domain.xau_usd.models import XauZone
 
 

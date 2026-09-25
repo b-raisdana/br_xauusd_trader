@@ -25,7 +25,7 @@ from .result_processing import (
     generate_position_tracking_columns,
     merge_results_with_candles,
 )
-from .strategy_runner import (
+from .runner import (
     get_strategy_internal_state,
     run_vectorized_strategy,
 )

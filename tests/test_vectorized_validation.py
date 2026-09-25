@@ -6,8 +6,8 @@ from vectorized_fixtures import candles_from_ticks
 
 from application.xauusd_trading_strategy_1_vector.domain.schema import EngagementResult, ReferenceResult, StrategyResult
 from application.xauusd_trading_strategy_1_vector.engagement import update_zone_engagement
+from application.xauusd_trading_strategy_1_vector.the_strategy import VectorizedXauUsdStrategy
 from application.xauusd_trading_strategy_1_vector.trend import compute_references
-from application.xauusd_trading_strategy_1_vector.vectorized_strategy import VectorizedXauUsdStrategy
 from helper.importer import pt
 from helper.pandera import pandera_validate
 

@@ -2,7 +2,6 @@ from pathlib import Path
 
 from pydantic_settings import SettingsConfigDict
 
-from config import app_config
 from config.base import BaseConfig
 
 _ROOT_PATH = Path(__file__).resolve().parent.parent.parent
@@ -22,5 +21,4 @@ class StrategyConfig(BaseConfig):
     max_time_basis_probe: int = 5
 
 
-strategy_config = StrategyConfig()
-strategy_config.log(app_config.path_of_logs)
+strategy_config = StrategyConfig().log()

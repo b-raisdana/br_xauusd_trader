@@ -10,7 +10,7 @@ from application.xauusd_trading_strategy_1.domain.models import XauPullbackWindo
 from application.xauusd_trading_strategy_1_vector.actions import generate_actions
 from application.xauusd_trading_strategy_1_vector.domain.replay import LinearReplayEconomics, ReplayConfig
 from application.xauusd_trading_strategy_1_vector.replay import ExecutionReplay
-from application.xauusd_trading_strategy_1_vector.vectorized_strategy import VectorizedXauUsdStrategy
+from application.xauusd_trading_strategy_1_vector.the_strategy import VectorizedXauUsdStrategy
 from domain.xau_usd.enums import XauDirection, XauExecutionStatus, XauOrderType, XauSignalFamily
 from domain.xau_usd.models import XauSignalCandidate, XauZone
 

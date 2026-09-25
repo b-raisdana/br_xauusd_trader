@@ -21,7 +21,7 @@ from .result_processing import (
     generate_position_tracking_columns,
     merge_results_with_candles,
 )
-from .vectorized_strategy import VectorizedXauUsdStrategy
+from .the_strategy import VectorizedXauUsdStrategy
 from .zone_cache import ZoneCache
 
 

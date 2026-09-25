@@ -29,6 +29,8 @@ dev = [
     "mypy",
     "pytest>=8.0",
     "pytest-asyncio",
+    "pandas_ta",   
+    "numba",       
 ]
 
 [project.scripts]

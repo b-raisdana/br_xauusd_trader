@@ -54,3 +54,6 @@ tester/logs/
 build/
 dist/
 *.egg-info/
+.kilo/*
+!.kilo/skills/
+!.kilo/skills/**

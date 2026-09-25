@@ -2,12 +2,12 @@ from pathlib import Path
 
 from pydantic_settings import SettingsConfigDict
 
-from config.base import BaseConfig
+from config.base import BaseContextConfig
 
 _ROOT_PATH = Path(__file__).resolve().parent.parent.parent
 
 
-class StrategyConfig(BaseConfig):
+class StrategyConfig(BaseContextConfig):
     """Runtime settings. Any field can be overridden via a `DLF_<FIELD_NAME>` env var
     (or a `.env` file), validated against its declared type/bounds on load and on
     every later `app_config.<field> = ...` assignment."""

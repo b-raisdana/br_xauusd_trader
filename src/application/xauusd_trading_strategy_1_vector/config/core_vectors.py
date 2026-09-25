@@ -4,12 +4,12 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, create_model
 from pydantic_settings import JsonConfigSettingsSource, SettingsConfigDict
 
-from config.base import BaseConfig
+from config.base import BaseContextConfig
 
 DEFAULT_CORE_VECTORS_JSON = Path(__file__).resolve().parents[2] / "config" / "mt5" / "core_vectors.json"
 
 
-class CoreVectors(BaseConfig):
+class CoreVectors(BaseContextConfig):
     model_config = SettingsConfigDict(
         extra="forbid",
         frozen=True,

@@ -16,12 +16,6 @@ from helper.date_utils import time_range_to_string
 from infrastructure.mt5.ohlcv import get_ohlcv
 from infrastructure.mt5.tick import get_ticks
 
-from .backtest import (
-    print_backtest_report,
-    run_vectorbt_backtest,
-    save_backtest_report,
-    save_backtest_trades,
-)
 from .reporting import (
     print_strategy_summary,
     save_results_to_file,
@@ -44,10 +38,6 @@ __all__ = [
     "generate_position_tracking_columns",
     "save_results_to_file",
     "print_strategy_summary",
-    "run_vectorbt_backtest",
-    "print_backtest_report",
-    "save_backtest_report",
-    "save_backtest_trades",
     "main",
     "build_merged_zones",
 ]
@@ -118,6 +108,8 @@ async def main(
     print_strategy_summary(result)
 
     if backtest:
+        from .backtest import print_backtest_report, run_vectorbt_backtest, save_backtest_report, save_backtest_trades
+
         print("\n--- Running vectorbt backtest ---")
         print_backtest_report(result)
         portfolio = run_vectorbt_backtest(result)

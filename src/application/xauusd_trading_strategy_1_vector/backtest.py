@@ -3,15 +3,21 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
-import vectorbt as vbt
 from br_py_log_n_profile import log_w, profile_it
 from br_py_log_n_profile.do_log.log_it import NOT_TESTED
 
 from application.xauusd_trading_strategy_1_vector.domain.schema import VectorbtBacktestInput
 from domain.xau_usd.enums import XauExecutionStatus
 from helper.pandera import pandera_validate
+
+if TYPE_CHECKING:
+    from vectorbt import Portfolio
+else:
+    # Pandera resolves annotations at import time; keep vectorbt out of startup.
+    Portfolio = Any
 
 
 @profile_it
@@ -57,7 +63,7 @@ def run_vectorbt_backtest(
     fees: float = 0.0002,
     slippage: float = 0.0002,
     freq: str = "1min",
-) -> vbt.Portfolio:
+) -> Portfolio:
     """Run a vectorbt backtest on strategy results.
 
     Extracts entry/exit signals from position tracking columns and runs
@@ -76,6 +82,8 @@ def run_vectorbt_backtest(
     """
     log_w(NOT_TESTED)
     close, entries, exits = _extract_signals(result)
+
+    import vectorbt as vbt
 
     portfolio = vbt.Portfolio.from_signals(
         close=close,
@@ -149,7 +157,7 @@ def print_backtest_report(result: VectorbtBacktestInput) -> None:
 
 @profile_it
 def save_backtest_report(
-    portfolio: vbt.Portfolio,
+    portfolio: Portfolio,
     output_file: str,
 ) -> None:
     """Save backtest report statistics to a file.
@@ -176,7 +184,7 @@ def save_backtest_report(
 
 @profile_it
 def save_backtest_trades(
-    portfolio: vbt.Portfolio,
+    portfolio: Portfolio,
     output_file: str,
 ) -> None:
     """Save backtest trade records to a file.

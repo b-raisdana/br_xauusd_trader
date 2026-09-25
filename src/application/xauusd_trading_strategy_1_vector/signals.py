@@ -9,6 +9,7 @@ import numpy as np
 from br_py_log_n_profile import log_e, profile_it
 
 from application.xauusd_trading_strategy_1.domain.state import evaluate_pullback_price
+from application.xauusd_trading_strategy_1_vector.config.strategy_config import StrategyConfig
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
     PerTickBaseState,
     PullbackResult,
@@ -19,7 +20,6 @@ from application.xauusd_trading_strategy_1_vector.domain.schema import (
     XauPullbackWindowState,
 )
 from application.xauusd_trading_strategy_1_vector.pullback_utils import create_pullback_window
-from domain.xau_usd.constants import BREAKOUT_BUFFER_USD
 from domain.xau_usd.enums import XauDirection, XauOrderType, XauSignalFamily, XauTrend
 from domain.xau_usd.models import XauSignalCandidate, XauZone
 from helper.importer import pt
@@ -47,6 +47,7 @@ def _detect_zone_breakouts(
     """Detect valid breakout events per zone and direction."""
     prices = per_tick_state["bid"].to_numpy()
     trends = per_tick_state["trend"].to_numpy()
+    breakout_buffer = StrategyConfig.current().breakout_buffer_usd
     records = []
 
     for zone_number, zone in enumerate(zones):
@@ -56,9 +57,9 @@ def _detect_zone_breakouts(
         ):
             engaged = per_tick_state[f"{side}_engaged:{zone.id}"].to_numpy()[closes]
             beyond = (
-                prices[closes] > zone.high + BREAKOUT_BUFFER_USD
+                prices[closes] > zone.high + breakout_buffer
                 if direction == XauDirection.BUY
-                else prices[closes] < zone.low - BREAKOUT_BUFFER_USD
+                else prices[closes] < zone.low - breakout_buffer
             )
             valid = engaged & (trends[closes] == trend.value) & beyond
             records.extend((int(row), zone_number, direction) for row in starts[valid])

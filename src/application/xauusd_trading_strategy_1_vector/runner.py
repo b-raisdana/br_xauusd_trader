@@ -15,6 +15,8 @@ from domain.schemas.zone import Zone
 from helper.importer import pt
 from helper.pandera import pandera_validate
 
+from .config.core_vectors import core_vectors
+from .config.strategy_config import strategy_config
 from .domain.replay import ReplayConfig
 from .result_processing import (
     generate_order_management_columns,
@@ -54,47 +56,48 @@ def run_vectorized_strategy(
         DataFrame with same MultiIndex as input and additional columns for signals, orders, positions
         (PositionTrackingResult schema)
     """
-    print("=== Vectorized XAUUSD Strategy Execution ===")
-    print(f"Processing {len(tick_df)} ticks")
-    print(f"Processing {len(candle_df)} 15-minute candles")
-    print(f"Loading {len(zones_df)} zones")
+    with core_vectors.use(), strategy_config.use():
+        print("=== Vectorized XAUUSD Strategy Execution ===")
+        print(f"Processing {len(tick_df)} ticks")
+        print(f"Processing {len(candle_df)} 15-minute candles")
+        print(f"Loading {len(zones_df)} zones")
 
-    # Step 1: Initialize zone loader
-    print("\n[Step 1] Initializing zone loader...")
-    zone_cache = ZoneCache(zones_df)
-    print(f"Zone cache initialized with {len(zones_df)} zones")
+        # Step 1: Initialize zone loader
+        print("\n[Step 1] Initializing zone loader...")
+        zone_cache = ZoneCache(zones_df)
+        print(f"Zone cache initialized with {len(zones_df)} zones")
 
-    # Step 2: Initialize vectorized strategy
-    print("\n[Step 2] Initializing vectorized strategy...")
-    strategy = VectorizedXauUsdStrategy(zone_cache=zone_cache, execution=execution)
-    print("Vectorized strategy initialized")
-    # Step 4: Process tick data through the strategy
-    print("\n[Step 4] Processing tick data...")
-    result = strategy.process_tick_data(tick_df, candle_df)
-    if debug:
-        result = strategy._per_tick_temp_state.copy()
-    result[["bid", "ask"]] = tick_df.sort_index(kind="stable")[["bid", "ask"]].to_numpy()
-    print(f"Tick data processed, generated {len(result)} result rows")
+        # Step 2: Initialize vectorized strategy
+        print("\n[Step 2] Initializing vectorized strategy...")
+        strategy = VectorizedXauUsdStrategy(zone_cache=zone_cache, execution=execution)
+        print("Vectorized strategy initialized")
+        # Step 4: Process tick data through the strategy
+        print("\n[Step 4] Processing tick data...")
+        result = strategy.process_tick_data(tick_df, candle_df)
+        if debug:
+            result = strategy._per_tick_temp_state.copy()
+        result[["bid", "ask"]] = tick_df.sort_index(kind="stable")[["bid", "ask"]].to_numpy()
+        print(f"Tick data processed, generated {len(result)} result rows")
 
-    # Step 5: Merge with candle data for additional context
-    print("\n[Step 5] Merging with candle data...")
-    result_with_candles = merge_results_with_candles(result, candle_df)
-    print("Results merged with candle data")
+        # Step 5: Merge with candle data for additional context
+        print("\n[Step 5] Merging with candle data...")
+        result_with_candles = merge_results_with_candles(result, candle_df)
+        print("Results merged with candle data")
 
-    # Step 6: Generate order management columns
-    print("\n[Step 6] Generating order management columns...")
-    result_with_orders = generate_order_management_columns(result_with_candles)
-    print("Order management columns generated")
+        # Step 6: Generate order management columns
+        print("\n[Step 6] Generating order management columns...")
+        result_with_orders = generate_order_management_columns(result_with_candles)
+        print("Order management columns generated")
 
-    # Step 7: Generate position tracking columns
-    print("\n[Step 7] Generating position tracking columns...")
-    final_result = generate_position_tracking_columns(result_with_orders)
-    print("Position tracking columns generated")
+        # Step 7: Generate position tracking columns
+        print("\n[Step 7] Generating position tracking columns...")
+        final_result = generate_position_tracking_columns(result_with_orders)
+        print("Position tracking columns generated")
 
-    print("\n=== Strategy Execution Complete ===")
-    print(f"Final result has {len(final_result)} rows and {len(final_result.columns)} columns")
+        print("\n=== Strategy Execution Complete ===")
+        print(f"Final result has {len(final_result)} rows and {len(final_result.columns)} columns")
 
-    return final_result
+        return final_result
 
 
 @pandera_validate

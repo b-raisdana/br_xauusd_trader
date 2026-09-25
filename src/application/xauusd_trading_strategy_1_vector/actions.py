@@ -6,22 +6,49 @@ at Xenon rank B (low nesting, few branches per function).
 
 from __future__ import annotations
 
-from br_py_log_n_profile import NOT_TESTED, log_w
+import pandas as pd
 
-from domain.schemas.xauusd_vector_strategy import PerTickBaseState
+from application.xauusd_trading_strategy_1_vector.domain.replay import ReplayConfig
+from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickBaseState
+from application.xauusd_trading_strategy_1_vector.replay import ExecutionReplay
+from domain.xau_usd.models import XauZone
 from helper.importer import pt
 from helper.pandera import pandera_validate
 
 
 @pandera_validate(allow_pandas_dataframe=True)
-def generate_actions(per_tick_state: pt.DataFrame[PerTickBaseState]) -> pt.DataFrame[PerTickBaseState]:
-    """Generate final action column from signal candidates.
-
-    Maps signal candidates to action values that match MT5 semantics.
-    Action includes direction (BUY/SELL), order type, entry price, SL, TP.
-    """
-    log_w(NOT_TESTED)
-    per_tick_state["action"] = None
-    # Signal candidate collection, risk management filters, and final action
-    # generation would be applied here in a full implementation.
-    return per_tick_state
+def generate_actions(
+    per_tick_state: pt.DataFrame[PerTickBaseState],
+    zones: list[XauZone],
+    config: ReplayConfig,
+    replay: ExecutionReplay | None = None,
+) -> pt.DataFrame[PerTickBaseState]:
+    """Replay one chronological broker/symbol partition using explicit economics."""
+    result = per_tick_state.copy()
+    times = result.index.get_level_values("datetime")
+    if not times.is_monotonic_increasing:
+        raise ValueError("Execution ticks must be chronological")
+    streams = result.index.droplevel(["datetime", "date"]).unique()
+    if len(streams) > 1:
+        raise ValueError("Execution partition must contain one broker/symbol")
+    if replay is None:
+        replay = ExecutionReplay(config, repr(streams[0]) if len(streams) else "empty")
+    records = []
+    rows = zip(
+        times,
+        result["broker_day"],
+        result["bar_time"],
+        result["bar_open"],
+        result["bid"],
+        result["ask"],
+        result["pullback_windows_opened"],
+        result["breakout_signals"],
+        result.get("reversal_signals", [()] * len(result)),
+        strict=True,
+    )
+    for time, day, bar, bar_open, bid, ask, openings, breakouts, reversals in rows:
+        records.append(replay.step(time, day, bar, bar_open, bid, ask, zones, openings, breakouts, reversals))
+    payload = pd.DataFrame.from_records(records, index=result.index)
+    for column in payload:
+        result[column] = payload[column].to_numpy()
+    return result

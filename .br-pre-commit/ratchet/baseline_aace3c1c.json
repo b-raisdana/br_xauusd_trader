@@ -1,0 +1,22 @@
+{
+  "loc": 471,
+  "mypy:arg-type": 4,
+  "mypy:assignment": 6,
+  "mypy:attr-defined": 13,
+  "mypy:call-overload": 1,
+  "mypy:import-not-found": 1,
+  "mypy:import-untyped": 42,
+  "mypy:index": 1,
+  "mypy:name-defined": 1,
+  "mypy:operator": 3,
+  "mypy:type-arg": 2,
+  "mypy:typeddict-item": 2,
+  "mypy:uncoded": 1,
+  "mypy:union-attr": 1,
+  "mypy:unused-ignore": 9,
+  "mypy:valid-type": 8,
+  "mypy:var-annotated": 3,
+  "ruff:E501": 1,
+  "ruff:F821": 1,
+  "xenon": 25
+}

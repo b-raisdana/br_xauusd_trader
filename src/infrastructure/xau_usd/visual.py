@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Protocol
 
-from domain.xau_usd.models import XauVisualMarker, XauZone
+from application.xauusd_trading_strategy_1.domain.models import XauVisualMarker
+from domain.xau_usd.models import XauZone
 
 
 class ChartObjectBackend(Protocol):

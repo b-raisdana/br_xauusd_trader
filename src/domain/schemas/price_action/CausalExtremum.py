@@ -1,6 +1,7 @@
-import pandas as pd
 import pandera.pandas as pa
 from pandera import typing as pt
+
+from domain.schemas.common.base_dataframe import Timeseries
 
 
 class CausalExtremumOHLC(pa.DataFrameModel):
@@ -11,8 +12,7 @@ class CausalExtremumOHLC(pa.DataFrameModel):
     low: pt.Series[float]
 
 
-class CausalExtremumResult(pa.DataFrameModel):
-    date: pt.Index[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
+class CausalExtremumResult(Timeseries):
     true_peak_reach_minutes: pt.Series[float]
     true_valley_reach_minutes: pt.Series[float]
     extremum_sign: pt.Series[int]

@@ -7,13 +7,12 @@ from pathlib import Path
 
 import pandas as pd
 import typer
-from br_py_log_n_profile import NOT_TESTED, log_e, log_w
+from br_py_log_n_profile import log_e, log_exception
 
 from application.xauusd_trading_strategy_1_vector.zone_loader import load_zones_from_file
 from config import app_config
 from domain.xau_usd.zone import build_merged_zones
 from helper.date_utils import time_range_to_string
-from helper.pandera import pandera_validate
 from infrastructure.mt5.ohlcv import get_ohlcv
 from infrastructure.mt5.tick import get_ticks
 
@@ -56,7 +55,6 @@ def cli(
     asyncio.run(main(symbol=symbol, zones=zones, output=output, debug=debug))
 
 
-@pandera_validate(allow_pandas_dataframe=True)
 async def main(
     symbol: str = app_config.default_symbol,
     zones: Path = Path("ranges.zip"),
@@ -70,10 +68,17 @@ async def main(
     print("Loading data ...")
 
     zones_df = await load_zones_from_file(zones)
+    datetime_of_first_zone = zones_df.index.get_level_values("date")[0]
+    next_day_after_first_zone = zones_df.index.get_level_values("date")[0] + pd.Timedelta(days=1)
+    zones_df = zones_df[
+        (
+            (datetime_of_first_zone <= zones_df.index.get_level_values("date"))
+            & (zones_df.index.get_level_values("date") < next_day_after_first_zone)
+        )
+    ]
 
     if zones_df.empty:
-        log_e("Zone input must contain at least one day")
-        raise ValueError("Zone input must contain at least one day")
+        log_exception("Zone input must contain at least one day", ValueError)
     start = zones_df.index.get_level_values("date").min().normalize()
     end = zones_df.index.get_level_values("date").max().normalize() + pd.Timedelta(days=1)
     time_range_str = time_range_to_string(start=start, end=end)
@@ -92,7 +97,7 @@ async def main(
     candle_15min_df = candle_15min_df.reset_index().rename(columns={"date": "bar_time"})
 
     result = run_vectorized_strategy(tick_df=tick_data, candle_df=candle_15min_df, zones_df=zones_df, debug=debug)
-    log_w(NOT_TESTED)
+
     save_results_to_file(
         result,
         output,

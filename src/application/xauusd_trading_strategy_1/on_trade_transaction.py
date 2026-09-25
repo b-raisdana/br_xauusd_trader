@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Protocol
 
-from domain.xau_usd.models import XauNativeDealOutcome
+from application.xauusd_trading_strategy_1.domain.models import XauNativeDealOutcome
 from infrastructure.xau_usd.native import NativeBroker
 
 from .global_state_variable import StrategyRuntimeState

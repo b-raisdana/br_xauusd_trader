@@ -6,24 +6,25 @@ from datetime import date, datetime
 from pathlib import Path
 
 import pandas as pd
-from br_py_log_n_profile import NOT_TESTED, log_e, log_w
+from br_py_log_n_profile import log_e, log_w
+from br_py_log_n_profile.do_log.log_it import NOT_TESTED
 
-from domain.schemas.xauusd_vector_strategy import PositionTrackingResult
+from application.xauusd_trading_strategy_1_vector.domain.schema import PositionTrackingResult
 from helper.importer import pt
 from helper.pandera import pandera_validate
 
 
 def _json_default(value):
-    log_w(NOT_TESTED)
     if is_dataclass(value) and not isinstance(value, type):
         return asdict(value)
     if isinstance(value, (datetime, date)):
         return value.isoformat()
+    log_w(NOT_TESTED)
     log_e(f"Unsupported result value: {type(value).__name__}")
     raise TypeError(f"Unsupported result value: {type(value).__name__}")
 
 
-@pandera_validate(allow_pandas_dataframe=True)
+@pandera_validate
 def save_results_to_file(
     result: pt.DataFrame[PositionTrackingResult],
     output_file: str,
@@ -32,7 +33,7 @@ def save_results_to_file(
     Save strategy results to a file.
 
     Args:
-        result: DataFrame with strategy results
+        result: DataFrame with strategy results (PositionTrackingResult schema)
         output_file: Path to output file
         format: Output format ('csv' or 'parquet')
     """
@@ -62,7 +63,7 @@ def print_strategy_summary(result: pd.DataFrame) -> None:
     position tracking metrics.
 
     Args:
-        result: DataFrame with strategy results
+        result: DataFrame with strategy results (PositionTrackingResult schema)
     """
     log_w(NOT_TESTED)
     print("\n=== Strategy Execution Summary ===")

@@ -5,20 +5,19 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
 
-from domain.xau_usd.coordinator import (
+from application.xauusd_trading_strategy_1.domain.coordinator import (
     begin_coordinator_bar,
     begin_coordinator_day,
     close_coordinator_bar,
     process_coordinator_tick,
 )
-from domain.xau_usd.enums import XauSignalFamily
-from domain.xau_usd.models import (
+from application.xauusd_trading_strategy_1.domain.models import (
     XauPreparedEntry,
     XauRuntimeRequest,
-    XauSignalCandidate,
-    XauZone,
 )
-from domain.xau_usd.state import record_trend_candle
+from application.xauusd_trading_strategy_1.domain.state import record_trend_candle
+from domain.xau_usd.enums import XauSignalFamily
+from domain.xau_usd.models import XauSignalCandidate, XauZone
 from domain.xau_usd.zone import build_merged_zones
 
 from .global_state_variable import StrategyRuntimeState

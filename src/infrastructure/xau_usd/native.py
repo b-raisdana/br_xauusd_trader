@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Protocol
 
+from application.xauusd_trading_strategy_1.domain.models import XauNativeDealOutcome, XauNativeSymbol
 from domain.xau_usd.enums import XauExecutionEvent
-from domain.xau_usd.models import XauNativeDealOutcome, XauNativeSymbol
 
 
 class NativeBroker(Protocol):

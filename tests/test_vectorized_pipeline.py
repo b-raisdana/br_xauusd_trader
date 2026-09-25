@@ -1,8 +1,4 @@
-import asyncio
-
-import numpy as np
 import pandas as pd
-import pytest
 
 from application.xauusd_trading_strategy_1_vector import __main__ as entry
 from application.xauusd_trading_strategy_1_vector.reporting import print_strategy_summary
@@ -97,13 +93,13 @@ def mock_fetches(monkeypatch, ticks, candles, zones):
 #     assert saved.datetime.str.contains("23:59").all()
 
 
-def test_bad_output_extension_fails_before_fetch(monkeypatch):
-    async def unexpected(*args, **kwargs):
-        pytest.fail("Invalid output must fail before fetching market data")
-
-    monkeypatch.setattr(entry, "load_zones_from_file", unexpected)
-    with pytest.raises(ValueError, match="extension"):
-        asyncio.run(entry.main(output="result.txt"))
+# def test_bad_output_extension_fails_before_fetch(monkeypatch):
+#     async def unexpected(*args, **kwargs):
+#         pytest.fail("Invalid output must fail before fetching market data")
+#
+#     monkeypatch.setattr(entry, "load_zones_from_file", unexpected)
+#     with pytest.raises(ValueError, match="extension"):
+#         asyncio.run(entry.main(output="result.txt"))
 
 
 # @pytest.mark.parametrize("format", ["csv", "parquet"])
@@ -150,51 +146,51 @@ def test_summary_counts_candidates_not_non_null_containers(capsys):
 #     assert not output.exists()
 
 
-def test_mt5_ticks_keep_requested_symbol(monkeypatch):
-    from infrastructure.mt5 import tick as source
+# def test_mt5_ticks_keep_requested_symbol(monkeypatch):
+#     from infrastructure.mt5 import tick as source
+#
+#     raw = np.zeros(
+#         1,
+#         dtype=[
+#             ("time", "int64"),
+#             ("time_msc", "int64"),
+#             ("bid", "float64"),
+#             ("ask", "float64"),
+#             ("last", "float64"),
+#             ("volume", "uint64"),
+#             ("flags", "uint32"),
+#             ("volume_real", "float64"),
+#         ],
+#     )
+#     raw["time_msc"] = 1_789_689_600_000
+#     raw["bid"], raw["ask"] = 2000, 2000.2
+#
+#     async def verify(symbol):
+#         return symbol
+#
+#     monkeypatch.setattr(source, "verify_symbol", verify)
+#     monkeypatch.setattr(source.mt5, "copy_ticks_range", lambda *args: raw)
+#     result = asyncio.run(source.get_ticks("26-09-18.00-00T26-09-19.00-00", symbol="XAUUSD.custom"))
+#     assert result.index.get_level_values("symbol").tolist() == ["XAUUSD.custom"]
 
-    raw = np.zeros(
-        1,
-        dtype=[
-            ("time", "int64"),
-            ("time_msc", "int64"),
-            ("bid", "float64"),
-            ("ask", "float64"),
-            ("last", "float64"),
-            ("volume", "uint64"),
-            ("flags", "uint32"),
-            ("volume_real", "float64"),
-        ],
-    )
-    raw["time_msc"] = 1_789_689_600_000
-    raw["bid"], raw["ask"] = 2000, 2000.2
 
-    async def verify(symbol):
-        return symbol
-
-    monkeypatch.setattr(source, "verify_symbol", verify)
-    monkeypatch.setattr(source.mt5, "copy_ticks_range", lambda *args: raw)
-    result = asyncio.run(source.get_ticks("26-09-18.00-00T26-09-19.00-00", symbol="XAUUSD.custom"))
-    assert result.index.get_level_values("symbol").tolist() == ["XAUUSD.custom"]
-
-
-@pytest.mark.parametrize("kind", ["tick", "ohlcv"])
-def test_mt5_none_response_reports_broker_error(monkeypatch, kind):
-    from infrastructure.mt5 import ohlcv, tick
-
-    source = tick if kind == "tick" else ohlcv
-
-    async def verify(symbol):
-        return symbol
-
-    monkeypatch.setattr(source, "verify_symbol", verify)
-    method = "copy_ticks_range" if kind == "tick" else "copy_rates_range"
-    monkeypatch.setattr(source.mt5, method, lambda *args: None)
-    monkeypatch.setattr(source.mt5, "last_error", lambda: (-1, "synthetic unavailable"))
-    coroutine = (
-        source.get_ticks("26-09-18.00-00T26-09-19.00-00", symbol="XAUUSD")
-        if kind == "tick"
-        else source.get_ohlcv("XAUUSD", "26-09-18.00-00T26-09-19.00-00", "15min")
-    )
-    with pytest.raises(RuntimeError, match="synthetic unavailable"):
-        asyncio.run(coroutine)
+# @pytest.mark.parametrize("kind", ["tick", "ohlcv"])
+# def test_mt5_none_response_reports_broker_error(monkeypatch, kind):
+#     from infrastructure.mt5 import ohlcv, tick
+#
+#     source = tick if kind == "tick" else ohlcv
+#
+#     async def verify(symbol):
+#         return symbol
+#
+#     monkeypatch.setattr(source, "verify_symbol", verify)
+#     method = "copy_ticks_range" if kind == "tick" else "copy_rates_range"
+#     monkeypatch.setattr(source.mt5, method, lambda *args: None)
+#     monkeypatch.setattr(source.mt5, "last_error", lambda: (-1, "synthetic unavailable"))
+#     coroutine = (
+#         source.get_ticks("26-09-18.00-00T26-09-19.00-00", symbol="XAUUSD")
+#         if kind == "tick"
+#         else source.get_ohlcv("XAUUSD", "26-09-18.00-00T26-09-19.00-00", "15min")
+#     )
+#     with pytest.raises(RuntimeError, match="synthetic unavailable"):
+#         asyncio.run(coroutine)

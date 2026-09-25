@@ -4,15 +4,16 @@ import numpy as np
 import pandas as pd
 from vectorized_fixtures import candles_from_ticks
 
-from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
-from domain.xau_usd.coordinator import (
+from application.xauusd_trading_strategy_1.domain.coordinator import (
     begin_coordinator_bar,
     begin_coordinator_day,
     close_coordinator_bar,
     process_coordinator_tick,
 )
+from application.xauusd_trading_strategy_1.domain.models import XauMarketCoordinator
+from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
 from domain.xau_usd.enums import XauDirection, XauTrend
-from domain.xau_usd.models import XauMarketCoordinator, XauZone
+from domain.xau_usd.models import XauZone
 
 
 class Zones:

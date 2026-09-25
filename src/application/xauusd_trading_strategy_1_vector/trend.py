@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from br_py_log_n_profile import profile_it
 from br_py_log_n_profile.do_log.log_it import NOT_TESTED, log_w
 
-from domain.schemas.xauusd_vector_strategy import PerTickBaseState, ReferenceInput, ReferenceResult
+from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickBaseState, ReferenceInput, ReferenceResult
 from domain.xau_usd.enums import XauTrend
 from helper.importer import pt
 from helper.pandera import pandera_validate
@@ -63,7 +64,7 @@ def compute_reference_low(tick_state_row: pd.Series) -> float:
 @pandera_validate(inplace=True)
 def compute_references(per_tick_state: pt.DataFrame[ReferenceInput]) -> pt.DataFrame[ReferenceResult]:
     """Populate reference_high and reference_low columns on the per-tick DataFrame."""
-    log_w(NOT_TESTED)
+
     counts = per_tick_state["trend_count"].to_numpy(dtype=np.int64)
     for side, compare in (("high", np.greater), ("low", np.less)):
         first = per_tick_state[f"trend_{side}_0"].to_numpy(dtype=float)
@@ -78,6 +79,7 @@ def compute_references(per_tick_state: pt.DataFrame[ReferenceInput]) -> pt.DataF
     return per_tick_state
 
 
+@profile_it
 @pandera_validate(allow_pandas_dataframe=True)
 def update_trend(per_tick_state: pt.DataFrame[PerTickBaseState]) -> pt.DataFrame[PerTickBaseState]:
     """Update trend column based on bid vs reference levels.
@@ -86,7 +88,7 @@ def update_trend(per_tick_state: pt.DataFrame[PerTickBaseState]) -> pt.DataFrame
     exceeds reference_high, DOWN when bid falls below reference_low, and
     otherwise stays unchanged.
     """
-    log_w(NOT_TESTED)
+
     compute_references(per_tick_state)
     has_reference = per_tick_state["trend_count"] > 0
     changes = pd.Series(

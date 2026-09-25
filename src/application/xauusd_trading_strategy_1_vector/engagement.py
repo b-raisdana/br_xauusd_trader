@@ -10,9 +10,9 @@ from typing import List
 
 import numpy as np
 import pandas as pd
-from br_py_log_n_profile import NOT_TESTED, log_w
+from br_py_log_n_profile import profile_it
 
-from domain.schemas.xauusd_vector_strategy import EngagementInput, EngagementResult
+from application.xauusd_trading_strategy_1_vector.domain.schema import EngagementInput, EngagementResult
 from domain.xau_usd.models import XauZone
 from helper.importer import pt
 from helper.pandera import pandera_validate
@@ -29,7 +29,7 @@ def count_directional_crosses_vectorized(
     An upward cross is previous_bid < zone.low <= current_bid.
     A downward cross is previous_bid > zone.high >= current_bid.
     """
-    log_w(NOT_TESTED)
+
     crosses = pd.Series(0, index=previous_bid.index)
     for zone in zones:
         upward_cross = (previous_bid < zone.low) & (current_bid >= zone.low)
@@ -39,6 +39,7 @@ def count_directional_crosses_vectorized(
     return crosses
 
 
+@profile_it
 @pandera_validate(inplace=True)
 def update_zone_engagement(
     per_tick_state: pt.DataFrame[EngagementInput],
@@ -50,7 +51,7 @@ def update_zone_engagement(
     current bid position inside the zone. For single crosses, engagement is
     set incrementally only when not already engaged.
     """
-    log_w(NOT_TESTED)
+
     bar_changed = per_tick_state["bar_time"].ne(per_tick_state["bar_time"].shift()).to_numpy()
     bar_ids = bar_changed.cumsum()
     current_bid = per_tick_state["bid"].to_numpy()

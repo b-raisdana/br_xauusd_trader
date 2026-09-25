@@ -4,6 +4,12 @@ import pytest
 from pandera.errors import SchemaErrors
 from vectorized_fixtures import candles_from_ticks
 
+from application.xauusd_trading_strategy_1.domain.state import (
+    begin_trend_day,
+    process_trend_tick,
+    record_trend_candle,
+    trend_references,
+)
 from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
 from application.xauusd_trading_strategy_1_vector.engagement import update_zone_engagement
 from application.xauusd_trading_strategy_1_vector.result_processing import (
@@ -16,7 +22,6 @@ from application.xauusd_trading_strategy_1_vector.trend import (
     compute_references,
 )
 from domain.xau_usd.models import XauZone
-from domain.xau_usd.state import begin_trend_day, process_trend_tick, record_trend_candle, trend_references
 
 
 class EmptyZones:

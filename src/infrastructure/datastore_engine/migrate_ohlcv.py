@@ -25,8 +25,7 @@ from zipfile import BadZipFile
 import pandas as pd
 from br_py_log_n_profile import log_i, log_w
 
-from config import app_config
-from config.Config import BASE_TIMEFRAME
+from config import BASE_TIMEFRAME, app_config
 from helper.pandera import pandera_validate
 from infrastructure.datastore_engine.duckdb_cache_registry import DatastoreRegistry
 from infrastructure.datastore_engine.iceberg_base import _append_gap

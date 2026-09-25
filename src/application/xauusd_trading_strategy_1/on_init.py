@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from domain.xau_usd.entry import maximum_positions
+from application.xauusd_trading_strategy_1.domain.entry import maximum_positions
 
 from .lifecycle import (
     OnInitResult,

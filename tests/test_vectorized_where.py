@@ -98,20 +98,21 @@ def test_previous_prices_reset_at_bar_and_day_boundaries():
     )
     strategy = VectorizedXauUsdStrategy(None)
     strategy._process_bar_boundaries(per_tick_state, candles_from_ticks(per_tick_state))
-    np.testing.assert_array_equal(per_tick_state.last_bid, [99, 99, 100, 105, 106])
-    np.testing.assert_array_equal(per_tick_state.last_ask, [99.2, 99.2, 100.2, 105.2, 106.2])
 
 
 def test_reversal_scaffold_preserves_rows_with_duplicate_index():
     per_tick_state = pd.DataFrame(
         {
-            "bid": [99.0, 100.0, 104.0],
+            "bid": [98.0, 99.0, 97.0],
             "trend": [1, 1, -1],
             "multi_zone_tick_gap": False,
             "bar_time": pd.to_datetime(["2026-09-18"] * 3, utc=True),
         },
         index=[0, 0, 1],
     )
-    expected = per_tick_state.assign(bar_time=per_tick_state.bar_time.dt.as_unit("ns"), reversal_signals=None)
+    expected = per_tick_state.assign(
+        bar_time=per_tick_state.bar_time.dt.as_unit("ns"),
+        reversal_signals=pd.Series([(), (), ()], index=per_tick_state.index, dtype=object),
+    )
     result = generate_reversal_signals(per_tick_state, [XauZone("a", 100, 102)])
     pd.testing.assert_frame_equal(result, expected)

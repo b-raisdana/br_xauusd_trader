@@ -224,7 +224,6 @@ def multi_timeframe_timestamps(effective_freqs: list[str], requested_boundary: s
 
     freq_parts = []
     dt_parts = []
-    from .timeframe import normalize_timeframes
 
     for frq in normalize_timeframes(effective_freqs):
         timestamps = all_timestamps(start, end, frq)

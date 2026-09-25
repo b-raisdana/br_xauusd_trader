@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 from pandera.errors import SchemaErrors
 
-from domain.schemas import xauusd_vector_strategy as vector
+from application.xauusd_trading_strategy_1_vector.domain import schema as vector
 from domain.schemas.common.base_dataframe import Timeseries
 from domain.schemas.price_action.CausalExtremum import CausalExtremumResult
 

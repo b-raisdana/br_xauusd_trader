@@ -1,5 +1,15 @@
 # گزارش جامع نتایج تست MVP
 
+## Vectorized pullback completion ? 2026-09-24
+
+Candidate generation reuses the scalar pullback evaluator and window type. It covers 0.20 penetration, pending-stop edge entry, retries, five observed bars, independent broker/symbol streams, day rollover, and Normal/High usage through optional execution feedback; no signal is counted as a fill. The feedback contract is documented in `src/application/xauusd_trading_strategy_1_vector/README.md`. Action execution remains outside this change.
+
+`.venv/Scripts/python.exe -m pytest tests/test_vectorized_pullbacks.py tests/test_vectorized_reversal.py -q`: **33 passed** (21 pullback, 12 reversal). The project virtual environment resolves the dependency blockers reported below for system Python. Changed-file Ruff lint/format pass. Pre-commit still fails: `pytest-fast` cannot collect the existing breakout test's retired `domain.xau_usd.coordinator` import; `incremental-ratchet` cannot import `ratchet` in `.venv`. Neighboring validation/state/pipeline checks: **37 passed, 2 failed** in unchanged order/reporting paths (`test_ids_are_assigned_by_row_even_with_duplicate_timestamps`: string actions violate the dict schema; `test_summary_counts_candidates_not_non_null_containers`: Pandera cannot interpret the existing `str | int` order-ID dtype). No full-gate PASS or commit is claimed.
+
+## Vectorized reversal completion ? 2026-09-24
+
+`generate_reversal_signals` now emits Market candidates for directional touches, suppresses duplicate bar/zone/direction keys, and returns tuple outputs for empty inputs. It preserves bar-boundary resets and multi-zone gap suppression; daily fill limits remain outside candidate generation. Tick timestamps come from the `datetime` index when available; otherwise candidate time is unset. Added 12 regression cases in `tests/test_vectorized_reversal.py`; execution is blocked during collection by the installed logging package lacking `NOT_TESTED`. A diagnostic import workaround reaches another missing dependency, `pandas_ta`. Pre-commit pytest also reports missing `numba`; incremental-ratchet lacks `BR_PRE_COMMIT_REPO_ROOT` and `USER_REPO_ROOT`. Ruff lint/format and syntax checks pass for the changed Python files. No runtime PASS or commit is claimed.
+
 
 وضعیت: **مرحله ۷ تکمیل؛ Freeze نهایی هنوز وابسته به Gateهای مرحله ۴ و ۵ است**
 منبع عددی ماشین‌خوان: `docs/FINAL_TEST_EVIDENCE.json`

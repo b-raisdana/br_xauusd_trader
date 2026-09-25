@@ -2,18 +2,14 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from pandera import DataFrameModel
-from pandera.typing import Index, Series
+from pandera.typing import Series
 
 from config import app_config
+from domain.schemas.common.base_dataframe import TickMultiBrokerSymbolTimeseries
 from helper.importer import pt
 
 
-class Tick(DataFrameModel):
-    symbol: Index[str]
-    broker: Index[str]
-    date: Index[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
-    datetime: Index[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
+class Tick(TickMultiBrokerSymbolTimeseries):
     bid: Series[float]
     ask: Series[float]
     last: Series[float]

@@ -3,9 +3,9 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+from application.xauusd_trading_strategy_1.domain.execution import execution_transition, protection_modification_valid
+from application.xauusd_trading_strategy_1.domain.models import XauExecutionBinding, XauExecutionProjection
 from domain.xau_usd.enums import XauExecutionEvent
-from domain.xau_usd.execution import execution_transition, protection_modification_valid
-from domain.xau_usd.models import XauExecutionBinding, XauExecutionProjection
 
 DEFAULT_STORAGE_ROOT = Path(__file__).resolve().parents[3] / "data" / "mt5"
 

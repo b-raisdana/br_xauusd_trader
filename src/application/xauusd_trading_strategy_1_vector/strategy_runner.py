@@ -1,18 +1,21 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Optional
 
-import pandas as pd
-from br_py_log_n_profile import NOT_TESTED, log_w
+from br_py_log_n_profile import log_w
+from br_py_log_n_profile.do_log.log_it import NOT_TESTED
 
-from domain.schemas.xauusd_vector_strategy import (
+from application.xauusd_trading_strategy_1_vector.domain.schema import (
+    PerTickBaseState,
     PositionTrackingResult,
     VectorizedCandleInput,
     VectorizedTickInput,
 )
+from domain.schemas.zone import Zone
 from helper.importer import pt
 from helper.pandera import pandera_validate
 
+from .domain.replay import ReplayConfig
 from .result_processing import (
     generate_order_management_columns,
     generate_position_tracking_columns,
@@ -26,10 +29,11 @@ from .zone_cache import ZoneCache
 def run_vectorized_strategy(
     tick_df: pt.DataFrame[VectorizedTickInput],
     candle_df: pt.DataFrame[VectorizedCandleInput],
-    zones_df: pd.DataFrame,
-    preload_days: Optional[List[str]] = None,
+    zones_df: pt.DataFrame[Zone],
+    # preload_days: Optional[List[str]] = None,
     *,
     debug: bool = False,
+    execution: ReplayConfig | None = None,
 ) -> pt.DataFrame[PositionTrackingResult]:
     """
     Run the complete vectorized strategy flow.
@@ -43,12 +47,12 @@ def run_vectorized_strategy(
     Args:
         tick_df: DataFrame with MultiIndex (broker, symbol, datetime, date) and columns (bid, ask)
         candle_df: DataFrame with 15-minute OHLCV data
-        zones_df: Zone DataFrame indexed by timeframe and date, with lower,
+        zones_df: Zone DataFrame (Zone schema) indexed by timeframe and date, with lower,
             upper, priority, and enabled columns.
-        preload_days: Retained for compatibility; all supplied zones are already in memory.
 
     Returns:
         DataFrame with same MultiIndex as input and additional columns for signals, orders, positions
+        (PositionTrackingResult schema)
     """
     print("=== Vectorized XAUUSD Strategy Execution ===")
     print(f"Processing {len(tick_df)} ticks")
@@ -62,7 +66,7 @@ def run_vectorized_strategy(
 
     # Step 2: Initialize vectorized strategy
     print("\n[Step 2] Initializing vectorized strategy...")
-    strategy = VectorizedXauUsdStrategy(zone_cache=zone_cache)
+    strategy = VectorizedXauUsdStrategy(zone_cache=zone_cache, execution=execution)
     print("Vectorized strategy initialized")
     # Step 4: Process tick data through the strategy
     print("\n[Step 4] Processing tick data...")
@@ -71,7 +75,7 @@ def run_vectorized_strategy(
         result = strategy._per_tick_temp_state.copy()
     result[["bid", "ask"]] = tick_df.sort_index(kind="stable")[["bid", "ask"]].to_numpy()
     print(f"Tick data processed, generated {len(result)} result rows")
-    log_w(NOT_TESTED)
+
     # Step 5: Merge with candle data for additional context
     print("\n[Step 5] Merging with candle data...")
     result_with_candles = merge_results_with_candles(result, candle_df)
@@ -93,8 +97,8 @@ def run_vectorized_strategy(
     return final_result
 
 
-@pandera_validate(allow_pandas_dataframe=True)
-def get_strategy_internal_state(strategy: VectorizedXauUsdStrategy) -> Optional[pd.DataFrame]:
+@pandera_validate
+def get_strategy_internal_state(strategy: VectorizedXauUsdStrategy) -> Optional[pt.DataFrame[PerTickBaseState]]:
     """
     Get the internal _per_tick_temp_state DataFrame from the strategy.
 
@@ -105,7 +109,7 @@ def get_strategy_internal_state(strategy: VectorizedXauUsdStrategy) -> Optional[
         strategy: VectorizedXauUsdStrategy instance
 
     Returns:
-        Internal _per_tick_temp_state DataFrame or None if not available
+        Internal _per_tick_temp_state DataFrame (PerTickBaseState schema) or None if not available
     """
     log_w(NOT_TESTED)
     return strategy._per_tick_temp_state

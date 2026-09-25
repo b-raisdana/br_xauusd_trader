@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from domain.xau_usd.models import (
+from application.xauusd_trading_strategy_1.domain.models import (
     XauExecutionBinding,
     XauExecutionProjection,
     XauMarketCoordinator,

@@ -10,6 +10,23 @@ class Timeseries(pa.DataFrameModel):
     date: pt.Index[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
 
 
+class MultiBrokerSymbol(pa.DataFrameModel):
+    symbol: pt.Index[str]
+    broker: pt.Index[str]
+
+
+class MultiBrokerSymbolTimeseries(Timeseries, MultiBrokerSymbol):
+    pass
+
+
+class TickSeries(pa.DataFrameModel):
+    datetime: pt.Index[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
+
+
+class TickMultiBrokerSymbolTimeseries(TickSeries, MultiBrokerSymbolTimeseries):
+    pass
+
+
 class MultiTimeframe(pa.DataFrameModel):
     timeframe: pt.Index[str]
 

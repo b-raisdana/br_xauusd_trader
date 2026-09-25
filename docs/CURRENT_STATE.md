@@ -15,6 +15,8 @@
 
 ## Source-of-Truth files
 
+The 2026-09-24 vectorized signal update completes reversal and pullback candidate generation; 33 focused tests pass in `.venv`. Pullback fill/pending feedback is optional and explicit; action/execution integration remains a placeholder. The repository gate still fails on a retired test import and missing ratchet module; see `TEST_STATUS.md` for evidence.
+
 The 2026-09-20 entry-point review repaired CLI/debug dispatch, full-day fetch boundaries, causal candle context, export and MT5 error/symbol handling. Twenty focused tests pass; the repository gate remains blocked. Core edits were concurrent and execution placeholders remain; see [flow findings and remaining work](todo/vectorized-entrypoint-flow.md).
 
 - `PROJECT_BRIEF.md`: goal, scope, limits and success criteria

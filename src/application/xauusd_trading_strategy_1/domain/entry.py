@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from .constants import (
+from application.xauusd_trading_strategy_1.domain.constants import (
     BASE_R_USD,
     GROSS_DAILY_RISK_FRACTION,
     MINIMUM_FREE_SPACE_USD,
     PARITY_PRICE_TOLERANCE,
 )
-from .enums import XauDirection, XauEntryRejection
-from .models import XauZone
+from domain.xau_usd.enums import XauDirection, XauEntryRejection
+from domain.xau_usd.models import XauZone
 
 
 def initial_stop(

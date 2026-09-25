@@ -4,6 +4,14 @@
 
 This directory contains a vectorized implementation of the XAUUSD trading strategy using pandas DataFrames and vectorized operations. The implementation follows the MT5 source of truth (`mt5/XAUUSD_MVP.mq5`) and uses 15-minute bars (PERIOD_M15) for all bar-based calculations.
 
+## Pullback candidate generation
+
+`generate_pullback_signals` consumes `pullback_windows_opened` events in chronological order within each broker/symbol stream. A window starts at offset 1 and expires after five observed bars or a broker-day change. Active zone/direction windows retain their original parent. The shared scalar evaluator latches 0.20 USD penetration and emits `PENDING_STOP` candidates at the broken edge, with IDs `<parent>:PB<sequence>`. Trend flips do not cancel windows. Input window objects are copied, so replay is repeatable.
+
+The optional `pullback_feedback` column contains tuples of `PullbackFeedback(zone_id, direction, daily_fills, pending_active, filled=False)` execution snapshots applied before that tick's evaluation. `daily_fills` is the cumulative broker-day zone count across both directions and must not decrease; `pending_active` applies to that zone/direction. `filled=True` clears its penetration latch. Snapshots persist until updated or day rollover; an empty tuple means no update. Without this column, generation assumes zero fills and no accepted pending orders and can emit retry candidates on successive ticks. Normal zones stop after one fill; High zones have no daily cap. Candidate emission never consumes a fill.
+
+Outputs include tuple-valued `pullback_signals`, aggregate `pullback_penetration_latched`, and the sum of candidate sequences for currently active windows in `pullback_sequence`. This completes candidate generation only: the action/execution layer must supply feedback and apply entry/risk gates; it remains a separate placeholder. A row loop preserves causal fill, pending and penetration state while DataFrame output assignment is batched.
+
 ## Complete Strategy Flow
 
 The vectorized strategy processes data through the following sequence:
@@ -29,7 +37,7 @@ The vectorized strategy processes data through the following sequence:
 
 ### Key Design Principles
 
-1. **Vectorized Operations**: Uses pandas/numpy vectorized operations instead of per-tick loops
+1. **Vectorized Operations**: Uses pandas/numpy for bulk transforms; pullback execution feedback requires sequential state replay
 2. **MultiIndex Structure**: Maintains the input DataFrame structure with MultiIndex (broker, symbol, datetime, date)
 3. **State Management**: Represents persistent state as DataFrame columns where appropriate
 4. **Group Independence**: Processes each (broker, symbol) group independently
@@ -42,6 +50,7 @@ The vectorized strategy processes data through the following sequence:
 **Format**: CSV file or pandas DataFrame
 
 **Required Columns**:
+
 - `broker`: Broker identifier (string)
 - `symbol`: Symbol identifier (string, e.g., "XAUUSD")
 - `datetime`: UTC timezone-aware timestamp with millisecond precision
@@ -51,6 +60,7 @@ The vectorized strategy processes data through the following sequence:
 **MultiIndex Structure**: (broker, symbol, datetime, date)
 
 **Example CSV Format**:
+
 ```csv
 broker,symbol,datetime,bid,ask
 MT5,XAUUSD,2026-09-18T00:00:00Z,2000.0,2000.5
@@ -58,6 +68,7 @@ MT5,XAUUSD,2026-09-18T00:00:01Z,2000.1,2000.6
 ```
 
 **Sample Data Generation**:
+
 ```python
 from application.xauusd_trading_strategy_1_vector.__main__ import create_sample_tick_data
 
@@ -75,6 +86,7 @@ tick_data = create_sample_tick_data(
 **Format**: CSV file or pandas DataFrame
 
 **Required Columns**:
+
 - `broker`: Broker identifier (string)
 - `symbol`: Symbol identifier (string)
 - `datetime`: UTC timezone-aware timestamp for 15-minute bar
@@ -85,6 +97,7 @@ tick_data = create_sample_tick_data(
 - `close_ask`: Closing ask price (float)
 
 **Example CSV Format**:
+
 ```csv
 broker,symbol,datetime,open,high,low,close,close_ask
 MT5,XAUUSD,2026-09-18T00:00:00Z,2000.0,2005.0,1995.0,2002.0,2002.5
@@ -92,6 +105,7 @@ MT5,XAUUSD,2026-09-18T00:15:00Z,2002.0,2008.0,2000.0,2005.0,2005.5
 ```
 
 **Sample Data Generation**:
+
 ```python
 from application.xauusd_trading_strategy_1_vector.__main__ import create_sample_15min_candles
 
@@ -103,6 +117,7 @@ candle_data = create_sample_15min_candles(tick_data)
 **Format**: CSV file or dictionary mapping broker_day to list of XauZone objects
 
 **Required Columns**:
+
 - `broker_day`: Day in format "YYYY-MM-DD" (string)
 - `zone_id`: Unique zone identifier (string)
 - `low`: Zone low price (float)
@@ -110,6 +125,7 @@ candle_data = create_sample_15min_candles(tick_data)
 - `priority`: Zone priority (int, 1 or 2)
 
 **Example CSV Format**:
+
 ```csv
 broker_day,zone_id,low,high,priority
 2026-09-18,2026-09-18:R1,1990.0,1995.0,1
@@ -118,6 +134,7 @@ broker_day,zone_id,low,high,priority
 ```
 
 **Sample Data Generation**:
+
 ```python
 from application.xauusd_trading_strategy_1_vector.__main__ import create_sample_zones
 
@@ -131,14 +148,17 @@ zones_dict = {"2026-09-18": create_sample_zones("2026-09-18")}
 The output DataFrame maintains the same MultiIndex as the input (broker, symbol, datetime, date) and includes the following column categories:
 
 ### Input Columns (Preserved)
+
 - `bid`: Current bid price (float)
 - `ask`: Current ask price (float)
 
 ### Derived Time Columns
+
 - `bar_time`: 15-minute bar timestamp (datetime)
 - `broker_day`: Trading day in format "YYYY-MM-DD" (string)
 
 ### Trend State Columns
+
 - `trend`: Current trend (int: 0=NONE, 1=UP, 2=DOWN)
 - `trend_count`: Number of trend candles recorded (int: 0-3+)
 - `trend_high_0`: First high in trend window (float)
@@ -149,38 +169,43 @@ The output DataFrame maintains the same MultiIndex as the input (broker, symbol,
 - `trend_low_2`: Third low in trend window (float)
 
 ### Bar State Columns
+
 - `bar_open`: Opening bid price of current bar (float)
-- `last_bid`: Last processed bid price (float)
-- `last_ask`: Last processed ask price (float)
 - `bar_active`: Whether bar processing is active (bool)
 - `day_active`: Whether day initialization is complete (bool)
 
 ### Zone Engagement Columns
+
 - `buy_engaged`: Whether price is in zone for buy signals (bool)
 - `sell_engaged`: Whether price is in zone for sell signals (bool)
 
 ### Signal Generation Columns
+
 - `breakout_sequence`: Daily sequence number for breakout IDs (int)
 - `reversal_keys`: String tracking reversal uniqueness per bar (string)
 - `attempted_bars`: List of bar IDs where entry was attempted (string)
 
 ### Pullback Window Columns
+
 - `pullback_active`: Whether pullback window is active (bool)
 - `pullback_bar_offset`: Number of bars since breakout (int: 0-5)
 - `pullback_penetration_latched`: Whether price has penetrated zone (bool)
 - `pullback_sequence`: Sequence number for pullback signals (int)
 
 ### Intermediate Calculation Columns
+
 - `reference_high`: Reference high from trend history (float)
 - `reference_low`: Reference low from trend history (float)
 - `multi_zone_tick_gap`: Whether tick crossed multiple zones (bool)
 
 ### Signal Columns
+
 - `action`: Trading action signal (object/dict, None if no action)
 - `reversal_signals`: Reversal signal candidates (object/dict)
 - `pullback_signals`: Pullback signal candidates (object/dict)
 
 ### Candle Data Columns (Merged)
+
 - `open`: 15-minute bar open price (float)
 - `high`: 15-minute bar high price (float)
 - `low`: 15-minute bar low price (float)
@@ -188,6 +213,7 @@ The output DataFrame maintains the same MultiIndex as the input (broker, symbol,
 - `close_ask`: 15-minute bar close ask price (float)
 
 ### Order Management Columns
+
 - `order_id`: Unique identifier for each order (string, format: "ORD-XXXXXX")
 - `order_type`: Type of order (string: "MARKET", "PENDING_STOP", etc.)
 - `order_direction`: Direction of order (string: "BUY", "SELL")
@@ -198,6 +224,7 @@ The output DataFrame maintains the same MultiIndex as the input (broker, symbol,
 - `order_time`: Time when order was created (datetime)
 
 ### Position Tracking Columns
+
 - `position_id`: Unique identifier for each position (string, format: "POS-XXXXXX")
 - `position_direction`: Direction of position (string: "LONG", "SHORT")
 - `position_size`: Size of position in lots (float)
@@ -218,6 +245,7 @@ The strategy generates three types of signals:
 3. **Pullback Signals**: Generated during bar from active pullback windows after penetration
 
 **Signal Format**:
+
 ```python
 {
     "signal_id": str,  # Unique signal identifier
@@ -235,6 +263,7 @@ The strategy generates three types of signals:
 Orders are generated from signal candidates and tracked through their lifecycle:
 
 **Order States**:
+
 1. **PENDING**: Order submitted but not yet filled
 2. **FILLED**: Order filled at market
 3. **CANCELLED**: Order cancelled before fill
@@ -242,10 +271,12 @@ Orders are generated from signal candidates and tracked through their lifecycle:
 5. **EXPIRED**: Order expired without fill
 
 **Order Types**:
+
 - **MARKET**: Immediate execution at current price (breakouts, reversals)
 - **PENDING_STOP**: Stop order to enter on price penetration (pullbacks)
 
 **Order Management Flow**:
+
 ```
 Signal → Risk Check → Order Creation → Order Submission → Order Fill/Reject → Position Opening
 ```
@@ -255,11 +286,13 @@ Signal → Risk Check → Order Creation → Order Submission → Order Fill/Rej
 Positions are opened when orders are filled and tracked through their lifecycle:
 
 **Position States**:
+
 1. **OPEN**: Position is currently active
 2. **CLOSED**: Position has been closed
 3. **PARTIALLY_CLOSED**: Position partially closed
 
 **Position Tracking**:
+
 - Entry price and size
 - Current market price
 - Unrealized PnL calculation
@@ -267,6 +300,7 @@ Positions are opened when orders are filled and tracked through their lifecycle:
 - Position closing conditions
 
 **Position Management Flow**:
+
 ```
 Order Fill → Position Opening → Price Tracking → PnL Calculation → SL/TP Management → Position Closing
 ```
@@ -280,11 +314,13 @@ The vectorized strategy provides a comprehensive command-line interface for exec
 ### Basic Commands
 
 #### Run with Sample Data
+
 ```bash
 python -m application.xauusd_trading_strategy_1_vector --sample
 ```
 
 #### Run with Custom Data Files
+
 ```bash
 python -m application.xauusd_trading_strategy_1_vector \
     --ticks data/ticks.csv \
@@ -294,6 +330,7 @@ python -m application.xauusd_trading_strategy_1_vector \
 ```
 
 #### Run with Custom Parameters
+
 ```bash
 python -m application.xauusd_trading_strategy_1_vector --sample \
     --start-time "2026-09-18 00:00:00" \
@@ -304,24 +341,25 @@ python -m application.xauusd_trading_strategy_1_vector --sample \
 ```
 
 #### Run in Debug Mode
+
 ```bash
 python -m application.xauusd_trading_strategy_1_vector --sample --debug
 ```
 
 ### Command-Line Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--sample` | Use sample data instead of loading from files | False |
-| `--ticks` | Path to tick data CSV file | None |
-| `--candles` | Path to 15-minute candle data CSV file | None |
-| `--zones` | Path to zones CSV file | None |
-| `--output` | Path to output file | strategy_results.csv |
-| `--format` | Output format (csv or parquet) | csv |
-| `--start-time` | Start time for sample data | 2026-09-18 00:00:00 |
-| `--end-time` | End time for sample data | 2026-09-18 23:59:59 |
-| `--tick-interval` | Tick interval in seconds for sample data | 60 |
-| `--debug` | Enable debug mode and return strategy objects | False |
+| Option            | Description                                   | Default              |
+| ----------------- | --------------------------------------------- | -------------------- |
+| `--sample`        | Use sample data instead of loading from files | False                |
+| `--ticks`         | Path to tick data CSV file                    | None                 |
+| `--candles`       | Path to 15-minute candle data CSV file        | None                 |
+| `--zones`         | Path to zones CSV file                        | None                 |
+| `--output`        | Path to output file                           | strategy_results.csv |
+| `--format`        | Output format (csv or parquet)                | csv                  |
+| `--start-time`    | Start time for sample data                    | 2026-09-18 00:00:00  |
+| `--end-time`      | End time for sample data                      | 2026-09-18 23:59:59  |
+| `--tick-interval` | Tick interval in seconds for sample data      | 60                   |
+| `--debug`         | Enable debug mode and return strategy objects | False                |
 
 ### Debug Mode
 
@@ -333,7 +371,8 @@ Debug mode provides additional functionality for testing and inspection:
 - Useful for understanding internal processing and debugging
 
 **Debug Helper Functions**:
-- `get_strategy_internal_state(strategy)` - Access internal _per_tick_temp_state DataFrame
+
+- `get_strategy_internal_state(strategy)` - Access internal \_per_tick_temp_state DataFrame
 - `get_zone_loader_cache(zone_loader)` - Access cached zones
 - `clear_zone_loader_cache(zone_loader)` - Clear zone cache
 
@@ -420,8 +459,8 @@ result = strategy.process_tick_data(tick_data, candle_df)
 - ✅ Vectorized pullback signal generation (framework)
 - ✅ 15-minute bar boundary detection and processing
 - ✅ Zone data loading and management
-- ✅ _per_tick_temp_state DataFrame schema and processing pipeline
-- ✅ Complete strategy flow orchestration (__main__.py)
+- ✅ \_per_tick_temp_state DataFrame schema and processing pipeline
+- ✅ Complete strategy flow orchestration (**main**.py)
 - ✅ Order management column generation
 - ✅ Position tracking column generation
 - ✅ Sample data generation functions
@@ -444,29 +483,29 @@ The implementation uses **15-minute bars (PERIOD_M15)** as specified in the MT5 
 
 ### Key MT5 Correspondences
 
-| MT5 Function | Python Equivalent | Vectorized Implementation |
-|-------------|------------------|-------------------------|
-| `ProcessCurrentEventLoopTick` | `process_current_event_loop_tick` | `_process_group` |
-| `InitializeCurrentEventLoop` | `initialize_current_event_loop` | `_process_day_boundaries` |
-| `CloseCoordinatorBar` | `close_coordinator_bar` | `_close_bar` |
-| `BeginCoordinatorBar` | `begin_coordinator_bar` | `_begin_bar` |
-| `ProcessCoordinatorTick` | `process_coordinator_tick` | `_process_tick_operations` |
-| `LoadGeneratedRawZones` | `load_raw_zones` | `ZoneLoader.load_zones_for_day` |
-| `BuildMergedZones` | `build_merged_zones` | `ZoneLoader.load_zones_for_day` |
+| MT5 Function                  | Python Equivalent                 | Vectorized Implementation       |
+| ----------------------------- | --------------------------------- | ------------------------------- |
+| `ProcessCurrentEventLoopTick` | `process_current_event_loop_tick` | `_process_group`                |
+| `InitializeCurrentEventLoop`  | `initialize_current_event_loop`   | `_process_day_boundaries`       |
+| `CloseCoordinatorBar`         | `close_coordinator_bar`           | `_close_bar`                    |
+| `BeginCoordinatorBar`         | `begin_coordinator_bar`           | `_begin_bar`                    |
+| `ProcessCoordinatorTick`      | `process_coordinator_tick`        | `_process_tick_operations`      |
+| `LoadGeneratedRawZones`       | `load_raw_zones`                  | `ZoneLoader.load_zones_for_day` |
+| `BuildMergedZones`            | `build_merged_zones`              | `ZoneLoader.load_zones_for_day` |
 
 ### State Mapping
 
 The vectorized implementation maps MT5 state variables to DataFrame columns:
 
-| MT5 Variable | DataFrame Column | Description |
-|-------------|------------------|-------------|
-| `g_market_state.broker_day` | `broker_day` | Current broker day |
-| `g_current_bar_time` | `bar_time` | 15-minute bar timestamp |
-| `g_market_state.trend.trend` | `trend` | Current trend (UP/DOWN/NONE) |
-| `g_market_state.trend.count` | `trend_count` | Number of trend candles recorded |
-| `g_market_state.bar_active` | `bar_active` | Whether bar processing is active |
-| `g_market_state.zones[].buy_engaged` | `buy_engaged` | Zone buy engagement state |
-| `g_market_state.zones[].sell_engaged` | `sell_engaged` | Zone sell engagement state |
+| MT5 Variable                          | DataFrame Column | Description                      |
+| ------------------------------------- | ---------------- | -------------------------------- |
+| `g_market_state.broker_day`           | `broker_day`     | Current broker day               |
+| `g_current_bar_time`                  | `bar_time`       | 15-minute bar timestamp          |
+| `g_market_state.trend.trend`          | `trend`          | Current trend (UP/DOWN/NONE)     |
+| `g_market_state.trend.count`          | `trend_count`    | Number of trend candles recorded |
+| `g_market_state.bar_active`           | `bar_active`     | Whether bar processing is active |
+| `g_market_state.zones[].buy_engaged`  | `buy_engaged`    | Zone buy engagement state        |
+| `g_market_state.zones[].sell_engaged` | `sell_engaged`   | Zone sell engagement state       |
 
 See `docs/todo/State-Variables.Glossary.csv` for complete state mapping.
 

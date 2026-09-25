@@ -11,7 +11,7 @@ import pandas as pd
 from br_py_log_n_profile import profile_it
 from br_py_log_n_profile.do_log.log_it import NOT_TESTED, log_w
 
-from application.xauusd_trading_strategy_1_vector.config.core_vectors import load_core_vectors
+from application.xauusd_trading_strategy_1_vector.config.core_vectors import CoreVectors
 from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickBaseState, ReferenceInput, ReferenceResult
 from domain.xau_usd.enums import XauTrend
 from helper.importer import pt
@@ -20,7 +20,7 @@ from helper.pandera import pandera_validate
 
 def _get_trend_max_points() -> int:
     """Get the maximum number of trend points from config."""
-    return load_core_vectors().vec_trend_max_points
+    return CoreVectors.current().vec_trend_max_points
 
 
 @pandera_validate(allow_pandas_dataframe=True)

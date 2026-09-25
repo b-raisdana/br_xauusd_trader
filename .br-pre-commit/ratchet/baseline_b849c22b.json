@@ -8,6 +8,7 @@
   "mypy:import-untyped": 42,
   "mypy:index": 1,
   "mypy:operator": 3,
+  "mypy:truthy-function": 1,
   "mypy:type-arg": 2,
   "mypy:typeddict-item": 2,
   "mypy:union-attr": 1,

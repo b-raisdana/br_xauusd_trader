@@ -244,6 +244,28 @@ class PositionTrackingResult(OrderManagementResult):
     #     multiindex_ordered = False
 
 
+class VectorbtBacktestInput(TickMultiBrokerSymbolTimeseries):
+    """Schema for vectorbt backtest input.
+
+    Only includes columns used by _extract_signals:
+    - bid: close price for backtest
+    - position_id: to detect new position openings
+    - position_status: to check FILLED/CLOSED status
+    """
+
+    bid: pt.Series[float]
+    position_id: pt.Series[str] = Field(nullable=True)
+    position_status: pt.Series[pd.Int64Dtype] = pa.Field(
+        nullable=True,
+        isin=[member.value for member in XauExecutionStatus],
+    )
+
+    class Config:
+        coerce = False
+        strict = False
+        multiindex_ordered = False
+
+
 class ReferenceInput(DataFrameModel):
     trend_count: pt.Series[int] = Field(ge=0)
     trend_high_0: pt.Series[float] = Field(nullable=True)

@@ -16,6 +16,12 @@ from helper.date_utils import time_range_to_string
 from infrastructure.mt5.ohlcv import get_ohlcv
 from infrastructure.mt5.tick import get_ticks
 
+from .backtest import (
+    print_backtest_report,
+    run_vectorbt_backtest,
+    save_backtest_report,
+    save_backtest_trades,
+)
 from .reporting import (
     print_strategy_summary,
     save_results_to_file,
@@ -38,6 +44,10 @@ __all__ = [
     "generate_position_tracking_columns",
     "save_results_to_file",
     "print_strategy_summary",
+    "run_vectorbt_backtest",
+    "print_backtest_report",
+    "save_backtest_report",
+    "save_backtest_trades",
     "main",
     "build_merged_zones",
 ]
@@ -51,8 +61,9 @@ def cli(
     zones: Path = typer.Option(Path("ranges.zip"), help="Path to zones CSV file"),
     output: str = typer.Option("strategy_results.parquet", help="Path to output file"),
     debug: bool = typer.Option(False, "--debug", help="Enable debug mode"),
+    backtest: bool = typer.Option(True, "--backtest", help="Run vectorbt backtest report after strategy execution"),
 ) -> None:
-    asyncio.run(main(symbol=symbol, zones=zones, output=output, debug=debug))
+    asyncio.run(main(symbol=symbol, zones=zones, output=output, debug=debug, backtest=backtest))
 
 
 async def main(
@@ -60,6 +71,7 @@ async def main(
     zones: Path = Path("ranges.zip"),
     output: str = "strategy_results.parquet",
     debug: bool = False,
+    backtest: bool = False,
 ) -> None:
     output_format = Path(output).suffix.lstrip(".").lower()
     if output_format not in {"csv", "parquet"}:
@@ -104,6 +116,15 @@ async def main(
     )
 
     print_strategy_summary(result)
+
+    if backtest:
+        print("\n--- Running vectorbt backtest ---")
+        print_backtest_report(result)
+        portfolio = run_vectorbt_backtest(result)
+        backtest_output = Path(output).with_suffix(".backtest_stats.parquet")
+        save_backtest_report(portfolio, str(backtest_output))
+        trades_output = Path(output).with_suffix(".backtest_trades.parquet")
+        save_backtest_trades(portfolio, str(trades_output))
 
     print(f"\nExecution completed successfully. Results saved to {output}")
 

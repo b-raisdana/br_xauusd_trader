@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
-from br_py_log_n_profile import log_w, profile_it
-from br_py_log_n_profile.do_log.log_it import NOT_TESTED
+from br_py_log_n_profile import profile_it
 
 from application.xauusd_trading_strategy_1_vector.domain.schema import VectorbtBacktestInput
 from domain.xau_usd.enums import XauExecutionStatus
@@ -42,14 +42,17 @@ def _extract_signals(result: VectorbtBacktestInput) -> tuple[pd.Series, pd.Serie
     position_id = result["position_id"]
     position_status = result["position_status"]
 
+    previous_position_id = position_id.shift(1)
     is_new_position = (
-        position_id.notna() & position_status.eq(XauExecutionStatus.FILLED) & (position_id != position_id.shift(1))
+        position_id.notna()
+        & position_status.eq(XauExecutionStatus.FILLED)
+        & (previous_position_id.isna() | position_id.ne(previous_position_id).fillna(False)).astype(bool)
     )
-    entries = pd.Series(is_new_position.to_numpy(), index=close.index)
+    entries = pd.Series(is_new_position.to_numpy(dtype=bool, na_value=False), index=close.index)
 
     # Exits happen when a position is closed
     is_exit = position_status.eq(XauExecutionStatus.CLOSED)
-    exits = pd.Series(is_exit.to_numpy(), index=close.index)
+    exits = pd.Series(is_exit.to_numpy(dtype=bool, na_value=False), index=close.index)
 
     return close, entries, exits
 
@@ -80,15 +83,21 @@ def run_vectorbt_backtest(
     Returns:
         vectorbt Portfolio object with backtest results.
     """
-    log_w(NOT_TESTED)
+    # log_w(NOT_TESTED)
     close, entries, exits = _extract_signals(result)
+
+    import inspect
 
     import vectorbt as vbt
 
+    print(f"inspect.signature(vbt.Portfolio.from_signals):{inspect.signature(vbt.Portfolio.from_signals)}")
+    print(f"inspect.signature(vbt.Portfolio.from_order_func):{inspect.signature(vbt.Portfolio.from_order_func)}")
+
+    logging.getLogger("numba").setLevel(logging.WARNING)
     portfolio = vbt.Portfolio.from_signals(
-        close=close,
-        entries=entries,
-        exits=exits,
+        close=close.to_numpy(),
+        entries=entries.to_numpy(),
+        exits=exits.to_numpy(),
         init_cash=initial_cash,
         fees=fees,
         slippage=slippage,
@@ -109,7 +118,7 @@ def print_backtest_report(result: VectorbtBacktestInput) -> None:
     Args:
         result: DataFrame with strategy results (VectorbtBacktestInput schema).
     """
-    log_w(NOT_TESTED)
+    # log_w(NOT_TESTED)
     portfolio = run_vectorbt_backtest(result)
 
     print("\n=== Vectorbt Backtest Report ===")
@@ -166,7 +175,7 @@ def save_backtest_report(
         portfolio: vectorbt Portfolio object.
         output_file: Path to output file (.parquet or .csv).
     """
-    log_w(NOT_TESTED)
+    # log_w(NOT_TESTED)
     stats = portfolio.stats()
     stats_df = stats.to_frame("value")
     stats_df.index.name = "metric"
@@ -193,7 +202,7 @@ def save_backtest_trades(
         portfolio: vectorbt Portfolio object.
         output_file: Path to output file (.parquet or .csv).
     """
-    log_w(NOT_TESTED)
+    # log_w(NOT_TESTED)
     trades = portfolio.trades.records
 
     Path(output_file).parent.mkdir(parents=True, exist_ok=True)

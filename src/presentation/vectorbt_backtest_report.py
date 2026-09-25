@@ -29,7 +29,7 @@ app = typer.Typer()
 
 @app.command()
 async def generate_backtest_report(
-    in_parquest: Path | None = typer.Option(
+    in_parquet: Path | None = typer.Option(
         None,
         "--in-parquest",
         help="Path to ticks input parquet data file",
@@ -40,8 +40,8 @@ async def generate_backtest_report(
         help="Path to save the backtest report parquet",
     ),
 ) -> pd.DataFrame:
-    if not in_parquest:
-        ticks = pd.read_parquet(str(in_parquest))
+    if not in_parquet:
+        ticks = pd.read_parquet(str(in_parquet))
     else:
         ticks = get_ticks(yesterday())
     tick_sd = vbt.SyntheticData.from_data({"XAUUSD": ticks}, download_kwargs={})

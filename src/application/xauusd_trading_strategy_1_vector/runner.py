@@ -1,12 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
-
-from br_py_log_n_profile import log_w
-from br_py_log_n_profile.do_log.log_it import NOT_TESTED
-
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
-    PerTickBaseState,
     PositionTrackingResult,
     VectorizedCandleInput,
     VectorizedTickInput,
@@ -100,19 +94,20 @@ def run_vectorized_strategy(
         return final_result
 
 
-@pandera_validate
-def get_strategy_internal_state(strategy: VectorizedXauUsdStrategy) -> Optional[pt.DataFrame[PerTickBaseState]]:
-    """
-    Get the internal _per_tick_temp_state DataFrame from the strategy.
-
-    This is useful for debugging and inspection of the strategy's
-    internal state during processing.
-
-    Args:
-        strategy: VectorizedXauUsdStrategy instance
-
-    Returns:
-        Internal _per_tick_temp_state DataFrame (PerTickBaseState schema) or None if not available
-    """
-    log_w(NOT_TESTED)
-    return strategy._per_tick_temp_state
+#
+# @pandera_validate
+# def get_strategy_internal_state(strategy: VectorizedXauUsdStrategy) -> Optional[pt.DataFrame[PerTickBaseState]]:
+#     """
+#     Get the internal _per_tick_temp_state DataFrame from the strategy.
+#
+#     This is useful for debugging and inspection of the strategy's
+#     internal state during processing.
+#
+#     Args:
+#         strategy: VectorizedXauUsdStrategy instance
+#
+#     Returns:
+#         Internal _per_tick_temp_state DataFrame (PerTickBaseState schema) or None if not available
+#     """
+#     # log_w(NOT_TESTED)
+#     return strategy._per_tick_temp_state

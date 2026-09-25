@@ -12,7 +12,7 @@ from br_py_log_n_profile import log_e, log_exception
 from application.xauusd_trading_strategy_1_vector.zone_loader import load_zones_from_file
 from config import app_config
 from domain.xau_usd.zone import build_merged_zones
-from helper.date_utils import time_range_to_string
+from helper.date_utils import EPSILON_TIME, time_range_to_string
 from infrastructure.mt5.ohlcv import get_ohlcv
 from infrastructure.mt5.tick import get_ticks
 
@@ -25,14 +25,10 @@ from .result_processing import (
     generate_position_tracking_columns,
     merge_results_with_candles,
 )
-from .runner import (
-    get_strategy_internal_state,
-    run_vectorized_strategy,
-)
+from .runner import run_vectorized_strategy
 
 __all__ = [
     "run_vectorized_strategy",
-    "get_strategy_internal_state",
     "merge_results_with_candles",
     "generate_order_management_columns",
     "generate_position_tracking_columns",
@@ -82,12 +78,12 @@ async def main(
     if zones_df.empty:
         log_exception("Zone input must contain at least one day", ValueError)
     start = zones_df.index.get_level_values("date").min().normalize()
-    end = zones_df.index.get_level_values("date").max().normalize() + pd.Timedelta(days=1)
+    end = zones_df.index.get_level_values("date").max().normalize() + pd.Timedelta(hours=2) - EPSILON_TIME
     time_range_str = time_range_to_string(start=start, end=end)
     tick_data = await get_ticks(time_range_str=time_range_str, symbol=symbol)
     tick_times = tick_data.index.get_level_values("datetime")
 
-    out_of_boundary_ticks = tick_data.loc[~((tick_times >= start) & (tick_times < end))]
+    out_of_boundary_ticks = tick_data.loc[((tick_times < start) | (tick_times >= end))]
     assert out_of_boundary_ticks.empty
 
     if tick_data.empty:

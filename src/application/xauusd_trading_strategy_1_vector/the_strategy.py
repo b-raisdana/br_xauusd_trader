@@ -287,11 +287,11 @@ class VectorizedXauUsdStrategy:
 
         return per_tick_state
 
-    @profile_it
-    @pandera_validate(allow_pandas_dataframe=True)
-    def _update_trend(self, per_tick_state: pt.DataFrame[PerTickBaseState]) -> pt.DataFrame[PerTickBaseState]:
-        log_w(NOT_TESTED)
-        return update_trend(per_tick_state)
+    # @profile_it
+    # @pandera_validate(allow_pandas_dataframe=True)
+    # def _update_trend(self, per_tick_state: pt.DataFrame[PerTickBaseState]) -> pt.DataFrame[PerTickBaseState]:
+    #     # log_w(NOT_TESTED)
+    #     return update_trend(per_tick_state)
 
     @profile_it
     @pandera_validate(allow_pandas_dataframe=True)

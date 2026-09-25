@@ -8,6 +8,12 @@ def candles_from_ticks(tick_frame):
     keys = [key for key in ("broker", "symbol", "bar_time") if key in candle_ticks]
     return (
         candle_ticks.groupby(keys, sort=False)
-        .agg(open=("bid", "first"), high=("bid", "max"), low=("bid", "min"), close=("bid", "last"))
+        .agg(
+            open=("bid", "first"),
+            high=("bid", "max"),
+            low=("bid", "min"),
+            close=("bid", "last"),
+            volume=("bid", "size"),
+        )
         .reset_index()
     )

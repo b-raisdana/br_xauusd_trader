@@ -6,8 +6,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 import pandas as pd
-from br_py_log_n_profile import log_e, log_w
-from br_py_log_n_profile.do_log.log_it import NOT_TESTED
+from br_py_log_n_profile import log_e
 
 from application.xauusd_trading_strategy_1_vector.domain.schema import PositionTrackingResult
 from helper.importer import pt
@@ -19,7 +18,7 @@ def _json_default(value):
         return asdict(value)
     if isinstance(value, (datetime, date)):
         return value.isoformat()
-    log_w(NOT_TESTED)
+    # log_w(NOT_TESTED)
     log_e(f"Unsupported result value: {type(value).__name__}")
     raise TypeError(f"Unsupported result value: {type(value).__name__}")
 
@@ -37,7 +36,7 @@ def save_results_to_file(
         output_file: Path to output file
         format: Output format ('csv' or 'parquet')
     """
-    log_w(NOT_TESTED)
+    # log_w(NOT_TESTED)
     result_reset = result.reset_index()
     for column in result_reset.select_dtypes(include="object", exclude="str"):
         result_reset[column] = result_reset[column].map(
@@ -65,7 +64,7 @@ def print_strategy_summary(result: pd.DataFrame) -> None:
     Args:
         result: DataFrame with strategy results (PositionTrackingResult schema)
     """
-    log_w(NOT_TESTED)
+    # log_w(NOT_TESTED)
     print("\n=== Strategy Execution Summary ===")
 
     # Basic statistics

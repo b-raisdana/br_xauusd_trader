@@ -162,16 +162,17 @@ class OrderInput(TickMultiBrokerSymbolTimeseries):
 class StrategyResultWithCandles(StrategyResult):
     """Strategy result merged with candle context."""
 
-    candle_open: pt.Series[float] = Field(nullable=True)
-    candle_high: pt.Series[float] = Field(nullable=True)
-    candle_low: pt.Series[float] = Field(nullable=True)
-    candle_close: pt.Series[float] = Field(nullable=True)
-    candle_volume: pt.Series[float] = Field(nullable=True)
+    candle_close: pt.Series[float] = Field(default=None, nullable=True)
+    candle_high: pt.Series[float] = Field(default=None, nullable=True)
+    candle_low: pt.Series[float] = Field(default=None, nullable=True)
+    candle_open: pt.Series[float] = Field(default=None, nullable=True)
+    candle_volume: pt.Series[float] = Field(default=None, nullable=True)
 
     class Config:
         coerce = False
         strict = False
         multiindex_ordered = False
+        add_missing_columns = True
 
 
 class OrderManagementResult(OrderInput):

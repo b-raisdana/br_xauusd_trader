@@ -9,7 +9,6 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from br_py_log_n_profile import profile_it
-from br_py_log_n_profile.do_log.log_it import NOT_TESTED, log_w
 
 from application.xauusd_trading_strategy_1_vector.config.core_vectors import CoreVectors
 from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickBaseState, ReferenceInput, ReferenceResult
@@ -34,7 +33,7 @@ def compute_bar_time(datetime_series: pt.Series[pd.Timestamp]) -> pt.Series[pd.T
 @pandera_validate(allow_pandas_dataframe=True)
 def compute_reference_high(tick_state_row: pd.Series) -> float:
     """Compute reference high from trend history for a single row."""
-    log_w(NOT_TESTED)
+    # log_w(NOT_TESTED)
     max_points = _get_trend_max_points()
     count = int(tick_state_row["trend_count"])
     if count == 0:
@@ -48,7 +47,7 @@ def compute_reference_high(tick_state_row: pd.Series) -> float:
 @pandera_validate(allow_pandas_dataframe=True)
 def compute_reference_low(tick_state_row: pd.Series) -> float:
     """Compute reference low from trend history for a single row."""
-    log_w(NOT_TESTED)
+    # log_w(NOT_TESTED)
     max_points = _get_trend_max_points()
     count = int(tick_state_row["trend_count"])
     if count == 0:

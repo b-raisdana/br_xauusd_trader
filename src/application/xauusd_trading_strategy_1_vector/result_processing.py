@@ -52,7 +52,10 @@ def merge_results_with_candles(
     merged = ticks.merge(candles, on=keys, how="left", sort=False, validate="many_to_one")
     output = result.copy()
     context = [f"candle_{column}" for column in payload]
-    output[context] = merged[context].to_numpy()
+    for column in context:
+        output[column] = merged[column].to_numpy()
+    if "candle_volume" not in output.columns:
+        output["candle_volume"] = float("nan")
 
     return output
 
@@ -115,9 +118,6 @@ def generate_position_tracking_columns(
         id_prefix="POS",
         order_status_col="order_status",
     )
-    for column in output.columns:
-        if output[column].dtype.kind in "iuf":
-            output[column] = output[column].astype(object).where(output[column].notna(), None)
     return output
 
 

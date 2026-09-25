@@ -1,5 +1,4 @@
 import numba
-import vectorbt as vbt
 
 
 def test_vectorbt_and_numba_are_active():
@@ -8,4 +7,7 @@ def test_vectorbt_and_numba_are_active():
         return value + 1
 
     assert increment(1) == 2
+
+    import vectorbt as vbt
+
     assert vbt.__version__

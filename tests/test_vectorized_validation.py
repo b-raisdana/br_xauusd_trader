@@ -4,12 +4,37 @@ import pytest
 from pandera.errors import SchemaErrors
 from vectorized_fixtures import candles_from_ticks
 
-from application.xauusd_trading_strategy_1_vector.domain.schema import EngagementResult, ReferenceResult, StrategyResult
+from application.xauusd_trading_strategy_1_vector.domain.schema import (
+    EngagementResult,
+    PositionTrackingResult,
+    ReferenceResult,
+    StrategyResult,
+)
 from application.xauusd_trading_strategy_1_vector.engagement import update_zone_engagement
+from application.xauusd_trading_strategy_1_vector.runner import run_vectorized_strategy
 from application.xauusd_trading_strategy_1_vector.the_strategy import VectorizedXauUsdStrategy
 from application.xauusd_trading_strategy_1_vector.trend import compute_references
 from helper.importer import pt
 from helper.pandera import pandera_validate
+
+
+@pytest.mark.parametrize("debug", [False, True])
+def test_runner_preserves_position_tracking_dtypes(debug):
+    ticks = market_frame()
+    zones = pd.DataFrame(
+        {"lower": [2000.0], "upper": [2001.0], "priority": ["high"], "enabled": [True]},
+        index=pd.MultiIndex.from_arrays(
+            [["15min"], pd.DatetimeIndex(["2026-09-18"], tz="UTC").as_unit("ns")],
+            names=["timeframe", "date"],
+        ),
+    )
+    result = run_vectorized_strategy(ticks, candles_from_ticks(ticks), zones, debug=debug)
+    PositionTrackingResult.validate(result, lazy=True)
+    for column, schema in PositionTrackingResult.to_schema().columns.items():
+        if str(schema.dtype) in {"Int64", "float64"}:
+            assert str(result[column].dtype) == str(schema.dtype)
+    assert result.order_type.isna().all()
+    assert result.position_size.isna().all()
 
 
 class EmptyZones:

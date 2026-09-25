@@ -30,7 +30,7 @@ class EmptyZones:
 
 
 def ticks(times, bids, broker="test", symbol="XAUUSD"):
-    times = pd.DatetimeIndex(pd.to_datetime(times, utc=True))
+    times = pd.DatetimeIndex(pd.to_datetime(times, utc=True)).as_unit("ns")
     index = pd.MultiIndex.from_arrays(
         [[broker] * len(times), [symbol] * len(times), times, times.normalize()],
         names=["broker", "symbol", "datetime", "date"],
@@ -177,7 +177,10 @@ def test_ids_are_assigned_by_row_even_with_duplicate_timestamps():
     orders["order_status"] = ["FILLED", None, None, "FILLED"]
     positions = generate_position_tracking_columns(orders)
     assert positions.position_id.tolist() == ["POS-000001", None, None, "POS-000002"]
-    assert positions.position_current_price.tolist() == [100, None, None, 103]
+    pd.testing.assert_series_equal(
+        positions.position_current_price,
+        pd.Series([100.0, float("nan"), float("nan"), 103.0], index=frame.index, name="position_current_price"),
+    )
     assert positions.position_time.iloc[0] == frame.index[0][2]
 
 

@@ -11,10 +11,16 @@ import pandas as pd
 from br_py_log_n_profile import profile_it
 from br_py_log_n_profile.do_log.log_it import NOT_TESTED, log_w
 
+from application.xauusd_trading_strategy_1_vector.config.core_vectors import load_core_vectors
 from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickBaseState, ReferenceInput, ReferenceResult
 from domain.xau_usd.enums import XauTrend
 from helper.importer import pt
 from helper.pandera import pandera_validate
+
+
+def _get_trend_max_points() -> int:
+    """Get the maximum number of trend points from config."""
+    return load_core_vectors().vec_trend_max_points
 
 
 @pandera_validate(allow_pandas_dataframe=True)
@@ -29,53 +35,43 @@ def compute_bar_time(datetime_series: pt.Series[pd.Timestamp]) -> pt.Series[pd.T
 def compute_reference_high(tick_state_row: pd.Series) -> float:
     """Compute reference high from trend history for a single row."""
     log_w(NOT_TESTED)
+    max_points = _get_trend_max_points()
     count = int(tick_state_row["trend_count"])
     if count == 0:
         return 0.0
     if count == 1:
         return float(tick_state_row["trend_high_0"])
-    if count == 2:
-        return max(float(tick_state_row["trend_high_0"]), float(tick_state_row["trend_high_1"]))
-    return max(
-        float(tick_state_row["trend_high_0"]),
-        float(tick_state_row["trend_high_1"]),
-        float(tick_state_row["trend_high_2"]),
-    )
+    values = [float(tick_state_row[f"trend_high_{i}"]) for i in range(min(count, max_points))]
+    return max(values)
 
 
 @pandera_validate(allow_pandas_dataframe=True)
 def compute_reference_low(tick_state_row: pd.Series) -> float:
     """Compute reference low from trend history for a single row."""
     log_w(NOT_TESTED)
+    max_points = _get_trend_max_points()
     count = int(tick_state_row["trend_count"])
     if count == 0:
         return 0.0
     if count == 1:
         return float(tick_state_row["trend_low_0"])
-    if count == 2:
-        return min(float(tick_state_row["trend_low_0"]), float(tick_state_row["trend_low_1"]))
-    return min(
-        float(tick_state_row["trend_low_0"]),
-        float(tick_state_row["trend_low_1"]),
-        float(tick_state_row["trend_low_2"]),
-    )
+    values = [float(tick_state_row[f"trend_low_{i}"]) for i in range(min(count, max_points))]
+    return min(values)
 
 
 @pandera_validate(inplace=True)
 def compute_references(per_tick_state: pt.DataFrame[ReferenceInput]) -> pt.DataFrame[ReferenceResult]:
     """Populate reference_high and reference_low columns on the per-tick DataFrame."""
 
+    max_points = _get_trend_max_points()
     counts = per_tick_state["trend_count"].to_numpy(dtype=np.int64)
     for side, compare in (("high", np.greater), ("low", np.less)):
-        first = per_tick_state[f"trend_{side}_0"].to_numpy(dtype=float)
-        second = per_tick_state[f"trend_{side}_1"].to_numpy(dtype=float)
-        third = per_tick_state[f"trend_{side}_2"].to_numpy(dtype=float)
-        # Ordered comparisons retain Python max/min behavior for ties and NaNs.
-        first_two = np.where(compare(second, first), second, first)
-        first_three = np.where(compare(third, first_two), third, first_two)
-        per_tick_state[f"reference_{side}"] = np.where(
-            counts == 0, 0.0, np.where(counts == 1, first, np.where(counts == 2, first_two, first_three))
-        )
+        trend_arrays = [per_tick_state[f"trend_{side}_{i}"].to_numpy(dtype=float) for i in range(max_points)]
+        reduced = trend_arrays[0]
+        # Ignore unused slots; ordered comparisons preserve scalar ties and NaNs.
+        for i, arr in enumerate(trend_arrays[1:], start=1):
+            reduced = np.where((counts > i) & compare(arr, reduced), arr, reduced)
+        per_tick_state[f"reference_{side}"] = np.where(counts == 0, 0.0, reduced)
     return per_tick_state
 
 

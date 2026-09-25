@@ -1,5 +1,21 @@
 # گزارش جامع نتایج تست MVP
 
+## Pre-commit repair — 2026-09-25
+
+The staged trend refactor included unused history slots in reference extrema, causing 11 failures out of 131 tests. Masking each comparison by `trend_count` restores scalar parity while retaining configurable history length and ordered NaN/tie behavior. Existing unused-slot and floating-point regression tests pass (14 targeted cases); the complete `pre-commit run` passes Ruff lint, Ruff format, pytest, and incremental ratchet. No tests or checks were disabled.
+
+Use the installed Git-hook environment for manual runs in PowerShell:
+
+```powershell
+$env:PATH = 'C:\Code\.venv-pandas-shared\Scripts;' + $env:PATH
+$env:BR_PRE_COMMIT_REPO_ROOT = "$PWD\br_pre_commit"
+$env:USER_REPO_ROOT = "$PWD"
+$env:PYTHONPATH = "$PWD\br_pre_commit\src"
+python -m pre_commit run
+```
+
+Global Python 3.14 lacks project dependencies and ratchet environment settings; it is not the installed hook's Python 3.12 environment. Earlier blocker reports below are historical. This repair does not provide new MT5 or deployment acceptance evidence.
+
 ## Vectorized pullback completion ? 2026-09-24
 
 Candidate generation reuses the scalar pullback evaluator and window type. It covers 0.20 penetration, pending-stop edge entry, retries, five observed bars, independent broker/symbol streams, day rollover, and Normal/High usage through optional execution feedback; no signal is counted as a fill. The feedback contract is documented in `src/application/xauusd_trading_strategy_1_vector/README.md`. Action execution remains outside this change.

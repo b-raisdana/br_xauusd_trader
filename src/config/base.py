@@ -38,6 +38,9 @@ class BaseConfig(BaseSettings):
         if not dump_filename.exists():
             dump_filename.write_text(config_as_json, encoding="utf-8")
 
+        if self.model_config.get("frozen"):
+            return self.model_copy(update={"id": config_digest})
+
         self.id = config_digest
         return self
 

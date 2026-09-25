@@ -84,5 +84,6 @@
   "vec_causal_reference_high": 100,
   "vec_causal_reference_low": 90,
   "vec_causal_previous": 99,
-  "vec_causal_bid": 101
+  "vec_causal_bid": 101,
+  "vec_trend_max_points": 3
 }

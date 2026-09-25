@@ -19,6 +19,7 @@ class StrategyConfig(BaseContextConfig):
         validate_assignment=True,
     )
     max_time_basis_probe: int = 5
+    breakout_buffer_usd: float = 1.0
 
 
 strategy_config = StrategyConfig().log()

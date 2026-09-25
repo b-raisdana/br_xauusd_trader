@@ -1,6 +1,6 @@
 import MetaTrader5 as mt5
 import pandas as pd
-from br_py_log_n_profile import log_exception
+from br_py_log_n_profile import log_exception, profile_it
 
 from domain.schemas.common.ohlcv import MultiTimeframeTicksSpreadOHLC
 from helper.date_utils import normalize_timeframes, time_range
@@ -10,6 +10,7 @@ from infrastructure.mt5.conversion import timeframe_to_mt5
 from infrastructure.mt5.symbol import verify_symbol
 
 
+@profile_it
 @pandera_validate
 async def get_ohlcv(symbol: str, time_range_str: str, timeframe: str) -> pt.DataFrame[MultiTimeframeTicksSpreadOHLC]:
     timeframe = normalize_timeframes((timeframe,))[0]

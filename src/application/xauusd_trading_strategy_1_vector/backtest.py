@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
-from br_py_log_n_profile import profile_it
+from br_py_log_n_profile import log_d, profile_it
 
 from application.xauusd_trading_strategy_1_vector.domain.schema import VectorbtBacktestInput
 from domain.xau_usd.enums import XauExecutionStatus
@@ -87,11 +87,22 @@ def run_vectorbt_backtest(
     close, entries, exits = _extract_signals(result)
 
     import inspect
+    import os
+
+    log_d(f"MPLBACKEND ={os.environ.get('MPLBACKEND')}")
+    os.environ.setdefault("MPLBACKEND", "Agg")
+    log_d(f"after defaulting MPLBACKEND ={os.environ.get('MPLBACKEND')}")
+
+    # import matplotlib
+    # log_d("matplotlib backend =", matplotlib.get_backend())
+    # log_d("matplotlib config =", matplotlib.matplotlib_fname())
+
+    log_d("Now we try to import vectorbt as vbt")
 
     import vectorbt as vbt
 
-    print(f"inspect.signature(vbt.Portfolio.from_signals):{inspect.signature(vbt.Portfolio.from_signals)}")
-    print(f"inspect.signature(vbt.Portfolio.from_order_func):{inspect.signature(vbt.Portfolio.from_order_func)}")
+    log_d(f"inspect.signature(vbt.Portfolio.from_signals):{inspect.signature(vbt.Portfolio.from_signals)}")
+    log_d(f"inspect.signature(vbt.Portfolio.from_order_func):{inspect.signature(vbt.Portfolio.from_order_func)}")
 
     logging.getLogger("numba").setLevel(logging.WARNING)
     portfolio = vbt.Portfolio.from_signals(

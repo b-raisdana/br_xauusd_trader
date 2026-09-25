@@ -22,6 +22,7 @@ def _get_trend_max_points() -> int:
     return CoreVectors.current().vec_trend_max_points
 
 
+@profile_it
 @pandera_validate(allow_pandas_dataframe=True)
 def compute_bar_time(datetime_series: pt.Series[pd.Timestamp]) -> pt.Series[pd.Timestamp]:
     """Floor datetime to 15-minute intervals (PERIOD_M15)."""
@@ -30,6 +31,7 @@ def compute_bar_time(datetime_series: pt.Series[pd.Timestamp]) -> pt.Series[pd.T
     return datetime_series.dt.floor("15min")
 
 
+@profile_it
 @pandera_validate(allow_pandas_dataframe=True)
 def compute_reference_high(tick_state_row: pd.Series) -> float:
     """Compute reference high from trend history for a single row."""

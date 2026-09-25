@@ -1,7 +1,7 @@
 import asyncio
 
 import MetaTrader5 as mt5
-from br_py_log_n_profile import log_exception
+from br_py_log_n_profile import log_exception, profile_it
 
 from domain.schemas import tick
 from helper.date_utils import time_range, yesterday
@@ -10,6 +10,7 @@ from helper.pandera import pandera_validate
 from infrastructure.mt5.symbol import verify_symbol
 
 
+@profile_it
 # @duckdb_cache(DatastoreRegistry.Tick, nan_means='not-cached', freqs=('1s',))
 @pandera_validate
 async def get_ticks(

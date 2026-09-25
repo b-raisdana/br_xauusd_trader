@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 import typer
-from br_py_log_n_profile import log_e, log_exception
+from br_py_log_n_profile import log_e, log_exception, profile_it
 
 from application.xauusd_trading_strategy_1_vector.zone_loader import load_zones_from_file
 from config import app_config
@@ -52,6 +52,7 @@ def cli(
     asyncio.run(main(symbol=symbol, zones=zones, output=output, debug=debug, backtest=backtest))
 
 
+@profile_it
 async def main(
     symbol: str = app_config.default_symbol,
     zones: Path = Path("ranges.zip"),
@@ -66,14 +67,14 @@ async def main(
     print("Loading data ...")
 
     zones_df = await load_zones_from_file(zones)
-    datetime_of_first_zone = zones_df.index.get_level_values("date")[0]
-    next_day_after_first_zone = zones_df.index.get_level_values("date")[0] + pd.Timedelta(days=1)
-    zones_df = zones_df[
-        (
-            (datetime_of_first_zone <= zones_df.index.get_level_values("date"))
-            & (zones_df.index.get_level_values("date") < next_day_after_first_zone)
-        )
-    ]
+    # datetime_of_first_zone = zones_df.index.get_level_values("date")[0]
+    # next_day_after_first_zone = zones_df.index.get_level_values("date")[0] + pd.Timedelta(days=1)
+    # zones_df = zones_df[
+    #     (
+    #         (datetime_of_first_zone <= zones_df.index.get_level_values("date"))
+    #         & (zones_df.index.get_level_values("date") < next_day_after_first_zone)
+    #     )
+    # ]
 
     if zones_df.empty:
         log_exception("Zone input must contain at least one day", ValueError)

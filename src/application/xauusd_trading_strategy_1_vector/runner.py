@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from br_py_log_n_profile import profile_it
+
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
     PositionTrackingResult,
     VectorizedCandleInput,
@@ -21,6 +23,7 @@ from .the_strategy import VectorizedXauUsdStrategy
 from .zone_cache import ZoneCache
 
 
+@profile_it
 @pandera_validate
 def run_vectorized_strategy(
     tick_df: pt.DataFrame[VectorizedTickInput],

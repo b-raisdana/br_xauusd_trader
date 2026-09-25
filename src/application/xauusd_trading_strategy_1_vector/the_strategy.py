@@ -5,7 +5,7 @@ from typing import List, Optional
 import numpy as np
 import pandas as pd
 from br_py_log_n_profile import log_e, profile_it
-from br_py_log_n_profile.do_log.log_it import NOT_TESTED, log_w
+from br_py_log_n_profile.do_log.log_it import NOT_TESTED, log_d, log_w
 
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
     BarInput,
@@ -119,6 +119,7 @@ class VectorizedXauUsdStrategy:
     ) -> pt.DataFrame[PerTickBaseState]:
         """Initialize tick inputs, intermediate fields and output columns."""
         per_tick_state = tick_df.copy()
+        log_d("tick_df.copy() placed in per_tick_state")
 
         # Derived time columns
         per_tick_state["bar_time"] = compute_bar_time(per_tick_state.index.get_level_values("datetime"))

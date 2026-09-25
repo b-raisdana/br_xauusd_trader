@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pandas as pd
+from br_py_log_n_profile import profile_it
 
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
     OrderInput,
@@ -16,6 +17,7 @@ from helper.importer import pt
 from helper.pandera import pandera_validate
 
 
+@profile_it
 @pandera_validate
 def merge_results_with_candles(
     result: pt.DataFrame[StrategyResult],
@@ -60,6 +62,7 @@ def merge_results_with_candles(
     return output
 
 
+@profile_it
 @pandera_validate
 def generate_order_management_columns(
     result: pt.DataFrame[OrderInput],
@@ -95,6 +98,7 @@ def _normalize_order_status(result):
     return result
 
 
+@profile_it
 def generate_position_tracking_columns(
     result: pt.DataFrame[PositionInput],
 ) -> pt.DataFrame[PositionTrackingResult]:

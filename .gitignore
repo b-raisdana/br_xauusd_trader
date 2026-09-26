@@ -1,3 +1,4 @@
+
 # Secrets
 .env
 .env
@@ -47,6 +48,7 @@ data/vendor/
 # MT5 local/generated
 *.ex5
 *.log
+
 tester/cache/
 tester/logs/
 
@@ -57,3 +59,6 @@ dist/
 .kilo/*
 !.kilo/skills/
 !.kilo/skills/**
+
+
+!/docs/todo/vectorized-performance-optimization.reference.log

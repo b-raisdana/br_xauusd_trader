@@ -28,6 +28,68 @@ from helper.pandera import pandera_validate
 PULLBACK_WINDOW_BARS = 5
 
 
+@profile_it
+def _create_reversal_candidate(
+    bar_id: str,
+    zone: XauZone,
+    direction: XauDirection,
+    tick_time,
+    entry_price: float,
+) -> XauSignalCandidate:
+    """Create a reversal signal candidate."""
+    key = f"{bar_id}:R:{zone.id}:{direction.value}"
+    return XauSignalCandidate(
+        candidate_id=key,
+        bar_id=bar_id,
+        zone_id=zone.id,
+        family=XauSignalFamily.REVERSAL,
+        direction=direction,
+        order_type=XauOrderType.MARKET,
+        signal_time=tick_time.to_pydatetime() if tick_time is not None else None,
+        entry_price=entry_price,
+    )
+
+
+@profile_it
+def _process_zone_reversals(
+    per_tick_state: pt.DataFrame[ReversalInput],
+    zone: XauZone,
+    signals: np.ndarray,
+    seen_keys: set,
+    bar_id: np.ndarray,
+    tick_times,
+    current_bid: np.ndarray,
+    current_trend: np.ndarray,
+    multi_zone_gap: np.ndarray,
+    previous_bid: np.ndarray,
+) -> None:
+    """Process reversal signals for a single zone."""
+    sell_reversal = (
+        (current_trend == XauTrend.UP.value) & (~multi_zone_gap) & (previous_bid < zone.low) & (current_bid >= zone.low)
+    )
+    buy_reversal = (
+        (current_trend == XauTrend.DOWN.value)
+        & (~multi_zone_gap)
+        & (previous_bid > zone.high)
+        & (current_bid <= zone.high)
+    )
+    for mask, direction in ((sell_reversal, XauDirection.SELL), (buy_reversal, XauDirection.BUY)):
+        for row in np.flatnonzero(mask.to_numpy()):
+            key = f"{bar_id[row]}:R:{zone.id}:{direction.value}"
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            signals[row] += (
+                _create_reversal_candidate(
+                    bar_id=bar_id[row],
+                    zone=zone,
+                    direction=direction,
+                    tick_time=tick_times[row] if tick_times is not None else None,
+                    entry_price=float(current_bid.iloc[row]),
+                ),
+            )
+
+
 def _find_bar_boundaries(per_tick_state: pt.DataFrame[PerTickBaseState]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Find bar change boundaries."""
 
@@ -125,6 +187,44 @@ def _update_pullback_columns(
 
 
 @profile_it
+def _register_breakout(
+    per_tick_state: pt.DataFrame[PerTickBaseState],
+    signals: np.ndarray[SignalCandidatesTuple],
+    windows: np.ndarray[PullbackWindowsTuple],
+    counts: np.ndarray,
+    latest_windows: dict,
+    opened_windows: dict,
+    tick_bar_ids: np.ndarray,
+    prices: np.ndarray,
+    sequence: int,
+    row: int,
+    zone: XauZone,
+    zone_number: int,
+    direction: XauDirection,
+) -> None:
+    """Emit a breakout candidate and open its pullback window when outside the cooldown."""
+    close_row = row - 1
+    breakout_id = f"BO{sequence}"
+
+    candidate = _create_breakout_candidate(per_tick_state, row, close_row, zone, direction, sequence, prices)
+    signals[row] += (candidate,)
+    counts[row] += 1
+
+    key = (zone_number, direction)
+    previous_bar = latest_windows.get(key)
+
+    if previous_bar is not None and tick_bar_ids[close_row] - previous_bar <= PULLBACK_WINDOW_BARS:
+        return
+
+    pullback_window_state = XauPullbackWindowState()
+    create_pullback_window(pullback_window_state, breakout_id, zone, direction)
+    pullback_window_state.bar_offset = 1
+    windows[row] += (pullback_window_state,)
+    latest_windows[key] = tick_bar_ids[close_row]
+    opened_windows.setdefault(key, []).append((row, breakout_id))
+
+
+@profile_it
 @pandera_validate(allow_pandas_dataframe=True)
 def generate_breakout_signals(
     per_tick_state: pt.DataFrame[PerTickBaseState],
@@ -153,26 +253,21 @@ def generate_breakout_signals(
     counts = np.zeros(size, dtype=np.int64)
 
     for sequence, (row, zone_number, direction) in enumerate(records, start=1):
-        zone = zones[zone_number]
-        close_row = row - 1
-        breakout_id = f"BO{sequence}"
-
-        candidate = _create_breakout_candidate(per_tick_state, row, close_row, zone, direction, sequence, prices)
-        signals[row] += (candidate,)
-        counts[row] += 1
-
-        key = (zone_number, direction)
-        previous_bar = latest_windows.get(key)
-
-        if previous_bar is not None and tick_bar_ids[close_row] - previous_bar <= PULLBACK_WINDOW_BARS:
-            continue
-
-        pullback_window_state = XauPullbackWindowState()
-        create_pullback_window(pullback_window_state, breakout_id, zone, direction)
-        pullback_window_state.bar_offset = 1
-        windows[row] += (pullback_window_state,)
-        latest_windows[key] = tick_bar_ids[close_row]
-        opened_windows.setdefault(key, []).append((row, breakout_id))
+        _register_breakout(
+            per_tick_state,
+            signals,
+            windows,
+            counts,
+            latest_windows,
+            opened_windows,
+            tick_bar_ids,
+            prices,
+            sequence,
+            row,
+            zones[zone_number],
+            zone_number,
+            direction,
+        )
 
     _update_pullback_columns(per_tick_state, zones, opened_windows, tick_bar_ids, size)
 
@@ -208,42 +303,24 @@ def generate_reversal_signals(
     current_bid = per_tick_state["bid"]
     current_trend = per_tick_state["trend"]
     multi_zone_gap = per_tick_state["multi_zone_tick_gap"]
-    bar_id = per_tick_state["bar_time"].astype(str)
+    bar_id = per_tick_state["bar_time"].astype(str).to_numpy()
 
     seen_keys = set()
     tick_times = per_tick_state.index.get_level_values("datetime") if "datetime" in per_tick_state.index.names else None
 
     for zone in zones:
-        sell_reversal = (
-            (current_trend == XauTrend.UP.value)
-            & (~multi_zone_gap)
-            & (previous_bid < zone.low)
-            & (current_bid >= zone.low)
+        _process_zone_reversals(
+            per_tick_state=per_tick_state,
+            zone=zone,
+            signals=signals,
+            seen_keys=seen_keys,
+            bar_id=bar_id,
+            tick_times=tick_times,
+            current_bid=current_bid,
+            current_trend=current_trend,
+            multi_zone_gap=multi_zone_gap,
+            previous_bid=previous_bid,
         )
-        buy_reversal = (
-            (current_trend == XauTrend.DOWN.value)
-            & (~multi_zone_gap)
-            & (previous_bid > zone.high)
-            & (current_bid <= zone.high)
-        )
-        for mask, direction in ((sell_reversal, XauDirection.SELL), (buy_reversal, XauDirection.BUY)):
-            for row in np.flatnonzero(mask.to_numpy()):
-                key = f"{bar_id.iloc[row]}:R:{zone.id}:{direction.value}"
-                if key in seen_keys:
-                    continue
-                seen_keys.add(key)
-                signals[row] += (
-                    XauSignalCandidate(
-                        candidate_id=key,
-                        bar_id=bar_id.iloc[row],
-                        zone_id=zone.id,
-                        family=XauSignalFamily.REVERSAL,
-                        direction=direction,
-                        order_type=XauOrderType.MARKET,
-                        signal_time=tick_times[row].to_pydatetime() if tick_times is not None else None,
-                        entry_price=float(current_bid.iloc[row]),
-                    ),
-                )
 
     per_tick_state["reversal_signals"] = signals
 

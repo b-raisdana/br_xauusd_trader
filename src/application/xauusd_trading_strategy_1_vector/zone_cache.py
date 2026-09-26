@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 
 import pandas as pd
+from br_py_log_n_profile import profile_it
 
 from domain.schemas.zone import Zone
 from domain.xau_usd.models import XauZone
@@ -26,6 +27,7 @@ class ZoneCache:
             ]
             self._cached_zones[day] = build_merged_zones(raw, day)
 
+    @profile_it
     def get_zones_for_day(self, broker_day: str) -> list[XauZone]:
         day = pd.Timestamp(broker_day).strftime("%Y-%m-%d")
         return deepcopy(self._cached_zones.get(day, []))

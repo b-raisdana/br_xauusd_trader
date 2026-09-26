@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from br_py_log_n_profile import profile_it
+from br_py_log_n_profile import log_d, profile_it
 
 from application.xauusd_trading_strategy_1_vector.config.core_vectors import CoreVectors
 from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickBaseState, ReferenceInput, ReferenceResult
@@ -60,6 +60,23 @@ def compute_reference_low(tick_state_row: pd.Series) -> float:
     return min(values)
 
 
+@profile_it
+def _reduce_trend_arrays(trend_arrays: list[np.ndarray], counts: np.ndarray, compare) -> np.ndarray:
+    """Reduce per-point trend arrays to a single reference array.
+
+    For each slot i (starting at 1), the value at slot i replaces the
+    running reduced value where counts > i and compare(arr, reduced)
+    is true. Slots beyond the configured max_points are ignored;
+    ordered comparisons preserve scalar ties and NaNs.
+    """
+    reduced = trend_arrays[0]
+    log_d(f"_reduce_trend_arrays loops for {len(trend_arrays[1:])} times.")
+    for i, arr in enumerate(trend_arrays[1:], start=1):
+        reduced = np.where((counts > i) & compare(arr, reduced), arr, reduced)
+    return reduced
+
+
+@profile_it
 @pandera_validate(inplace=True)
 def compute_references(per_tick_state: pt.DataFrame[ReferenceInput]) -> pt.DataFrame[ReferenceResult]:
     """Populate reference_high and reference_low columns on the per-tick DataFrame."""
@@ -68,10 +85,7 @@ def compute_references(per_tick_state: pt.DataFrame[ReferenceInput]) -> pt.DataF
     counts = per_tick_state["trend_count"].to_numpy(dtype=np.int64)
     for side, compare in (("high", np.greater), ("low", np.less)):
         trend_arrays = [per_tick_state[f"trend_{side}_{i}"].to_numpy(dtype=float) for i in range(max_points)]
-        reduced = trend_arrays[0]
-        # Ignore unused slots; ordered comparisons preserve scalar ties and NaNs.
-        for i, arr in enumerate(trend_arrays[1:], start=1):
-            reduced = np.where((counts > i) & compare(arr, reduced), arr, reduced)
+        reduced = _reduce_trend_arrays(trend_arrays, counts, compare)
         per_tick_state[f"reference_{side}"] = np.where(counts == 0, 0.0, reduced)
     return per_tick_state
 

@@ -105,3 +105,16 @@ The current source is research-only and inert. The compile script accepts a path
 ## Troubleshooting
 
 Record only recurring operational fixes, not one-off debug chatter.
+
+## Vector strategy checks on Windows
+
+Use the active Python environment. The September 26, 2026 review used Python 3.14 with `numba`, `vectorbt`, `MetaTrader5`, `async-lru`, and `mypy` installed; these were missing initially. The ratchet invokes console scripts directly and requires both repository roots:
+
+```powershell
+$env:Path = (python -c "import sysconfig; print(sysconfig.get_path('scripts'))") + ';' + $env:Path
+$env:BR_PRE_COMMIT_REPO_ROOT = Join-Path (Get-Location) 'br_pre_commit'
+$env:USER_REPO_ROOT = (Get-Location).Path
+python -m pre_commit run
+```
+
+`python -m pytest -n 4` runs the complete test suite. `tests/test_vectorized_tick_separation.py` runs the signal/replay pipelines, verifies input preservation and independent symbols, and exercises the command entry point through Parquet output using synthetic fetches. It does not connect to a terminal or place live orders.

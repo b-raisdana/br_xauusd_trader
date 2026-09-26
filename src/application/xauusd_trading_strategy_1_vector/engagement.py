@@ -12,7 +12,12 @@ import numpy as np
 import pandas as pd
 from br_py_log_n_profile import profile_it
 
-from application.xauusd_trading_strategy_1_vector.domain.schema import EngagementInput, EngagementResult
+# from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
+from application.xauusd_trading_strategy_1_vector.domain.schema import (
+    # EngagementInput,
+    EngagementResult,
+    MarketBarInput,
+)
 from domain.xau_usd.models import XauZone
 from helper.importer import pt
 from helper.pandera import pandera_validate
@@ -42,7 +47,8 @@ def count_directional_crosses_vectorized(
 @profile_it
 @pandera_validate(inplace=True)
 def update_zone_engagement(
-    per_tick_state: pt.DataFrame[EngagementInput],
+    ticks: pt.DataFrame[MarketBarInput],
+    per_tick_state: pt.DataFrame[EngagementResult],  # EngagementInput],
     zones: List[XauZone],
 ) -> pt.DataFrame[EngagementResult]:
     """Update buy/sell engagement based on bid movement across zone boundaries.
@@ -52,12 +58,12 @@ def update_zone_engagement(
     set incrementally only when not already engaged.
     """
 
-    bar_changed = per_tick_state["bar_time"].ne(per_tick_state["bar_time"].shift()).to_numpy()
+    bar_changed = ticks["bar_time"].ne(ticks["bar_time"].shift()).to_numpy()
     bar_ids = bar_changed.cumsum()
-    current_bid = per_tick_state["bid"].to_numpy()
-    previous_bid = np.where(bar_changed, current_bid, per_tick_state["bid"].shift())
+    current_bid = ticks["bid"].to_numpy()
+    previous_bid = np.where(bar_changed, current_bid, ticks["bid"].shift())
     crosses = count_directional_crosses_vectorized(
-        zones, pd.Series(previous_bid, index=per_tick_state.index), per_tick_state["bid"]
+        zones, pd.Series(previous_bid, index=per_tick_state.index), ticks["bid"]
     )
     multi_zone_gap = crosses.to_numpy() > 1
     per_tick_state["multi_zone_tick_gap"] = multi_zone_gap

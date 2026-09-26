@@ -35,7 +35,7 @@ def _extract_signals(result: VectorbtBacktestInput) -> tuple[pd.Series, pd.Serie
         raise ValueError("Result DataFrame is empty")
 
     # Use bid as the close price for the backtest
-    close = result["bid"].astype(float).copy()
+    close = result["bid"].astype(float)  # .copy()
 
     # Detect new position openings: position_id is not null, status is FILLED,
     # and the position_id differs from the previous tick (new position).

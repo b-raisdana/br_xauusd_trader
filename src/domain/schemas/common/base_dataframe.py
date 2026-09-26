@@ -19,11 +19,11 @@ class MultiBrokerSymbolTimeseries(Timeseries, MultiBrokerSymbol):
     pass
 
 
-class TickSeries(pa.DataFrameModel):
-    datetime: pt.Index[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
+class PreciseTimeSeries(pa.DataFrameModel):
+    precise_time: pt.Index[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
 
 
-class TickMultiBrokerSymbolTimeseries(TickSeries, MultiBrokerSymbolTimeseries):
+class TickMultiBrokerSymbolTimeseries(PreciseTimeSeries, MultiBrokerSymbolTimeseries):
     pass
 
 

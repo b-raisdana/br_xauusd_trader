@@ -47,7 +47,10 @@ def test_engagement_without_zones_stays_false(length):
     per_tick_state = pd.DataFrame(
         {"bid": np.arange(length, dtype=float), "bar_time": pd.date_range("2026-09-18", periods=length)}
     )
-    update_zone_engagement(per_tick_state, [])
+    per_tick_state["bid"] = per_tick_state["bid"].astype(float)
+    per_tick_state["bar_time"] = pd.to_datetime(per_tick_state["bar_time"], utc=True).dt.as_unit("ns")
+    per_tick_state[["buy_engaged", "sell_engaged", "multi_zone_tick_gap"]] = False
+    update_zone_engagement(per_tick_state, per_tick_state, [])
     assert not per_tick_state[["multi_zone_tick_gap", "buy_engaged", "sell_engaged"]].to_numpy().any()
 
 
@@ -72,32 +75,32 @@ def test_engagement_matches_captured_cross_gap_and_bar_reset_state(bids, expecte
         },
         index=[0, 0, 1, 2, 3, 3, 4, 4],
     )
-    update_zone_engagement(per_tick_state, [XauZone("a", 100, 102), XauZone("b", 104, 105)])
+    per_tick_state["bid"] = per_tick_state["bid"].astype(float)
+    per_tick_state["bar_time"] = pd.to_datetime(per_tick_state["bar_time"], utc=True).dt.as_unit("ns")
+    per_tick_state[["buy_engaged", "sell_engaged", "multi_zone_tick_gap"]] = False
+    update_zone_engagement(per_tick_state, per_tick_state, [XauZone("a", 100, 102), XauZone("b", 104, 105)])
     np.testing.assert_array_equal(per_tick_state[["multi_zone_tick_gap", "buy_engaged", "sell_engaged"]], expected)
 
 
 def test_previous_prices_reset_at_bar_and_day_boundaries():
-    per_tick_state = pd.DataFrame(
-        {
-            "bid": [99.0, 100.0, np.nan, 105.0, 106.0],
-            "ask": [99.2, 100.2, np.nan, 105.2, 106.2],
-            "broker_day": ["2026-09-18"] * 4 + ["2026-09-19"],
-            "bar_time": pd.to_datetime(
-                [
-                    "2026-09-18 23:30",
-                    "2026-09-18 23:30",
-                    "2026-09-18 23:30",
-                    "2026-09-18 23:45",
-                    "2026-09-19 00:00",
-                ],
-                utc=True,
-            ),
-            "day_active": True,
-        },
-        index=[0, 0, 1, 1, 2],
+    from vectorized_fixtures import prepared_ticks
+
+    times = pd.to_datetime(
+        ["2026-09-18 23:30", "2026-09-18 23:30", "2026-09-18 23:30", "2026-09-18 23:45", "2026-09-19 00:00"], utc=True
+    ).as_unit("ns")
+    index = pd.MultiIndex.from_arrays(
+        [["test"] * 5, ["XAUUSD"] * 5, times, times.normalize()], names=["broker", "symbol", "precise_time", "date"]
     )
+    ticks = prepared_ticks(
+        lambda: pd.DataFrame(
+            {"bid": [99.0, 100.0, 101.0, 105.0, 106.0], "ask": [99.2, 100.2, 101.2, 105.2, 106.2]}, index=index
+        )
+    )()
     strategy = VectorizedXauUsdStrategy(None)
-    strategy._process_bar_boundaries(per_tick_state, candles_from_ticks(per_tick_state))
+    state = strategy._initialize_per_tick_temp_state(ticks)
+    result = strategy._process_bar_boundaries(ticks, state, candles_from_ticks(ticks))
+    assert result.bar_open.tolist() == [99.0, 99.0, 99.0, 105.0, 106.0]
+    assert result.trend_count.tolist() == [0, 0, 0, 1, 0]
 
 
 def test_reversal_scaffold_preserves_rows_with_duplicate_index():
@@ -110,9 +113,10 @@ def test_reversal_scaffold_preserves_rows_with_duplicate_index():
         },
         index=[0, 0, 1],
     )
+    per_tick_state["bar_time"] = per_tick_state.bar_time.dt.as_unit("ns")
     expected = per_tick_state.assign(
         bar_time=per_tick_state.bar_time.dt.as_unit("ns"),
         reversal_signals=pd.Series([(), (), ()], index=per_tick_state.index, dtype=object),
     )
-    result = generate_reversal_signals(per_tick_state, [XauZone("a", 100, 102)])
+    result = generate_reversal_signals(per_tick_state, per_tick_state, [XauZone("a", 100, 102)])
     pd.testing.assert_frame_equal(result, expected)

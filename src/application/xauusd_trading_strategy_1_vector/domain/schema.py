@@ -9,10 +9,10 @@ import pandas as pd
 from pandera import Field
 from pandera.pandas import DataFrameModel
 
-from application.xauusd_trading_strategy_1.domain.models import XauPullbackWindowState
 from domain.schemas.common.base_dataframe import TickMultiBrokerSymbolTimeseries
+from domain.schemas.tick import Tick
 from domain.xau_usd.enums import XauDirection, XauExecutionStatus, XauOrderType
-from domain.xau_usd.models import XauSignalCandidate
+from domain.xau_usd.models import XauPullbackWindowState, XauSignalCandidate
 from helper.importer import pa, pt
 
 
@@ -35,20 +35,30 @@ OrderId = str  # | int
 PositionId = str  # | int
 
 
-class VectorizedTickInput(TickMultiBrokerSymbolTimeseries):
-    """Input tick data for vectorized strategy.
+# class VectorizedTickInput(TickMultiBrokerSymbolTimeseries):
+#     """Input tick data for vectorized strategy.
+#
+#     MultiIndex: (broker, symbol, date, datetime)
+#     Columns: bid, ask
+#     """
+#
+#     bid: pt.Series[float]
+#     ask: pt.Series[float]
+#
+#     class Config:
+#         coerce = True
+#         strict = False
+#         multiindex_ordered = False
 
-    MultiIndex: (broker, symbol, date, datetime)
-    Columns: bid, ask
-    """
 
-    bid: pt.Series[float]
-    ask: pt.Series[float]
+class VectorizedTick(Tick):
+    bar_time: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
+    broker_day: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
 
-    class Config:
-        coerce = True
-        strict = False
-        multiindex_ordered = False
+
+class MarketBarInput(DataFrameModel):
+    bid: pt.Series[float] = Field(nullable=True)
+    bar_time: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
 
 
 class VectorizedCandleInput(DataFrameModel):
@@ -57,17 +67,14 @@ class VectorizedCandleInput(DataFrameModel):
     high: pt.Series[float]
     low: pt.Series[float]
 
-    class Config:
-        coerce = True
-
 
 class PerCandleState(DataFrameModel):
     broker: pt.Index[str]
     symbol: pt.Index[str]
     bar_time: pt.Index[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
-    open: pt.Series[float]
-    high: pt.Series[float]
-    low: pt.Series[float]
+    # open: pt.Series[float]
+    # high: pt.Series[float]
+    # low: pt.Series[float]
     trend_count: pt.Series[int] = Field(ge=0, le=3)
     trend_high_0: pt.Series[float]
     trend_high_1: pt.Series[float]
@@ -77,16 +84,17 @@ class PerCandleState(DataFrameModel):
     trend_low_2: pt.Series[float]
 
 
-class PerTickBaseState(TickMultiBrokerSymbolTimeseries):
+class PerTickState(TickMultiBrokerSymbolTimeseries):
     """Base columns of per-tick intermediate state (fixed columns).
 
     MultiIndex: (broker, symbol, date, datetime)
     """
 
-    bid: pt.Series[float]
-    ask: pt.Series[float]
-    bar_time: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
-    broker_day: pt.Series[str]
+    # # bid: pt.Series[float]
+    # # ask: pt.Series[float]
+    # bar_time: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
+    # # broker_day: pt.Series["str"]
+    # broker_day: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
 
     trend: pt.Series[int] = Field(isin=[0, 1, 2])
     trend_count: pt.Series[int] = Field(ge=0, le=3)
@@ -128,7 +136,7 @@ class PerTickBaseState(TickMultiBrokerSymbolTimeseries):
         multiindex_ordered = False
 
 
-class PullbackResult(PerTickBaseState):
+class PullbackResult(PerTickState):
     pullback_signals: pt.Series[SignalCandidatesTuple]
 
 
@@ -267,8 +275,9 @@ class VectorbtBacktestInput(TickMultiBrokerSymbolTimeseries):
         multiindex_ordered = False
 
 
-class ReferenceInput(DataFrameModel):
+class TrendInfo(DataFrameModel):
     trend_count: pt.Series[int] = Field(ge=0)
+    # todo: parameterize number of extrema used for trend
     trend_high_0: pt.Series[float] = Field(nullable=True)
     trend_high_1: pt.Series[float] = Field(nullable=True)
     trend_high_2: pt.Series[float] = Field(nullable=True)
@@ -280,7 +289,7 @@ class ReferenceInput(DataFrameModel):
         coerce = True
 
 
-class ReferenceResult(ReferenceInput):
+class ReferenceTrendInfo(TrendInfo):
     reference_high: pt.Series[float] = Field(nullable=True)
     reference_low: pt.Series[float] = Field(nullable=True)
 
@@ -288,15 +297,16 @@ class ReferenceResult(ReferenceInput):
         coerce = False
 
 
-class EngagementInput(DataFrameModel):
-    bid: pt.Series[float] = Field(nullable=True)
-    bar_time: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
+# class EngagementInput(DataFrameModel):
+#     bid: pt.Series[float] = Field(nullable=True)
+#     bar_time: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
+#
+#     class Config:
+#         coerce = True
 
-    class Config:
-        coerce = True
 
-
-class EngagementResult(EngagementInput):
+# class EngagementResult(EngagementInput):
+class EngagementResult(DataFrameModel):
     buy_engaged: pt.Series[bool]
     sell_engaged: pt.Series[bool]
     multi_zone_tick_gap: pt.Series[bool]
@@ -305,13 +315,16 @@ class EngagementResult(EngagementInput):
         coerce = False
 
 
-class BarInput(EngagementInput):
-    ask: pt.Series[float] = Field(nullable=True)
-    broker_day: pt.Series[str]
+# # class BarInput(EngagementInput):
+# class IsDayActive(DataFrameModel):
+#     # ask: pt.Series[float] = Field(nullable=True)
+#     # broker_day: pt.Series[str]
+#     day_active: pt.Series[bool]
+
+
+class BarInfo(TrendInfo):
     day_active: pt.Series[bool]
 
-
-class BarResult(BarInput, ReferenceInput):
     bar_open: pt.Series[float]
     bar_active: pt.Series[bool]
 
@@ -319,7 +332,8 @@ class BarResult(BarInput, ReferenceInput):
         coerce = False
 
 
-class ReversalInput(EngagementInput):
+# class ReversalInput(EngagementInput):
+class ReversalInput(DataFrameModel):
     trend: pt.Series[int]
     multi_zone_tick_gap: pt.Series[bool]
 
@@ -332,4 +346,5 @@ class ReversalResult(ReversalInput):
 
 
 class ZoneDayInput(DataFrameModel):
-    broker_day: pt.Series[str]
+    # broker_day: pt.Series[str]
+    broker_day: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]

@@ -268,6 +268,7 @@ def pandera_validate[**P, R](
 ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
 
+# @profile_it
 def pandera_validate[**P, R](
     func: Callable[P, R] | None = None,
     *,
@@ -285,6 +286,7 @@ def pandera_validate[**P, R](
     (decorator options, call-time kwargs, production bypass, exceptions).
     """
 
+    # @profile_it
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         # `func` is typed as Callable[_P, _R] for correct call-site checking,
         # but every decorated target is a plain `def`-defined function, so
@@ -319,6 +321,7 @@ def pandera_validate[**P, R](
         n_return_in_sig = "n_return" in inspect.signature(func_obj).parameters
 
         @wraps(func)
+        # @profile_it
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             n_return_raw: object = kwargs.pop("n_return", None)
             allow_return_nan = bool(kwargs.pop("allow_return_nan", False))

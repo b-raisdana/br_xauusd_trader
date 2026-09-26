@@ -2,15 +2,15 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandera.errors import SchemaErrors
-from vectorized_fixtures import candles_from_ticks
+from vectorized_fixtures import candles_from_ticks, prepared_ticks
 
-from application.xauusd_trading_strategy_1.domain.state import (
+from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
+from application.xauusd_trading_strategy_1_vector.domain.state import (
     begin_trend_day,
     process_trend_tick,
     record_trend_candle,
     trend_references,
 )
-from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
 from application.xauusd_trading_strategy_1_vector.engagement import update_zone_engagement
 from application.xauusd_trading_strategy_1_vector.result_processing import (
     generate_order_management_columns,
@@ -29,11 +29,12 @@ class EmptyZones:
         return []
 
 
+@prepared_ticks
 def ticks(times, bids, broker="test", symbol="XAUUSD"):
     times = pd.DatetimeIndex(pd.to_datetime(times, utc=True)).as_unit("ns")
     index = pd.MultiIndex.from_arrays(
         [[broker] * len(times), [symbol] * len(times), times, times.normalize()],
-        names=["broker", "symbol", "datetime", "date"],
+        names=["broker", "symbol", "precise_time", "date"],
     )
     return pd.DataFrame({"bid": np.asarray(bids, dtype=float), "ask": np.asarray(bids, dtype=float) + 0.2}, index=index)
 
@@ -112,7 +113,7 @@ def test_broker_symbol_partitions_and_daily_zone_loading_are_isolated():
     frame = pd.concat([ticks(times, [100, 999]), ticks(times, [200, 1], symbol="OTHER")])
     cache = DailyZones()
     per_tick_state = calculate(frame, cache)
-    assert cache.days == ["2026-09-18", "2026-09-19"] * 2
+    assert cache.days == list(pd.to_datetime(["2026-09-18", "2026-09-19"], utc=True)) * 2
     assert per_tick_state.trend_count.eq(0).all()
     assert per_tick_state.reference_high.eq(0).all()
 
@@ -162,9 +163,9 @@ def test_engagement_latches_within_bar_and_resets_at_next_open():
     frame = ticks(["2026-09-18 00:00", "2026-09-18 00:01", "2026-09-18 00:02", "2026-09-18 00:15"], [99, 100, 103, 103])
     strategy = VectorizedXauUsdStrategy(EmptyZones())
     per_tick_state = strategy._process_bar_boundaries(
-        strategy._initialize_per_tick_temp_state(frame), candles_from_ticks(frame)
+        frame, strategy._initialize_per_tick_temp_state(frame), candles_from_ticks(frame)
     )
-    update_zone_engagement(per_tick_state, [XauZone("z", 100, 102)])
+    update_zone_engagement(frame, per_tick_state, [XauZone("z", 100, 102)])
     assert per_tick_state.buy_engaged.tolist() == [False, True, True, False]
     assert per_tick_state.sell_engaged.tolist() == [False] * 4
 
@@ -200,12 +201,16 @@ def test_daily_zone_dataframe_selection_and_strategy_adapter():
     )
     cache = ZoneCache(zones)
     strategy = VectorizedXauUsdStrategy(cache)
-    selected = strategy._get_zones_for_group(pd.DataFrame({"broker_day": ["2026-09-18"]}))
+    selected = strategy._get_zones_for_group(
+        pd.DataFrame({"broker_day": pd.to_datetime(["2026-09-18"], utc=True).as_unit("ns")})
+    )
     assert [(zone.low, zone.high, zone.priority) for zone in selected] == [(99.0, 101.0, 1)]
     selected[0].low = 0.0
     assert cache.get_zones_for_day("2026-09-18")[0].low == 99.0
     assert zones.iloc[0, 0] == 99.0
-    empty = strategy._get_zones_for_group(pd.DataFrame({"broker_day": ["2026-09-20"]}))
+    empty = strategy._get_zones_for_group(
+        pd.DataFrame({"broker_day": pd.to_datetime(["2026-09-20"], utc=True).as_unit("ns")})
+    )
     assert empty == []
     assert len(cache.get_zones_for_day("2026-09-18")) == 1
     assert cache.get_zones_for_day("2026-09-20") == []
@@ -242,7 +247,7 @@ def test_supplied_candles_match_tick_history_with_gaps_and_day_reset():
     frame = ticks(pd.date_range("2026-09-17 23:00", periods=100, freq="min", tz="UTC"), np.arange(100) + 100)
     frame = frame.drop(frame.index[20:35])
     candles = (
-        frame.groupby(frame.index.get_level_values("datetime").floor("15min"))
+        frame.groupby(frame.index.get_level_values("precise_time").floor("15min"))
         .agg(open=("bid", "first"), high=("bid", "max"), low=("bid", "min"))
         .rename_axis("bar_time")
         .reset_index()
@@ -256,7 +261,7 @@ def test_supplied_candle_ranges_are_used_only_after_close():
     frame = ticks(["2026-09-18 00:00", "2026-09-18 00:15", "2026-09-18 00:30"], [100, 101, 102])
     candles = pd.DataFrame(
         {
-            "bar_time": frame.index.get_level_values("datetime"),
+            "bar_time": frame.index.get_level_values("precise_time"),
             "open": [100.0, 101.0, 102.0],
             "high": [110.0, 120.0, 9999.0],
             "low": [90.0, 80.0, 1.0],

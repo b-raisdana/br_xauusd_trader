@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from application.xauusd_trading_strategy_1.domain.entry import (
+from application.xauusd_trading_strategy_1_vector.domain.entry import (
     concurrency_allows_entry,
     evaluate_protected_entry,
     has_minimum_free_space,
@@ -9,18 +9,19 @@ from application.xauusd_trading_strategy_1.domain.entry import (
     native_margin_allows_entry,
     portfolio_risk_allows,
 )
-from application.xauusd_trading_strategy_1.domain.models import (
-    XauMarketCoordinator,
-    XauOrderAuditEvent,
-    XauPreparedEntry,
-)
-from application.xauusd_trading_strategy_1.domain.state import (
+from application.xauusd_trading_strategy_1_vector.domain.state import (
     find_daily_zone_state,
     record_entry_attempt,
     record_pullback_attempt,
 )
 from domain.xau_usd.enums import XauEntryRejection, XauSignalFamily
-from domain.xau_usd.models import XauSignalCandidate, XauZone
+from domain.xau_usd.models import (
+    XauMarketCoordinator,
+    XauOrderAuditEvent,
+    XauPreparedEntry,
+    XauSignalCandidate,
+    XauZone,
+)
 
 
 def entry_bar_available(attempted_bars: list[str], bar_id: str) -> bool:

@@ -4,7 +4,8 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from application.xauusd_trading_strategy_1.domain.models import XauExecutionProjection, XauOrderAuditEvent
+from archive_not_used_trash.xauusd_trading_strategy_1 import XauExecutionProjection, XauOrderAuditEvent
+
 from domain.xau_usd.enums import XauEntryRejection
 
 from .execution import execution_request_id_valid, initialize_execution_projection

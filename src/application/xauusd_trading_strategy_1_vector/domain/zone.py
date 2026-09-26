@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from application.xauusd_trading_strategy_1.domain.constants import (
+from domain.xau_usd.enums import XauDirection, XauTrend
+from domain.xau_usd.models import XauZone
+
+from .constants import (
     PRE_ZONE_TRIGGER_DISTANCE_USD,
     PULLBACK_PENETRATION_USD,
 )
-from domain.xau_usd.enums import XauDirection, XauTrend
-from domain.xau_usd.models import XauZone
 
 
 def causal_trend_then_reversal(

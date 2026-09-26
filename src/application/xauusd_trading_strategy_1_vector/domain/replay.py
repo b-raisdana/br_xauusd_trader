@@ -5,9 +5,8 @@ from datetime import datetime
 from math import isfinite
 from typing import Protocol
 
-from application.xauusd_trading_strategy_1.domain.models import XauPreZoneTriggerState, XauPullbackTpState
 from domain.xau_usd.enums import XauDirection, XauExecutionStatus
-from domain.xau_usd.models import XauSignalCandidate
+from domain.xau_usd.models import XauPreZoneTriggerState, XauPullbackTpState, XauSignalCandidate
 
 
 class ReplayEconomics(Protocol):

@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Protocol
 
-from application.xauusd_trading_strategy_1.domain.models import XauNativeDealOutcome, XauNativeSymbol
+from archive_not_used_trash.xauusd_trading_strategy_1 import XauNativeDealOutcome, XauNativeSymbol
+
 from domain.xau_usd.enums import XauExecutionEvent
 
 

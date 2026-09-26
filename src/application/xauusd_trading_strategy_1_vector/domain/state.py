@@ -1,21 +1,21 @@
 from __future__ import annotations
 
-from application.xauusd_trading_strategy_1.domain.constants import PULLBACK_PENETRATION_USD
-from application.xauusd_trading_strategy_1.domain.models import (
-    XauDailyZoneSignalState,
-    XauPreZoneTriggerState,
-    XauPullbackTpState,
-    XauPullbackWindowState,
-    XauTrendReferenceState,
-)
-from application.xauusd_trading_strategy_1.domain.protection import pullback_tp_failure_action
-from application.xauusd_trading_strategy_1.domain.zone import (
+from application.xauusd_trading_strategy_1_vector.domain.constants import PULLBACK_PENETRATION_USD
+from application.xauusd_trading_strategy_1_vector.domain.protection import pullback_tp_failure_action
+from application.xauusd_trading_strategy_1_vector.domain.zone import (
     pre_zone_crossed,
     pullback_usage_allowed,
     pullback_window_active,
 )
 from domain.xau_usd.enums import XauDirection, XauTpFailureAction, XauTrend
-from domain.xau_usd.models import XauZone
+from domain.xau_usd.models import (
+    XauDailyZoneSignalState,
+    XauPreZoneTriggerState,
+    XauPullbackTpState,
+    XauPullbackWindowState,
+    XauTrendReferenceState,
+    XauZone,
+)
 from domain.xau_usd.zone import (
     breakout_valid,
     count_directional_crosses,

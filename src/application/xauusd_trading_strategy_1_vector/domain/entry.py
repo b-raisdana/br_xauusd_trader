@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from application.xauusd_trading_strategy_1.domain.constants import (
+from application.xauusd_trading_strategy_1_vector.domain.constants import (
     BASE_R_USD,
     GROSS_DAILY_RISK_FRACTION,
     MINIMUM_FREE_SPACE_USD,

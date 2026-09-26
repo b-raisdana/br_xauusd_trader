@@ -28,7 +28,10 @@ class ZoneCache:
             self._cached_zones[day] = build_merged_zones(raw, day)
 
     @profile_it
-    def get_zones_for_day(self, broker_day: str) -> list[XauZone]:
+    def get_zones_for_day(
+        self,
+        broker_day: pd.DatetimeTZDtype(tz="UTC", unit="ns"),  # str
+    ) -> list[XauZone]:
         day = pd.Timestamp(broker_day).strftime("%Y-%m-%d")
         return deepcopy(self._cached_zones.get(day, []))
 

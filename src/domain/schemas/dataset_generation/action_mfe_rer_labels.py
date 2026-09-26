@@ -97,8 +97,8 @@ class QuadrantRer(MultiTimeframeTimeseries):
 class BiActionRank(MultiTimeframeTimeseries):
     """Quadrant RER rows with the chosen rank per direction."""
 
-    long_chosen_rank: pt.Series[pa.Int64] = pa.Field(nullable=True)
-    short_chosen_rank: pt.Series[pa.Int64] = pa.Field(nullable=True)
+    long_chosen_rank: pt.Series[pa.Int16] = pa.Field(nullable=True)
+    short_chosen_rank: pt.Series[pa.Int16] = pa.Field(nullable=True)
 
 
 class ChosenRank(MultiTimeframeTimeseries):

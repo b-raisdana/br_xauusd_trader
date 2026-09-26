@@ -7,7 +7,7 @@ from application.xauusd_trading_strategy_1_vector.reporting import print_strateg
 
 # def market_inputs():
 #     ticks = create_sample_tick_data(end_time="2026-09-18 00:31:00", tick_interval_seconds=60)
-#     ticks = ticks.reorder_levels(["symbol", "broker", "date", "datetime"])
+#     ticks = ticks.reorder_levels(["symbol", "broker", "date", "precise_time"])
 #     dates = pd.DatetimeIndex(["2026-09-18"], tz="UTC").as_unit("ns")
 #     zones = pd.DataFrame(
 #         {"lower": [2000.0], "upper": [2001.0], "priority": ["high"], "enabled": [True]},

@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Protocol
 
-from application.xauusd_trading_strategy_1.domain.models import XauTesterRiskSnapshot
+from archive_not_used_trash.xauusd_trading_strategy_1 import XauTesterRiskSnapshot
+
 from domain.xau_usd.enums import XauDirection
 
 

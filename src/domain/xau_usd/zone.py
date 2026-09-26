@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pandas as pd
+
 from .constants import BREAKOUT_BUFFER_USD
 from .enums import XauDirection, XauTrend
 from .models import XauZone
@@ -7,7 +9,8 @@ from .models import XauZone
 
 def build_merged_zones(
     raw_zones: list[XauZone],
-    broker_day: str,
+    # broker_day: str,
+    broker_day: pd.DatetimeTZDtype(tz="UTC", unit="ns"),
 ) -> list[XauZone]:
     sorted_zones = []
 

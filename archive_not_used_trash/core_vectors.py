@@ -154,10 +154,10 @@ class CoreVectors(BaseContextConfig):
         return cls.model_construct(**payload.model_dump())
 
 
-def load_core_vectors(path: str | Path | None = None) -> CoreVectors:
-    if path is None:
-        return CoreVectors()
-    return CoreVectors.from_json(path)
+# def load_core_vectors(path: str | Path | None = None) -> CoreVectors:
+#     if path is None:
+#         return CoreVectors()
+#     return CoreVectors.from_json(path)
 
 
 core_vectors = CoreVectors().log()

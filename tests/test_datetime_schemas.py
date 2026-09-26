@@ -10,10 +10,9 @@ from domain.schemas.price_action.CausalExtremum import CausalExtremumResult
 @pytest.mark.parametrize(
     "model",
     [
-        vector.VectorizedTickInput,
-        vector.VectorizedCandleInput,
+        vector.VectorizedTick,
         vector.PerCandleState,
-        vector.PerTickBaseState,
+        vector.PerTickState,
         vector.StrategyResult,
         vector.StrategyResultWithCandles,
         vector.OrderManagementResult,

@@ -4,7 +4,7 @@ MetaTrader5
 numba
 vectorbt[full,rust]
 
-br-logging-and-profiling>=0.9.0
+br-logging-and-profiling>=0.9.1
 #ctrader-open-api
 requests
 twisted

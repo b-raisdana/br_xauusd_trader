@@ -4,8 +4,7 @@ from br_py_log_n_profile import profile_it
 
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
     PositionTrackingResult,
-    VectorizedCandleInput,
-    VectorizedTickInput,
+    VectorizedTick,
 )
 from domain.schemas.zone import Zone
 from helper.importer import pt
@@ -14,6 +13,7 @@ from helper.pandera import pandera_validate
 from .config.core_vectors import core_vectors
 from .config.strategy_config import strategy_config
 from .domain.replay import ReplayConfig
+from .domain.schema import VectorizedCandleInput
 from .result_processing import (
     generate_order_management_columns,
     generate_position_tracking_columns,
@@ -26,7 +26,7 @@ from .zone_cache import ZoneCache
 @profile_it
 @pandera_validate
 def run_vectorized_strategy(
-    tick_df: pt.DataFrame[VectorizedTickInput],
+    tick_df: pt.DataFrame[VectorizedTick],
     candle_df: pt.DataFrame[VectorizedCandleInput],
     zones_df: pt.DataFrame[Zone],
     # preload_days: Optional[List[str]] = None,
@@ -71,8 +71,8 @@ def run_vectorized_strategy(
         # Step 4: Process tick data through the strategy
         print("\n[Step 4] Processing tick data...")
         result = strategy.process_tick_data(tick_df, candle_df)
-        if debug:
-            result = strategy._per_tick_temp_state.copy()
+        # if debug:
+        #     result = strategy._per_tick_temp_state.copy()
         result[["bid", "ask"]] = tick_df.sort_index(kind="stable")[["bid", "ask"]].to_numpy()
         print(f"Tick data processed, generated {len(result)} result rows")
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import IntEnum, auto
 
 
-class AutoIntEnum(IntEnum):
+class AutoIntEnum(IntEnum):  # TODO: CONVERT TO AutoStrEnum
     """IntEnum whose auto-generated values start at zero."""
 
     def __new__(cls, *args):

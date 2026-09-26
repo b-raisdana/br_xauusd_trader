@@ -8,22 +8,25 @@ from typing import List, Tuple
 import numpy as np
 from br_py_log_n_profile import log_e, profile_it
 
-from application.xauusd_trading_strategy_1.domain.state import evaluate_pullback_price
-from application.xauusd_trading_strategy_1_vector.config.strategy_config import StrategyConfig
-from application.xauusd_trading_strategy_1_vector.domain.schema import (
-    PerTickBaseState,
-    PullbackResult,
-    PullbackWindowsTuple,
-    ReversalInput,
-    ReversalResult,
-    SignalCandidatesTuple,
-    XauPullbackWindowState,
-)
 from application.xauusd_trading_strategy_1_vector.pullback_utils import create_pullback_window
 from domain.xau_usd.enums import XauDirection, XauOrderType, XauSignalFamily, XauTrend
 from domain.xau_usd.models import XauSignalCandidate, XauZone
 from helper.importer import pt
 from helper.pandera import pandera_validate
+
+from .config.strategy_config import StrategyConfig
+from .domain.schema import (
+    MarketBarInput,
+    PerTickState,
+    PullbackResult,
+    PullbackWindowsTuple,
+    ReversalInput,
+    ReversalResult,
+    SignalCandidatesTuple,
+    VectorizedTick,
+    XauPullbackWindowState,
+)
+from .domain.state import evaluate_pullback_price
 
 PULLBACK_WINDOW_BARS = 5
 
@@ -90,10 +93,10 @@ def _process_zone_reversals(
             )
 
 
-def _find_bar_boundaries(per_tick_state: pt.DataFrame[PerTickBaseState]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def _find_bar_boundaries(ticks: pt.DataFrame[VectorizedTick]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Find bar change boundaries."""
 
-    changed = per_tick_state["bar_time"].ne(per_tick_state["bar_time"].shift()).to_numpy()
+    changed = ticks["bar_time"].ne(ticks["bar_time"].shift()).to_numpy()
     starts = np.flatnonzero(changed)[1:]
     closes = starts - 1
     tick_bar_ids = changed.cumsum() - 1
@@ -101,13 +104,14 @@ def _find_bar_boundaries(per_tick_state: pt.DataFrame[PerTickBaseState]) -> Tupl
 
 
 def _detect_zone_breakouts(
-    per_tick_state: pt.DataFrame[PerTickBaseState],
+    ticks: pt.DataFrame[VectorizedTick],
+    per_tick_state: pt.DataFrame[PerTickState],
     zones: List[XauZone],
     starts: np.ndarray,
     closes: np.ndarray,
 ) -> List[Tuple[int, int, XauDirection]]:
     """Detect valid breakout events per zone and direction."""
-    prices = per_tick_state["bid"].to_numpy()
+    prices = ticks["bid"].to_numpy()
     trends = per_tick_state["trend"].to_numpy()
     breakout_buffer = StrategyConfig.current().breakout_buffer_usd
     records = []
@@ -131,7 +135,7 @@ def _detect_zone_breakouts(
 
 
 def _create_breakout_candidate(
-    per_tick_state: pt.DataFrame[PerTickBaseState],
+    ticks: pt.DataFrame[VectorizedTick],
     row: int,
     close_row: int,
     zone: XauZone,
@@ -143,18 +147,18 @@ def _create_breakout_candidate(
     breakout_id = f"BO{sequence}"
     return XauSignalCandidate(
         candidate_id=breakout_id,
-        bar_id=str(per_tick_state["bar_time"].iloc[close_row]),
+        bar_id=str(ticks["bar_time"].iloc[close_row]),
         zone_id=zone.id,
         family=XauSignalFamily.BREAKOUT,
         direction=direction,
         order_type=XauOrderType.MARKET,
-        signal_time=per_tick_state["bar_time"].iloc[row].to_pydatetime(),
+        signal_time=ticks["bar_time"].iloc[row].to_pydatetime(),
         entry_price=float(prices[close_row]),
     )
 
 
 def _update_pullback_columns(
-    per_tick_state: pt.DataFrame[PerTickBaseState],
+    per_tick_state: pt.DataFrame[PerTickState],
     zones: List[XauZone],
     opened_windows: dict,
     tick_bar_ids: np.ndarray,
@@ -188,7 +192,7 @@ def _update_pullback_columns(
 
 @profile_it
 def _register_breakout(
-    per_tick_state: pt.DataFrame[PerTickBaseState],
+    ticks: pt.DataFrame[VectorizedTick],
     signals: np.ndarray[SignalCandidatesTuple],
     windows: np.ndarray[PullbackWindowsTuple],
     counts: np.ndarray,
@@ -206,7 +210,7 @@ def _register_breakout(
     close_row = row - 1
     breakout_id = f"BO{sequence}"
 
-    candidate = _create_breakout_candidate(per_tick_state, row, close_row, zone, direction, sequence, prices)
+    candidate = _create_breakout_candidate(ticks, row, close_row, zone, direction, sequence, prices)
     signals[row] += (candidate,)
     counts[row] += 1
 
@@ -227,9 +231,10 @@ def _register_breakout(
 @profile_it
 @pandera_validate(allow_pandas_dataframe=True)
 def generate_breakout_signals(
-    per_tick_state: pt.DataFrame[PerTickBaseState],
+    ticks: pt.DataFrame[VectorizedTick],
+    per_tick_state: pt.DataFrame[PerTickState],
     zones: List[XauZone],
-) -> pt.DataFrame[PerTickBaseState]:
+) -> pt.DataFrame[PerTickState]:
     """Emit closed-bar candidates at the next observed bar, with per-zone lineage."""
     size = len(per_tick_state)
     signals: np.ndarray[SignalCandidatesTuple] = np.empty(size, dtype=object)
@@ -243,10 +248,10 @@ def generate_breakout_signals(
         per_tick_state["pullback_windows_opened"] = windows
         return per_tick_state
 
-    starts, closes, tick_bar_ids = _find_bar_boundaries(per_tick_state)
-    prices = per_tick_state["bid"].to_numpy()
+    starts, closes, tick_bar_ids = _find_bar_boundaries(ticks)
+    prices = ticks["bid"].to_numpy()
 
-    records = _detect_zone_breakouts(per_tick_state, zones, starts, closes)
+    records = _detect_zone_breakouts(ticks, per_tick_state, zones, starts, closes)
 
     latest_windows = {}
     opened_windows = {}
@@ -254,7 +259,7 @@ def generate_breakout_signals(
 
     for sequence, (row, zone_number, direction) in enumerate(records, start=1):
         _register_breakout(
-            per_tick_state,
+            ticks,
             signals,
             windows,
             counts,
@@ -284,6 +289,7 @@ def generate_breakout_signals(
 @profile_it
 @pandera_validate
 def generate_reversal_signals(
+    ticks: pt.DataFrame[MarketBarInput],
     per_tick_state: pt.DataFrame[ReversalInput],
     zones: List[XauZone],
 ) -> pt.DataFrame[ReversalResult]:
@@ -298,15 +304,17 @@ def generate_reversal_signals(
     if not zones or per_tick_state.empty:
         return per_tick_state
 
-    bar_changed = per_tick_state["bar_time"].ne(per_tick_state["bar_time"].shift())
-    previous_bid = np.where(bar_changed, per_tick_state["bid"], per_tick_state["bid"].shift())
-    current_bid = per_tick_state["bid"]
+    bar_changed = ticks["bar_time"].ne(ticks["bar_time"].shift())
+    previous_bid = np.where(bar_changed, ticks["bid"], ticks["bid"].shift())
+    current_bid = ticks["bid"]
     current_trend = per_tick_state["trend"]
     multi_zone_gap = per_tick_state["multi_zone_tick_gap"]
-    bar_id = per_tick_state["bar_time"].astype(str).to_numpy()
+    bar_id = ticks["bar_time"].astype(str).to_numpy()
 
     seen_keys = set()
-    tick_times = per_tick_state.index.get_level_values("datetime") if "datetime" in per_tick_state.index.names else None
+    tick_times = (
+        per_tick_state.index.get_level_values("precise_time") if "precise_time" in per_tick_state.index.names else None
+    )
 
     for zone in zones:
         _process_zone_reversals(
@@ -348,7 +356,9 @@ def _pullback_candidate(window, bid, bar_id, tick_time, daily_fills):
 
 @profile_it
 @pandera_validate
-def generate_pullback_signals(per_tick_state: pt.DataFrame[PerTickBaseState]) -> pt.DataFrame[PullbackResult]:
+def generate_pullback_signals(
+    ticks: pt.DataFrame[VectorizedTick], per_tick_state: pt.DataFrame[PerTickState]
+) -> pt.DataFrame[PullbackResult]:
     """Replay windows and optional execution feedback; absent feedback means no fills/acceptances.
 
     Emit retry candidates at the broken edge after 0.20 penetration. Only execution
@@ -363,14 +373,14 @@ def generate_pullback_signals(per_tick_state: pt.DataFrame[PerTickBaseState]) ->
     feedback_rows = per_tick_state.get("pullback_feedback", [()] * size)
     brokers = per_tick_state.index.get_level_values("broker")
     symbols = per_tick_state.index.get_level_values("symbol")
-    times = per_tick_state.index.get_level_values("datetime")
+    times = per_tick_state.index.get_level_values("precise_time")
     rows = zip(
         brokers,
         symbols,
         times,
-        per_tick_state["broker_day"],
-        per_tick_state["bar_time"],
-        per_tick_state["bid"],
+        ticks["broker_day"],
+        ticks["bar_time"],
+        ticks["bid"],
         per_tick_state["pullback_windows_opened"],
         feedback_rows,
         strict=True,

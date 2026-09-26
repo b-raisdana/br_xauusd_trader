@@ -10,11 +10,12 @@ from application.xauusd_trading_strategy_1_vector.domain.schema import (
     PositionTrackingResult,
     StrategyResult,
     StrategyResultWithCandles,
-    VectorizedCandleInput,
 )
 from domain.xau_usd.enums import XauDirection, XauExecutionStatus
 from helper.importer import pt
 from helper.pandera import pandera_validate
+
+from .domain.schema import VectorizedCandleInput
 
 
 @profile_it
@@ -36,13 +37,10 @@ def merge_results_with_candles(
         Merged DataFrame with additional candle columns
     """
     # log_w(NOT_TESTED)
-    keys = [
-        # "broker", "symbol",
-        "bar_time"
-    ]
+    keys = [key for key in ("broker", "symbol") if key in candle_data.columns] + ["bar_time"]
     candles = candle_data.copy()
     if "bar_time" not in candles.columns:
-        candles = candles.rename(columns={"datetime": "bar_time"})
+        candles = candles.rename(columns={"precise_time": "bar_time"})
     candles["bar_time"] = pd.to_datetime(candles["bar_time"], utc=True)
     if "timeframe" in candles.columns:
         candles = candles.loc[candles["timeframe"].eq("15min")].drop(columns="timeframe")
@@ -50,7 +48,7 @@ def merge_results_with_candles(
     candles = candles.rename(columns={column: f"candle_{column}" for column in payload})
     ticks = result.index.to_frame(index=False)
     # A candle's final OHLC becomes available only at the next bar boundary.
-    ticks["bar_time"] = ticks["datetime"].dt.floor("15min") - pd.Timedelta(minutes=15)
+    ticks["bar_time"] = ticks["precise_time"].dt.floor("15min") - pd.Timedelta(minutes=15)
     merged = ticks.merge(candles, on=keys, how="left", sort=False, validate="many_to_one")
     output = result.copy()
     context = [f"candle_{column}" for column in payload]
@@ -127,7 +125,7 @@ def generate_position_tracking_columns(
 
 def _project_snapshots(result, source, dtypes, action_col=None, id_prefix=None, order_status_col=None):
     source_col = result[source] if source in result else [None] * len(result)
-    snapshots = [items[-1] if pd.notna(items) and items else {} for items in source_col]
+    snapshots = [items[-1] if isinstance(items, tuple) and items else {} for items in source_col]
     payload = pd.DataFrame.from_records(snapshots, index=result.index, columns=list(dtypes))
     for column, dtype in dtypes.items():
         if dtype.startswith("datetime64"):
@@ -140,7 +138,7 @@ def _project_snapshots(result, source, dtypes, action_col=None, id_prefix=None, 
     if action_col and action_col in result.columns:
         actions = result[action_col]
         has_snapshot = pd.Series(
-            [bool(items) if pd.notna(items) else False for items in source_col],
+            [bool(items) if isinstance(items, tuple) else False for items in source_col],
             index=result.index,
         )
         needs_synthetic = actions.notna() & ~has_snapshot
@@ -150,7 +148,7 @@ def _project_snapshots(result, source, dtypes, action_col=None, id_prefix=None, 
             bid_vals = result["bid"].tolist() if "bid" in result.columns else [None] * len(result)
             ask_vals = result["ask"].tolist() if "ask" in result.columns else [None] * len(result)
             datetime_vals = (
-                result.index.get_level_values("datetime").tolist()
+                result.index.get_level_values("precise_time").tolist()
                 if isinstance(result.index, pd.MultiIndex)
                 else list(result.index)
             )
@@ -186,7 +184,7 @@ def _project_snapshots(result, source, dtypes, action_col=None, id_prefix=None, 
             bid_vals = result["bid"].tolist() if "bid" in result.columns else [None] * len(result)
             ask_vals = result["ask"].tolist() if "ask" in result.columns else [None] * len(result)
             datetime_vals = (
-                result.index.get_level_values("datetime").tolist()
+                result.index.get_level_values("precise_time").tolist()
                 if isinstance(result.index, pd.MultiIndex)
                 else list(result.index)
             )

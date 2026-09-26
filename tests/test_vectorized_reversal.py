@@ -16,7 +16,7 @@ def frame(prices, trend=XauTrend.UP):
             "trend": int(trend),
             "multi_zone_tick_gap": False,
         },
-        index=times.rename("datetime"),
+        index=times.rename("precise_time"),
     )
 
 
@@ -29,7 +29,7 @@ def frame(prices, trend=XauTrend.UP):
 )
 def test_reversal_emits_first_touch_with_tick_metadata(prices, trend, direction):
     data = frame(prices, trend)
-    result = generate_reversal_signals(data, [XauZone("z", 100, 102)])
+    result = generate_reversal_signals(data, data, [XauZone("z", 100, 102)])
     assert result.reversal_signals.map(len).tolist() == [0, 1, 0, 0]
     candidate = result.reversal_signals.iloc[1][0]
     assert candidate.candidate_id == f"{data.bar_time.iloc[1]}:R:z:{direction.value}"
@@ -39,7 +39,7 @@ def test_reversal_emits_first_touch_with_tick_metadata(prices, trend, direction)
     assert candidate.signal_time == data.index[1].to_pydatetime()
     assert candidate.entry_price == prices[1]
     assert candidate.zone_id == "z"
-    assert generate_reversal_signals(result, [XauZone("z", 100, 102)]).equals(result)
+    assert generate_reversal_signals(result, result, [XauZone("z", 100, 102)]).equals(result)
 
 
 @pytest.mark.parametrize(
@@ -52,7 +52,7 @@ def test_reversal_emits_first_touch_with_tick_metadata(prices, trend, direction)
     ],
 )
 def test_reversal_requires_directional_touch(prices, trend):
-    result = generate_reversal_signals(frame(prices, trend), [XauZone("z", 100, 102)])
+    result = generate_reversal_signals(frame(prices, trend), frame(prices, trend), [XauZone("z", 100, 102)])
     assert result.reversal_signals.tolist() == [(), ()]
 
 
@@ -60,24 +60,24 @@ def test_gap_does_not_consume_duplicate_key_and_new_bar_resets_detection():
     data = frame([99, 100, 99, 100, 99, 100, 99, 100])
     data.iloc[1, data.columns.get_loc("multi_zone_tick_gap")] = True
     data.iloc[5:, data.columns.get_loc("bar_time")] += pd.Timedelta(minutes=15)
-    result = generate_reversal_signals(data, [XauZone("z", 100, 102)])
+    result = generate_reversal_signals(data, data, [XauZone("z", 100, 102)])
     assert result.reversal_signals.map(len).tolist() == [0, 0, 0, 1, 0, 0, 0, 1]
 
 
 def test_multiple_zones_and_directions_are_independent():
     data = frame([99, 100, 103, 102])
     data.iloc[3, data.columns.get_loc("trend")] = XauTrend.DOWN.value
-    result = generate_reversal_signals(data, [XauZone("a", 100, 102), XauZone("b", 100, 102)])
+    result = generate_reversal_signals(data, data, [XauZone("a", 100, 102), XauZone("b", 100, 102)])
     assert result.reversal_signals.map(len).tolist() == [0, 2, 0, 2]
     assert [c.zone_id for c in result.reversal_signals.iloc[1]] == ["a", "b"]
 
 
 @pytest.mark.parametrize("prices,zones", [([], []), ([], [XauZone("z", 100, 102)]), ([99, 100], [])])
 def test_empty_outputs_are_tuples(prices, zones):
-    result = generate_reversal_signals(frame(prices), zones)
+    result = generate_reversal_signals(frame(prices), frame(prices), zones)
     assert result.reversal_signals.tolist() == [()] * len(prices)
 
 
 def test_reversal_rejects_missing_input():
     with pytest.raises(SchemaErrors):
-        generate_reversal_signals(frame([99, 100]).drop(columns="trend"), [])
+        generate_reversal_signals(frame([99, 100]), frame([99, 100]).drop(columns="trend"), [])

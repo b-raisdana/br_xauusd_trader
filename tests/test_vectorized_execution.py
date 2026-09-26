@@ -5,14 +5,14 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandera.errors import SchemaErrors
+from vectorized_fixtures import prepared_ticks
 
-from application.xauusd_trading_strategy_1.domain.models import XauPullbackWindowState
 from application.xauusd_trading_strategy_1_vector.actions import generate_actions
 from application.xauusd_trading_strategy_1_vector.domain.replay import LinearReplayEconomics, ReplayConfig
 from application.xauusd_trading_strategy_1_vector.replay import ExecutionReplay
 from application.xauusd_trading_strategy_1_vector.the_strategy import VectorizedXauUsdStrategy
 from domain.xau_usd.enums import XauDirection, XauExecutionStatus, XauOrderType, XauSignalFamily
-from domain.xau_usd.models import XauSignalCandidate, XauZone
+from domain.xau_usd.models import XauPullbackWindowState, XauSignalCandidate, XauZone
 
 ZONES = [XauZone("below", 90, 92), XauZone("z", 100, 102, 1), XauZone("target", 110, 112), XauZone("next", 120, 122)]
 
@@ -218,11 +218,12 @@ def test_risk_gates_prevent_attempts(kind):
     assert "unused" not in rejected["attempted_bars"]
 
 
+@prepared_ticks
 def frame(prices):
     times = pd.date_range("2026-09-24", periods=len(prices), freq="min", tz="UTC").as_unit("ns")
     index = pd.MultiIndex.from_arrays(
         [["b"] * len(times), ["XAUUSD"] * len(times), times, times.normalize()],
-        names=["broker", "symbol", "datetime", "date"],
+        names=["broker", "symbol", "precise_time", "date"],
     )
     return pd.DataFrame({"bid": np.array(prices, dtype=float), "ask": np.array(prices, dtype=float) + 0.1}, index=index)
 
@@ -237,7 +238,7 @@ class Zones:
 #     data = VectorizedXauUsdStrategy(Zones())._initialize_per_tick_temp_state(ticks)
 #     data["bar_open"] = 103.0
 #     data.iat[0, data.columns.get_loc("breakout_signals")] = (candidate(),)
-#     replayed = generate_actions(data, ZONES, config())
+#     replayed = generate_actions(ticks, data, ZONES, config())
 #     result = generate_position_tracking_columns(generate_order_management_columns(replayed))
 #     assert result.position_status.tolist() == [
 #         XauExecutionStatus.FILLED,
@@ -268,12 +269,12 @@ def test_execution_input_validation_rejects_broken_data(defect):
     ticks = frame([103])
     data = VectorizedXauUsdStrategy(Zones())._initialize_per_tick_temp_state(ticks)
     if defect == "missing":
-        data = data.drop(columns="ask")
+        ticks = ticks.drop(columns="ask")
     elif defect == "dtype":
-        data["bid"] = "bad"
+        ticks["bid"] = "bad"
     else:
         arrays = [data.index.get_level_values(name) for name in data.index.names]
         arrays[2] = arrays[2].as_unit("us")
         data.index = pd.MultiIndex.from_arrays(arrays, names=data.index.names)
     with pytest.raises(SchemaErrors):
-        generate_actions(data, ZONES, config())
+        generate_actions(ticks, data, ZONES, config())

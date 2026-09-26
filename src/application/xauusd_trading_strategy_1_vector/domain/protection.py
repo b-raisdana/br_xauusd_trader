@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from application.xauusd_trading_strategy_1.domain.constants import BASE_R_USD, DAILY_REALIZED_LOSS_FRACTION
-from application.xauusd_trading_strategy_1.domain.models import XauOperationalSafety
+from application.xauusd_trading_strategy_1_vector.domain.constants import BASE_R_USD, DAILY_REALIZED_LOSS_FRACTION
 from domain.xau_usd.enums import XauDirection, XauTpFailureAction
+from domain.xau_usd.models import XauOperationalSafety
 
 
 def evaluate_operational_safety(

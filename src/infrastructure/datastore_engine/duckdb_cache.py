@@ -51,7 +51,9 @@ def _assemble_final_result(
 ) -> pd.DataFrame:
     parts = [frame for frame in (cached_rows, *generated_frames) if not frame.empty]
     assembled = pd.concat(parts, ignore_index=True) if parts else cached_rows
-    assembled[_TIMESTAMP_COLUMN] = pd.to_datetime(assembled[_TIMESTAMP_COLUMN], utc=True).astype("datetime64[ns, UTC]")
+    assembled[_TIMESTAMP_COLUMN] = pd.to_datetime(assembled[_TIMESTAMP_COLUMN], utc=True).astype(
+        pd.DatetimeTZDtype(unit="ns", tz="UTC")
+    )
     # Trailing-edge widening can make two adjacent gap windows both regenerate the same coarse
     # candle; _write_gap upserts idempotently on disk, but the in-RAM concat would keep both.
     # generated_frames come after cached_rows, so keep="last" prefers the freshly generated row.

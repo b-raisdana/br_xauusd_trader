@@ -6,7 +6,7 @@ The purpose of this task is **investigation and documentation only**. Do not imp
 
 ## Scope
 
-Reference implementation: `src/application/xauusd_trading_strategy_1/on_tick.py`
+Reference implementation: `../../archive_not_used_trash/xauusd_trading_strategy_1/on_tick.py`
 Future implementation target: `src/application/xauusd_trading_strategy_1_vector/`
 Create and modify only documentation under `docs/todo/`.
 

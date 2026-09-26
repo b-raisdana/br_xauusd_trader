@@ -2,18 +2,19 @@ from copy import deepcopy
 
 import numpy as np
 import pandas as pd
-from vectorized_fixtures import candles_from_ticks
-
-from application.xauusd_trading_strategy_1.domain.coordinator import (
+from scalar_coordinator_reference import (
     begin_coordinator_bar,
     begin_coordinator_day,
     close_coordinator_bar,
     process_coordinator_tick,
 )
-from application.xauusd_trading_strategy_1.domain.models import XauMarketCoordinator
+from vectorized_fixtures import candles_from_ticks, prepared_ticks
+
 from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
+
+# from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
 from domain.xau_usd.enums import XauDirection, XauTrend
-from domain.xau_usd.models import XauZone
+from domain.xau_usd.models import XauMarketCoordinator, XauZone
 
 
 class Zones:
@@ -24,13 +25,14 @@ class Zones:
         return deepcopy(self.zones)
 
 
+@prepared_ticks
 def ticks(times, bids, symbol="XAUUSD"):
     times = pd.DatetimeIndex(pd.to_datetime(times, utc=True, format="mixed"))
     return pd.DataFrame(
         {"bid": np.asarray(bids, dtype=float), "ask": np.asarray(bids, dtype=float) + 0.2},
         index=pd.MultiIndex.from_arrays(
             [["test"] * len(times), [symbol] * len(times), times, times.normalize()],
-            names=["broker", "symbol", "datetime", "date"],
+            names=["broker", "symbol", "precise_time", "date"],
         ),
     )
 
@@ -206,7 +208,7 @@ def test_empty_no_zones_and_symbol_isolation():
     zones = [XauZone("z", 100, 102)]
     assert run(frame.iloc[:0], zones)[0].empty
     assert all(not values for values in run(frame, [])[0].breakout_signals)
-    other = ticks(frame.index.get_level_values("datetime"), [100, 100, 104, 100], symbol="OTHER")
+    other = ticks(frame.index.get_level_values("precise_time"), [100, 100, 104, 100], symbol="OTHER")
     combined = pd.concat([frame, other])
     result, _ = run(combined, zones)
     assert [c.candidate_id for values in result.breakout_signals for c in values] == ["BO1", "BO1"]

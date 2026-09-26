@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Literal, Protocol, TypedDict
 
-from application.xauusd_trading_strategy_1.domain.models import XauPreparedEntry, XauTesterSubmission
+from archive_not_used_trash.xauusd_trading_strategy_1 import XauPreparedEntry, XauTesterSubmission
+
 from domain.xau_usd.enums import XauDirection, XauEntryRejection, XauOrderType
 
 

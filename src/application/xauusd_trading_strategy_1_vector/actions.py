@@ -9,7 +9,7 @@ from __future__ import annotations
 import pandas as pd
 
 from application.xauusd_trading_strategy_1_vector.domain.replay import ReplayConfig
-from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickBaseState
+from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickState, VectorizedTick
 from application.xauusd_trading_strategy_1_vector.replay import ExecutionReplay
 from domain.xau_usd.models import XauZone
 from helper.importer import pt
@@ -18,17 +18,21 @@ from helper.pandera import pandera_validate
 
 @pandera_validate(allow_pandas_dataframe=True)
 def generate_actions(
-    per_tick_state: pt.DataFrame[PerTickBaseState],
+    ticks: pt.DataFrame[VectorizedTick],
+    per_tick_state: pt.DataFrame[PerTickState],
     zones: list[XauZone],
     config: ReplayConfig,
     replay: ExecutionReplay | None = None,
-) -> pt.DataFrame[PerTickBaseState]:
+) -> pt.DataFrame[PerTickState]:
     """Replay one chronological broker/symbol partition using explicit economics."""
-    result = per_tick_state.copy()
-    times = result.index.get_level_values("datetime")
+    # result = per_tick_state.copy()
+    # times = result.index.get_level_values("precise_time")
+    times = per_tick_state.index.get_level_values("precise_time")
+    result = per_tick_state
+
     if not times.is_monotonic_increasing:
         raise ValueError("Execution ticks must be chronological")
-    streams = result.index.droplevel(["datetime", "date"]).unique()
+    streams = result.index.droplevel(["precise_time", "date"]).unique()
     if len(streams) > 1:
         raise ValueError("Execution partition must contain one broker/symbol")
     if replay is None:
@@ -36,11 +40,11 @@ def generate_actions(
     records = []
     rows = zip(
         times,
-        result["broker_day"],
-        result["bar_time"],
+        ticks["broker_day"],
+        ticks["bar_time"],
         result["bar_open"],
-        result["bid"],
-        result["ask"],
+        ticks["bid"],
+        ticks["ask"],
         result["pullback_windows_opened"],
         result["breakout_signals"],
         result.get("reversal_signals", [()] * len(result)),

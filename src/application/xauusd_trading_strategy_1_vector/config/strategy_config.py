@@ -12,14 +12,15 @@ class StrategyConfig(BaseContextConfig):
     (or a `.env` file), validated against its declared type/bounds on load and on
     every later `app_config.<field> = ...` assignment."""
 
+    max_time_basis_probe: int = 5
+    breakout_buffer_usd: float = 1.0
+
     model_config = SettingsConfigDict(
         env_prefix="DLF_",
         env_file=".env",
         extra="ignore",
         validate_assignment=True,
     )
-    max_time_basis_probe: int = 5
-    breakout_buffer_usd: float = 1.0
 
 
 strategy_config = StrategyConfig().log()

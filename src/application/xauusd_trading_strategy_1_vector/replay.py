@@ -5,21 +5,12 @@ from dataclasses import asdict
 from datetime import timedelta
 from math import isfinite
 
+import pandas as pd
 from br_py_log_n_profile import profile_it
 
-from application.xauusd_trading_strategy_1.domain.entry import initial_stop
-from application.xauusd_trading_strategy_1.domain.models import (
-    XauDailyZoneSignalState,
-    XauMarketCoordinator,
-    XauPreparedEntry,
-)
-from application.xauusd_trading_strategy_1.domain.protection import daily_loss_locked, profit_protection_stop
-from application.xauusd_trading_strategy_1.domain.requests import (
-    candidate_attempt_available,
-    commit_prepared_entry_attempt,
-    prepare_candidate_entry,
-)
-from application.xauusd_trading_strategy_1.domain.state import (
+from application.xauusd_trading_strategy_1_vector.domain.replay import ReplayConfig, ReplayOrder
+from application.xauusd_trading_strategy_1_vector.domain.schema import PullbackFeedback
+from application.xauusd_trading_strategy_1_vector.domain.state import (
     evaluate_pullback_tp_failure,
     initialize_pullback_tp,
     pre_zone_cross_once,
@@ -28,9 +19,7 @@ from application.xauusd_trading_strategy_1.domain.state import (
     record_pullback_tp_extension,
     record_pullback_tp_restore,
 )
-from application.xauusd_trading_strategy_1.domain.zone import strict_pullback_trend
-from application.xauusd_trading_strategy_1_vector.domain.replay import ReplayConfig, ReplayOrder
-from application.xauusd_trading_strategy_1_vector.domain.schema import PullbackFeedback
+from application.xauusd_trading_strategy_1_vector.domain.zone import strict_pullback_trend
 from application.xauusd_trading_strategy_1_vector.signals import _pullback_candidate
 from domain.xau_usd.enums import (
     XauDirection,
@@ -40,6 +29,11 @@ from domain.xau_usd.enums import (
     XauSignalFamily,
     XauTpFailureAction,
 )
+from domain.xau_usd.models import XauDailyZoneSignalState, XauMarketCoordinator, XauPreparedEntry
+
+from .domain.entry import initial_stop
+from .domain.protection import daily_loss_locked, profit_protection_stop
+from .domain.requests import candidate_attempt_available, commit_prepared_entry_attempt, prepare_candidate_entry
 
 
 class ExecutionReplay:
@@ -69,7 +63,7 @@ class ExecutionReplay:
             {
                 "request_id": order.request_id,
                 "event": kind,
-                "datetime": time,
+                "time": time,
                 "reason": reason,
                 **self.order_snapshot(order),
             }
@@ -200,7 +194,7 @@ class ExecutionReplay:
             )
             self.net_realized = self.gross_loss = 0.0
             self.daily_locked = False
-            self.operational_locked = day in self.config.restart_days
+            self.operational_locked = pd.Timestamp(day).strftime("%Y-%m-%d") in self.config.restart_days
             self.bar = None
         if self.bar != bar:
             if self.bar is not None:

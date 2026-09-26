@@ -1,6 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
+from br_py_log_n_profile import NOT_TESTED, log_w
 from pydantic import BaseModel, ConfigDict, create_model
 from pydantic_settings import JsonConfigSettingsSource, SettingsConfigDict
 
@@ -137,6 +138,7 @@ class CoreVectors(BaseContextConfig):
         dotenv_settings,
         file_secret_settings,
     ):
+        log_w(NOT_TESTED)
         return (
             JsonConfigSettingsSource(settings_cls, json_file=DEFAULT_CORE_VECTORS_JSON),
             init_settings,
@@ -154,10 +156,10 @@ class CoreVectors(BaseContextConfig):
         return cls.model_construct(**payload.model_dump())
 
 
-def load_core_vectors(path: str | Path | None = None) -> CoreVectors:
-    if path is None:
-        return CoreVectors()
-    return CoreVectors.from_json(path)
+# def load_core_vectors(path: str | Path | None = None) -> CoreVectors:
+#     if path is None:
+#         return CoreVectors()
+#     return CoreVectors.from_json(path)
 
 
 core_vectors = CoreVectors().log()

@@ -565,7 +565,7 @@ The vectorized implementation is designed for performance:
 ## References
 
 - MT5 Source: `mt5/XAUUSD_MVP.mq5`
-- Python Reference: `src/application/xauusd_trading_strategy_1/`
+- Python Reference: `../../../archive_not_used_trash/xauusd_trading_strategy_1/`
 - Vectorization Plan: `docs/todo/Vectorization Implementation Plan.md`
 - State Glossary: `docs/todo/State-Variables.Glossary.csv`
 - Divergence Report: `docs/todo/Divergence Report - MT5 vs Python vs Documentation.md`

@@ -10,6 +10,9 @@ from helper.importer import pt
 
 
 class Tick(TickMultiBrokerSymbolTimeseries):
+    class Config:
+        multiindex_ordered = False
+
     bid: Series[float]
     ask: Series[float]
     last: Series[float]
@@ -32,13 +35,13 @@ class Tick(TickMultiBrokerSymbolTimeseries):
 
         df.insert(0, "symbol", symbol)
         df.insert(1, "broker", broker)
-        df["datetime"] = pd.to_datetime(
+        df["precise_time"] = pd.to_datetime(
             df.pop("time_msc"),
             unit="ms",
             utc=True,
         ).astype(pd.DatetimeTZDtype(unit="ns", tz="UTC"))
-        df["date"] = df["datetime"].dt.floor(freq="1s")
-        df = df.set_index(["symbol", "broker", "date", "datetime"])
+        df["date"] = df["precise_time"].dt.floor(freq="1s")
+        df = df.set_index(["symbol", "broker", "date", "precise_time"])
 
         return cls.validate(df)
 

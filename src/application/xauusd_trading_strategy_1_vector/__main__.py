@@ -9,6 +9,7 @@ import pandas as pd
 import typer
 from br_py_log_n_profile import log_e, log_exception, profile_it
 
+from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
 from application.xauusd_trading_strategy_1_vector.zone_loader import load_zones_from_file
 from config import app_config
 from domain.xau_usd.zone import build_merged_zones
@@ -67,27 +68,27 @@ async def main(
     print("Loading data ...")
 
     zones_df = await load_zones_from_file(zones)
-    # datetime_of_first_zone = zones_df.index.get_level_values("date")[0]
-    # next_day_after_first_zone = zones_df.index.get_level_values("date")[0] + pd.Timedelta(days=1)
-    # zones_df = zones_df[
-    #     (
-    #         (datetime_of_first_zone <= zones_df.index.get_level_values("date"))
-    #         & (zones_df.index.get_level_values("date") < next_day_after_first_zone)
-    #     )
-    # ]
+    datetime_of_first_zone = zones_df.index.get_level_values("date")[0]
+    next_day_after_first_zone = zones_df.index.get_level_values("date")[0] + pd.Timedelta(days=1)
+    zones_df = zones_df[
+        (
+            (datetime_of_first_zone <= zones_df.index.get_level_values("date"))
+            & (zones_df.index.get_level_values("date") < next_day_after_first_zone)
+        )
+    ]
 
     if zones_df.empty:
         log_exception("Zone input must contain at least one day", ValueError)
     start = zones_df.index.get_level_values("date").min().normalize()
     end = zones_df.index.get_level_values("date").max().normalize() + pd.Timedelta(hours=2) - EPSILON_TIME
     time_range_str = time_range_to_string(start=start, end=end)
-    tick_data = await get_ticks(time_range_str=time_range_str, symbol=symbol)
-    tick_times = tick_data.index.get_level_values("datetime")
+    tick_df = await get_ticks(time_range_str=time_range_str, symbol=symbol)
+    tick_times = tick_df.index.get_level_values("precise_time")
 
-    out_of_boundary_ticks = tick_data.loc[((tick_times < start) | (tick_times >= end))]
+    out_of_boundary_ticks = tick_df.loc[((tick_times < start) | (tick_times >= end))]
     assert out_of_boundary_ticks.empty
 
-    if tick_data.empty:
+    if tick_df.empty:
         log_e("No ticks returned for the requested zone days")
         raise ValueError("No ticks returned for the requested zone days")
 
@@ -95,7 +96,9 @@ async def main(
 
     candle_15min_df = candle_15min_df.reset_index().rename(columns={"date": "bar_time"})
 
-    result = run_vectorized_strategy(tick_df=tick_data, candle_df=candle_15min_df, zones_df=zones_df, debug=debug)
+    tick_df = VectorizedXauUsdStrategy.add_bar_time_n_broker_day(tick_df)
+
+    result = run_vectorized_strategy(tick_df=tick_df, candle_df=candle_15min_df, zones_df=zones_df, debug=debug)
 
     save_results_to_file(
         result,

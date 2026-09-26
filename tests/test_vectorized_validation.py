@@ -2,12 +2,12 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandera.errors import SchemaErrors
-from vectorized_fixtures import candles_from_ticks
+from vectorized_fixtures import candles_from_ticks, prepared_ticks
 
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
     EngagementResult,
     PositionTrackingResult,
-    ReferenceResult,
+    ReferenceTrendInfo,
     StrategyResult,
 )
 from application.xauusd_trading_strategy_1_vector.engagement import update_zone_engagement
@@ -42,11 +42,12 @@ class EmptyZones:
         return []
 
 
+@prepared_ticks
 def market_frame():
     times = pd.date_range("2026-09-18", periods=2, freq="15min", tz="UTC").as_unit("ns")
     index = pd.MultiIndex.from_arrays(
         [["test"] * 2, ["XAUUSD"] * 2, times, times.normalize()],
-        names=["broker", "symbol", "datetime", "date"],
+        names=["broker", "symbol", "precise_time", "date"],
     )
     return pd.DataFrame({"bid": [100.0, 101.0], "ask": [100.2, 101.2]}, index=index)
 
@@ -84,7 +85,7 @@ def test_strategy_output_rejects_broken_contract(defect):
     if defect == "missing_column":
         result = result.drop(columns="breakout_signals")
     else:
-        result.index = result.index.set_levels(result.index.levels[2].as_unit("us"), level="datetime")
+        result.index = result.index.set_levels(result.index.levels[2].as_unit("us"), level="precise_time")
     with pytest.raises(SchemaErrors):
         StrategyResult.validate(result, lazy=True)
 
@@ -98,7 +99,7 @@ def test_partial_state_operations_reject_invalid_inputs(operation, defect):
         function, column = compute_references, "trend_high_0"
     else:
         frame = pd.DataFrame({"bid": [1.0], "bar_time": pd.date_range("2026-09-18", periods=1, tz="UTC")})
-        function, column = lambda data: update_zone_engagement(data, []), "bid"
+        function, column = lambda data: update_zone_engagement(data, data, []), "bid"
     frame = frame.drop(columns=column) if defect == "missing_column" else frame.assign(**{column: "invalid"})
     with pytest.raises(SchemaErrors):
         function(frame)
@@ -129,7 +130,7 @@ def test_validation_preserves_explicit_mutation_policy(inplace):
 @pytest.mark.parametrize("defect", ["missing_column", "wrong_dtype"])
 def test_inplace_validation_still_rejects_broken_outputs(defect):
     @pandera_validate(inplace=True)
-    def broken(frame: pt.DataFrame[ReferenceResult]) -> pt.DataFrame[ReferenceResult]:
+    def broken(frame: pt.DataFrame[ReferenceTrendInfo]) -> pt.DataFrame[ReferenceTrendInfo]:
         if defect == "missing_column":
             frame.drop(columns="reference_high", inplace=True)
         else:

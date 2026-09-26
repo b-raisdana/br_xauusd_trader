@@ -11,7 +11,12 @@ import pandas as pd
 from br_py_log_n_profile import log_d, profile_it
 
 from application.xauusd_trading_strategy_1_vector.config.core_vectors import CoreVectors
-from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickBaseState, ReferenceInput, ReferenceResult
+from application.xauusd_trading_strategy_1_vector.domain.schema import (
+    PerTickState,
+    ReferenceTrendInfo,
+    TrendInfo,
+    VectorizedTick,
+)
 from domain.xau_usd.enums import XauTrend
 from helper.importer import pt
 from helper.pandera import pandera_validate
@@ -29,6 +34,7 @@ def compute_bar_time(datetime_series: pt.Series[pd.Timestamp]) -> pt.Series[pd.T
     if isinstance(datetime_series, pd.DatetimeIndex):
         return datetime_series.floor("15min")
     return datetime_series.dt.floor("15min")
+    # return pd.to_datetime(ts // (60 * 15))
 
 
 @profile_it
@@ -78,7 +84,7 @@ def _reduce_trend_arrays(trend_arrays: list[np.ndarray], counts: np.ndarray, com
 
 @profile_it
 @pandera_validate(inplace=True)
-def compute_references(per_tick_state: pt.DataFrame[ReferenceInput]) -> pt.DataFrame[ReferenceResult]:
+def compute_references(per_tick_state: pt.DataFrame[TrendInfo]) -> pt.DataFrame[ReferenceTrendInfo]:
     """Populate reference_high and reference_low columns on the per-tick DataFrame."""
 
     max_points = _get_trend_max_points()
@@ -92,7 +98,9 @@ def compute_references(per_tick_state: pt.DataFrame[ReferenceInput]) -> pt.DataF
 
 @profile_it
 @pandera_validate(allow_pandas_dataframe=True)
-def update_trend(per_tick_state: pt.DataFrame[PerTickBaseState]) -> pt.DataFrame[PerTickBaseState]:
+def update_trend(
+    ticks: pt.DataFrame[VectorizedTick], per_tick_state: pt.DataFrame[PerTickState]
+) -> pt.DataFrame[PerTickState]:
     """Update trend column based on bid vs reference levels.
 
     Only rows with trend_count > 0 are updated. Trend becomes UP when bid
@@ -104,15 +112,13 @@ def update_trend(per_tick_state: pt.DataFrame[PerTickBaseState]) -> pt.DataFrame
     has_reference = per_tick_state["trend_count"] > 0
     changes = pd.Series(
         np.where(
-            has_reference & (per_tick_state["bid"] > per_tick_state["reference_high"]),
+            has_reference & (ticks["bid"] > per_tick_state["reference_high"]),
             XauTrend.UP.value,
-            np.where(
-                has_reference & (per_tick_state["bid"] < per_tick_state["reference_low"]), XauTrend.DOWN.value, np.nan
-            ),
+            np.where(has_reference & (ticks["bid"] < per_tick_state["reference_low"]), XauTrend.DOWN.value, np.nan),
         ),
         index=per_tick_state.index,
     )
     per_tick_state["trend"] = (
-        changes.groupby(per_tick_state["broker_day"], sort=False).ffill().fillna(XauTrend.NONE.value).astype(int)
+        changes.groupby(ticks["broker_day"], sort=False).ffill().fillna(XauTrend.NONE.value).astype(int)
     )
     return per_tick_state

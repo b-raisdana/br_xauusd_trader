@@ -11,17 +11,16 @@ from infrastructure.mt5.tick import get_ticks
 root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(root / "src"))
 
-from application.xauusd_trading_strategy_1.global_state_variable import (  # noqa: E402
+from archive_not_used_trash.xauusd_trading_strategy_1 import (  # noqa: E402  # noqa: E402
     StrategyRuntimeState,
-)
-from application.xauusd_trading_strategy_1.lifecycle import (  # noqa: E402
-    RuntimeEnvironment,
-    Tick,
-)
-from application.xauusd_trading_strategy_1.on_tick import on_tick  # noqa: E402
-from application.xauusd_trading_strategy_1.settings import (  # noqa: E402
     StrategySettings,
+    on_tick,  # noqa: E402
 )
+from archive_not_used_trash.xauusd_trading_strategy_1.lifecycle import (  # noqa: E402
+    RuntimeEnvironment,
+    TickLifecycle,
+)
+
 from config.config import app_config  # noqa: E402
 
 app = typer.Typer()
@@ -62,7 +61,7 @@ async def generate_backtest_report(
     handled_flags = pd.Series(False, index=close.index)
 
     for i in range(len(close)):
-        tick = Tick(time=close.index[i], bid=float(close.iloc[i]), ask=float(close.iloc[i]))
+        tick = TickLifecycle(time=close.index[i], bid=float(close.iloc[i]), ask=float(close.iloc[i]))
         result = on_tick(tick, settings, runtime, environment, None)
         handled_flags.iloc[i] = result.handled
         if result.handled:

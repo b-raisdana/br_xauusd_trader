@@ -70,14 +70,14 @@ async def main(
     print("Loading data ...")
 
     zones_df = await load_zones_from_file(zones)
-    datetime_of_first_zone = zones_df.index.get_level_values("date")[0]
-    next_day_after_first_zone = zones_df.index.get_level_values("date")[0] + pd.Timedelta(days=1)
-    zones_df = zones_df[
-        (
-            (datetime_of_first_zone <= zones_df.index.get_level_values("date"))
-            & (zones_df.index.get_level_values("date") < next_day_after_first_zone)
-        )
-    ]
+    # datetime_of_first_zone = zones_df.index.get_level_values("date")[0]
+    # next_day_after_first_zone = zones_df.index.get_level_values("date")[0] + pd.Timedelta(days=1)
+    # zones_df = zones_df[
+    #     (
+    #         (datetime_of_first_zone <= zones_df.index.get_level_values("date"))
+    #         & (zones_df.index.get_level_values("date") < next_day_after_first_zone)
+    #     )
+    # ]
 
     if zones_df.empty:
         log_exception("Zone input must contain at least one day", ValueError)

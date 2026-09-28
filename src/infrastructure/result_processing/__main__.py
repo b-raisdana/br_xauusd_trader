@@ -9,8 +9,6 @@ from application.xauusd_trading_strategy_1_vector.domain.schema import (
     StrategyResultWithCandles,
 )
 from infrastructure.result_processing.io import ResultFilesManifest
-from infrastructure.result_processing.parquet import read_parquet as read_parquet
-from infrastructure.result_processing.parquet import write_parquet as write_parquet
 
 
 @profile_it

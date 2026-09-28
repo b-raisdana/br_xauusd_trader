@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime
 
 import pandas as pd
 from br_py_log_n_profile import profile_it
@@ -16,10 +17,10 @@ class ZoneCache:
     """Daily merged zones prepared from supplied data, with no I/O or lazy loading."""
 
     @pandera_validate
-    def __init__(self, zone_data: pt.DataFrame[Zone]):
+    def __init__(self, zone_data: pt.DataFrame[Zone]) -> None:
         zones = Zone.validate(zone_data.copy(deep=True))
         days = zones.index.get_level_values("date").strftime("%Y-%m-%d")
-        self._cached_zones = {}
+        self._cached_zones: dict[str, list[XauZone]] = {}
         for day, daily in zones.groupby(days, sort=False):
             raw = [
                 XauZone(id=f"{day}:R{number}", low=row.lower, high=row.upper, priority=int(row.priority == "high"))
@@ -30,7 +31,7 @@ class ZoneCache:
     @profile_it
     def get_zones_for_day(
         self,
-        broker_day: pd.DatetimeTZDtype(tz="UTC", unit="ns"),  # str
+        broker_day: datetime | str,
     ) -> list[XauZone]:
         day = pd.Timestamp(broker_day).strftime("%Y-%m-%d")
         return deepcopy(self._cached_zones.get(day, []))

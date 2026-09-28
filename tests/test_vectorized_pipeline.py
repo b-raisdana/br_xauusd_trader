@@ -1,5 +1,3 @@
-import pandas as pd
-
 from application.xauusd_trading_strategy_1_vector import __main__ as entry
 from application.xauusd_trading_strategy_1_vector.reporting import print_strategy_summary
 
@@ -127,9 +125,31 @@ def mock_fetches(monkeypatch, ticks, candles, zones):
 #     pd.testing.assert_frame_equal(result, original)
 
 
-def test_summary_counts_candidates_not_non_null_containers(capsys):
-    print_strategy_summary(pd.DataFrame({"breakout_signals": [(), ("a", "b"), None]}))
-    assert "Breakout signals: 2" in capsys.readouterr().out
+def test_summary_counts_candidates_not_non_null_containers(capsys, tmp_path):
+    from test_vectorized_tick_separation import Zones, inputs
+
+    from application.xauusd_trading_strategy_1_vector.the_strategy import VectorizedXauUsdStrategy
+    from infrastructure.result_processing.__main__ import (
+        generate_order_management_columns,
+        generate_position_tracking_columns,
+        merge_results_with_candles,
+    )
+    from infrastructure.result_processing.io import ResultFilesManifest
+
+    ticks, candles = inputs()
+    day = ticks.broker_day.iloc[0]
+    manifest = ResultFilesManifest(root=tmp_path)
+    try:
+        manifest.save_daily_ticks(day, ticks).save_daily_candles(day, candles)
+        VectorizedXauUsdStrategy(Zones()).process_tick_data(manifest)
+        merge_results_with_candles(manifest)
+        generate_order_management_columns(manifest)
+        generate_position_tracking_columns(manifest)
+        expected = manifest.read_positions(day).breakout_signals.map(len).sum()
+        print_strategy_summary(manifest)
+        assert f"Breakout signals: {expected}" in capsys.readouterr().out
+    finally:
+        manifest.close()
 
 
 # @pytest.mark.parametrize("empty_input", ["ticks", "zones"])

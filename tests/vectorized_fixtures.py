@@ -2,11 +2,11 @@
 
 
 def candles_from_ticks(tick_frame):
-    candle_ticks = tick_frame.reset_index(drop="bar_time" in tick_frame)
+    candle_ticks = tick_frame.reset_index()
     if "bar_time" not in candle_ticks:
         candle_ticks["bar_time"] = candle_ticks["precise_time"].dt.floor("15min")
     keys = [key for key in ("broker", "symbol", "bar_time") if key in candle_ticks]
-    return (
+    df = (
         candle_ticks.groupby(keys, sort=False)
         .agg(
             open=("bid", "first"),
@@ -17,6 +17,10 @@ def candles_from_ticks(tick_frame):
         )
         .reset_index()
     )
+    df["date"] = df["bar_time"].dt.normalize()
+    df["timeframe"] = "15min"
+    df = df.set_index(["date", "timeframe", "broker", "symbol", "bar_time"])
+    return df
 
 
 def prepared_ticks(factory):
@@ -44,3 +48,78 @@ def prepared_ticks(factory):
         return VectorizedXauUsdStrategy.add_bar_time_n_broker_day(ticks)
 
     return wrapped
+
+
+def calculate_manifest(strategy, ticks, candles):
+    from pathlib import Path
+    from tempfile import TemporaryDirectory
+
+    import pandas as pd
+
+    from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickState
+    from infrastructure.result_processing.io import ResultFilesManifest
+
+    with TemporaryDirectory() as folder:
+        manifest = ResultFilesManifest(root=Path(folder))
+        try:
+            for day, daily in ticks.groupby("broker_day", sort=False):
+                manifest.save_daily_ticks(day, daily)
+                manifest.save_daily_candles(
+                    day, candles.loc[candles.index.get_level_values("bar_time").normalize() == day]
+                )
+            strategy.process_tick_data(manifest)
+            states = [manifest.read_daily_ticks_temp_state(day) for day in manifest.successful_days("per_tick_state")]
+            candle_states = [
+                manifest.read_daily_candles_temp_state(day) for day in manifest.successful_days("per_candle_states")
+            ]
+            state = (
+                pd.concat(states).sort_index(kind="stable")
+                if states
+                else strategy._initialize_per_tick_temp_state(ticks)
+            )
+            candle_state = pd.concat(candle_states) if candle_states else candles.iloc[:0]
+            PerTickState.validate(state, lazy=True)
+            return state, candle_state
+        finally:
+            manifest.close()
+
+
+def complete_tick_state(partial):
+    import numpy as np
+    import pandas as pd
+
+    from application.xauusd_trading_strategy_1_vector.the_strategy import VectorizedXauUsdStrategy
+
+    times = (
+        pd.DatetimeIndex(partial.index)
+        if isinstance(partial.index, pd.DatetimeIndex)
+        else pd.DatetimeIndex(partial.bar_time)
+    )
+    times = times.as_unit("ns")
+    index = pd.MultiIndex.from_arrays(
+        [
+            pd.Index(["test"] * len(times), dtype="str"),
+            pd.Index(["XAUUSD"] * len(times), dtype="str"),
+            times.normalize(),
+            times,
+        ],
+        names=["broker", "symbol", "date", "precise_time"],
+    )
+    ticks = pd.DataFrame(
+        {
+            "bid": partial.bid.to_numpy(dtype=float),
+            "ask": partial.bid.to_numpy(dtype=float) + 0.2,
+            "last": partial.bid.to_numpy(dtype=float),
+            "volume": np.uint64(0),
+            "flags": np.uint32(0),
+            "volume_real": 0.0,
+        },
+        index=index,
+    )
+    # Build valid ticks before injecting invalid values in negative tests.
+    ticks = VectorizedXauUsdStrategy.add_bar_time_n_broker_day(ticks)
+    state = VectorizedXauUsdStrategy(None)._initialize_per_tick_temp_state(ticks)
+    combined = pd.concat([ticks, state], axis=1)
+    for column in partial:
+        combined[column] = partial[column].array
+    return combined

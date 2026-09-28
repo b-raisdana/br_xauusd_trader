@@ -15,8 +15,8 @@ from br_py_log_n_profile import profile_it
 # from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
     # EngagementInput,
-    EngagementResult,
-    MarketBarInput,
+    PerTickState,
+    VectorizedTick,
 )
 from domain.xau_usd.models import XauZone
 from helper.importer import pt
@@ -37,9 +37,9 @@ def count_directional_crosses_vectorized(
 
     crosses = pd.Series(0, index=previous_bid.index)
     for zone in zones:
-        upward_cross = (previous_bid < zone.low) & (current_bid >= zone.low)
+        upward_cross = previous_bid.lt(zone.low) & current_bid.ge(zone.low)
         crosses += upward_cross.astype(int)
-        downward_cross = (previous_bid > zone.high) & (current_bid <= zone.high)
+        downward_cross = previous_bid.gt(zone.high) & current_bid.le(zone.high)
         crosses += downward_cross.astype(int)
     return crosses
 
@@ -47,10 +47,10 @@ def count_directional_crosses_vectorized(
 @profile_it
 @pandera_validate(inplace=True)
 def update_zone_engagement(
-    ticks: pt.DataFrame[MarketBarInput],
-    per_tick_state: pt.DataFrame[EngagementResult],  # EngagementInput],
+    ticks: pt.DataFrame[VectorizedTick],
+    per_tick_state: pt.DataFrame[PerTickState],  # EngagementInput],
     zones: List[XauZone],
-) -> pt.DataFrame[EngagementResult]:
+) -> pt.DataFrame[PerTickState]:
     """Update buy/sell engagement based on bid movement across zone boundaries.
 
     Handles multi-zone tick gaps (crosses > 1) by setting engagement based on

@@ -17,7 +17,7 @@ from typing import get_type_hints
 import application.xauusd_trading_strategy_1_vector as strategy
 import application.xauusd_trading_strategy_1_vector.__main__ as entrypoint
 from application.xauusd_trading_strategy_1_vector import backtest
-assert get_type_hints(backtest.run_vectorbt_backtest)["result"] is backtest.VectorbtBacktestInput
+assert get_type_hints(backtest.run_vectorbt_backtest)["manifest"] is backtest.ResultFilesManifest
 assert not ({"vectorbt", "matplotlib", "matplotlib.pyplot"} & sys.modules.keys())
 """,
         ],

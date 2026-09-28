@@ -531,7 +531,7 @@ class VectorizedXauUsdStrategy:
 
         return state
 
-    def _get_zones_for_group(self, state: pd.DataFrame) -> List[XauZone]:
+    def _get_zones_for_group(self, state: pd.DataFrame) -> list[XauZone]:
         """
         Get zones for the current group.
 

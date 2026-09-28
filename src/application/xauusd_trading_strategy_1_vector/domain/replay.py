@@ -30,7 +30,7 @@ class LinearReplayEconomics:
     minimum_stop_distance: float
     sessions: dict[str, datetime]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         values = (
             self.cash_per_price_unit_per_lot,
             self.margin_per_lot,
@@ -43,20 +43,20 @@ class LinearReplayEconomics:
         if any(value.tzinfo is None for value in self.sessions.values()):
             raise ValueError("Session ends must be timezone-aware")
 
-    def profit(self, direction, volume, entry, exit_price):
+    def profit(self, direction: XauDirection, volume: float, entry: float, exit_price: float) -> float:
         sign = 1 if direction == XauDirection.BUY else -1
         return sign * (exit_price - entry) * volume * self.cash_per_price_unit_per_lot
 
-    def margin(self, volume, entry):
+    def margin(self, volume: float, entry: float) -> float:
         return volume * self.margin_per_lot
 
-    def cost(self, volume, time, opening):
+    def cost(self, volume: float, time: datetime, opening: bool) -> float:
         return volume * (self.entry_cost_per_lot if opening else self.exit_cost_per_lot)
 
-    def session_end(self, time):
+    def session_end(self, time: datetime) -> datetime:
         return self.sessions[time.strftime("%Y-%m-%d")]
 
-    def accepts(self, operation, request_id, time):
+    def accepts(self, operation: str, request_id: str, time: datetime) -> bool:
         return True
 
 
@@ -67,7 +67,7 @@ class ReplayConfig:
     initial_balance: float = 200.0
     restart_days: frozenset[str] = frozenset()
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.strategy_capital not in (200.0, 300.0):
             raise ValueError("Strategy capital must be 200 or 300")
         if not isfinite(self.initial_balance) or self.initial_balance <= 0:
@@ -97,12 +97,12 @@ class ReplayOrder:
     tp: XauPullbackTpState = field(default_factory=XauPullbackTpState)
 
     @property
-    def direction(self):
+    def direction(self) -> XauDirection:
         return self.candidate.direction
 
     @property
-    def position_id(self):
+    def position_id(self) -> str | None:
         return self.request_id.replace("REQ-", "POS-", 1) if self.fill_time is not None else None
 
-    def mark(self, bid, ask):
+    def mark(self, bid: float, ask: float) -> float:
         return bid if self.direction == XauDirection.BUY else ask

@@ -8,7 +8,7 @@ from scalar_coordinator_reference import (
     close_coordinator_bar,
     process_coordinator_tick,
 )
-from vectorized_fixtures import candles_from_ticks, prepared_ticks
+from vectorized_fixtures import calculate_manifest, candles_from_ticks, prepared_ticks
 
 from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
 
@@ -31,16 +31,16 @@ def ticks(times, bids, symbol="XAUUSD"):
     return pd.DataFrame(
         {"bid": np.asarray(bids, dtype=float), "ask": np.asarray(bids, dtype=float) + 0.2},
         index=pd.MultiIndex.from_arrays(
-            [["test"] * len(times), [symbol] * len(times), times, times.normalize()],
-            names=["broker", "symbol", "precise_time", "date"],
+            [[symbol] * len(times), ["test"] * len(times), times.normalize(), times],
+            names=["symbol", "broker", "date", "precise_time"],
         ),
     )
 
 
 def run(frame, zones):
     strategy = VectorizedXauUsdStrategy(Zones(zones))
-    result = strategy.process_tick_data(frame, candles_from_ticks(frame))
-    return result, strategy._per_tick_temp_state
+    result, _ = calculate_manifest(strategy, frame, candles_from_ticks(frame))
+    return result, result
 
 
 def oracle(frame, zones):
@@ -49,7 +49,7 @@ def oracle(frame, zones):
     high = low = 0.0
     expected = []
     snapshots = []
-    for (_, _, time, _), tick in frame.iterrows():
+    for time, (_, tick) in zip(frame.index.get_level_values("precise_time"), frame.iterrows(), strict=True):
         candidates = []
         next_day, next_bar = str(time.date()), time.floor("15min")
         if next_day != day:

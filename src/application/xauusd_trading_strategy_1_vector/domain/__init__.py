@@ -1,17 +1,18 @@
 """Domain types and schemas for the vectorized XAUUSD trading strategy."""
 
 from .schema import (
+    HasDay,
     OrderId,
     OrderInput,
     OrderManagementResult,
     PerCandleState,
     PerTickState,
     PositionId,
-    PositionInput,
+    # PositionInput,
     PositionTrackingResult,
     PullbackWindowsTuple,
     ReferenceTrendInfo,
-    ReversalInput,
+    ReversalInfo,
     ReversalResult,
     SignalCandidatesTuple,
     StrategyResult,
@@ -20,7 +21,6 @@ from .schema import (
     TrendInfo,
     VectorbtBacktestInput,
     VectorizedTick,
-    ZoneDayInput,
 )
 
 __all__ = [
@@ -30,12 +30,12 @@ __all__ = [
     "PerCandleState",
     "PerTickState",
     "PositionId",
-    "PositionInput",
+    # "PositionInput",
     "PositionTrackingResult",
     "PullbackWindowsTuple",
     "TrendInfo",
     "ReferenceTrendInfo",
-    "ReversalInput",
+    "ReversalInfo",
     "ReversalResult",
     "SignalCandidatesTuple",
     "StrategyResult",
@@ -43,5 +43,5 @@ __all__ = [
     "TradingAction",
     "VectorbtBacktestInput",
     "VectorizedTick",
-    "ZoneDayInput",
+    "HasDay",
 ]

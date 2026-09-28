@@ -8,12 +8,16 @@ from pathlib import Path
 import pandas as pd
 from br_py_log_n_profile import log_e
 
-from application.xauusd_trading_strategy_1_vector.domain.schema import PositionTrackingResult
+from application.xauusd_trading_strategy_1_vector.domain.schema import PositionTrackingResult, PullbackFeedback
+from domain.xau_usd.models import XauPullbackWindowState, XauSignalCandidate
 from helper.importer import pt
 from helper.pandera import pandera_validate
+from infrastructure.result_processing.io import ResultFilesManifest
 
 
-def _json_default(value):
+def _json_default(
+    value: XauSignalCandidate | XauPullbackWindowState | PullbackFeedback | datetime | date,
+) -> str | dict[str, str | int | float | bool | datetime | None | dict[str, str | float | int]]:
     if is_dataclass(value) and not isinstance(value, type):
         return asdict(value)
     if isinstance(value, (datetime, date)):
@@ -25,18 +29,11 @@ def _json_default(value):
 
 @pandera_validate
 def save_results_to_file(
-    result: pt.DataFrame[PositionTrackingResult],
+    manifest: ResultFilesManifest,
     output_file: str,
 ) -> None:
-    """
-    Save strategy results to a file.
-
-    Args:
-        result: DataFrame with strategy results (PositionTrackingResult schema)
-        output_file: Path to output file
-        format: Output format ('csv' or 'parquet')
-    """
-    # log_w(NOT_TESTED)
+    """Export validated daily position artifacts to one parquet file."""
+    result = pd.concat([manifest.read_positions(day) for day in manifest.successful_days("positions")])
     result_reset = result.reset_index()
     for column in result_reset.select_dtypes(include="object", exclude="str"):
         result_reset[column] = result_reset[column].map(
@@ -52,19 +49,14 @@ def save_results_to_file(
     print(f"Results saved to {output_file} (Parquet format)")
 
 
+def print_strategy_summary(manifest: ResultFilesManifest) -> None:
+    for day in manifest.successful_days("positions"):
+        _print_strategy_summary(manifest.read_positions(day))
+
+
 @pandera_validate(allow_pandas_dataframe=True)
-def print_strategy_summary(result: pd.DataFrame) -> None:
-    """
-    Print a comprehensive summary of the strategy execution results.
-
-    This function provides detailed statistics about the strategy execution,
-    including tick processing, signal generation, order management, and
-    position tracking metrics.
-
-    Args:
-        result: DataFrame with strategy results (PositionTrackingResult schema)
-    """
-    # log_w(NOT_TESTED)
+def _print_strategy_summary(result: pt.DataFrame[PositionTrackingResult]) -> None:
+    """Internal: print summary from an already-loaded DataFrame."""
     print("\n=== Strategy Execution Summary ===")
 
     # Basic statistics

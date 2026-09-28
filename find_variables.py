@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 
-def find_variables_in_file(filepath: str) -> List[Dict[str, Any]]:
+def find_variables_in_file(filepath: str) -> list[Dict[str, Any]]:
     """Parse a Python file and extract all variable names with locations."""
     try:
         with open(filepath, "r", encoding="utf-8") as f:

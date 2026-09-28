@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandera.errors import SchemaErrors
-from vectorized_fixtures import candles_from_ticks, prepared_ticks
+from vectorized_fixtures import calculate_manifest, candles_from_ticks, prepared_ticks
 
 from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
 from application.xauusd_trading_strategy_1_vector.domain.state import (
@@ -12,16 +12,16 @@ from application.xauusd_trading_strategy_1_vector.domain.state import (
     trend_references,
 )
 from application.xauusd_trading_strategy_1_vector.engagement import update_zone_engagement
-from application.xauusd_trading_strategy_1_vector.result_processing import (
-    generate_order_management_columns,
-    generate_position_tracking_columns,
-)
 from application.xauusd_trading_strategy_1_vector.trend import (
     compute_reference_high,
     compute_reference_low,
     compute_references,
 )
 from domain.xau_usd.models import XauZone
+from infrastructure.result_processing.__main__ import (
+    generate_order_management_columns,
+    generate_position_tracking_columns,
+)
 
 
 class EmptyZones:
@@ -41,9 +41,9 @@ def ticks(times, bids, broker="test", symbol="XAUUSD"):
 
 def calculate(frame, cache=None):
     strategy = VectorizedXauUsdStrategy(cache or EmptyZones())
-    result = strategy.process_tick_data(frame, candles_from_ticks(frame))
+    result, _ = calculate_manifest(strategy, frame, candles_from_ticks(frame))
     assert result.index.equals(frame.sort_index(kind="stable").index)
-    return strategy._per_tick_temp_state
+    return result
 
 
 def scalar_trend(frame):
@@ -113,7 +113,7 @@ def test_broker_symbol_partitions_and_daily_zone_loading_are_isolated():
     frame = pd.concat([ticks(times, [100, 999]), ticks(times, [200, 1], symbol="OTHER")])
     cache = DailyZones()
     per_tick_state = calculate(frame, cache)
-    assert cache.days == list(pd.to_datetime(["2026-09-18", "2026-09-19"], utc=True)) * 2
+    assert cache.days == list(pd.to_datetime(["2026-09-18", "2026-09-18", "2026-09-19", "2026-09-19"], utc=True))
     assert per_tick_state.trend_count.eq(0).all()
     assert per_tick_state.reference_high.eq(0).all()
 
@@ -162,7 +162,7 @@ def test_reference_reduction_ignores_unused_slots():
 def test_engagement_latches_within_bar_and_resets_at_next_open():
     frame = ticks(["2026-09-18 00:00", "2026-09-18 00:01", "2026-09-18 00:02", "2026-09-18 00:15"], [99, 100, 103, 103])
     strategy = VectorizedXauUsdStrategy(EmptyZones())
-    per_tick_state = strategy._process_bar_boundaries(
+    per_tick_state, _ = strategy._process_bar_boundaries(
         frame, strategy._initialize_per_tick_temp_state(frame), candles_from_ticks(frame)
     )
     update_zone_engagement(frame, per_tick_state, [XauZone("z", 100, 102)])
@@ -170,19 +170,37 @@ def test_engagement_latches_within_bar_and_resets_at_next_open():
     assert per_tick_state.sell_engaged.tolist() == [False] * 4
 
 
-def test_ids_are_assigned_by_row_even_with_duplicate_timestamps():
-    frame = ticks(["2026-09-18 00:00"] * 4, [100, 101, 102, 103])
-    frame["action"] = ["BUY", None, "SELL", "BUY"]
-    orders = generate_order_management_columns(frame)
-    assert orders.order_id.tolist() == ["ORD-000001", None, "ORD-000002", "ORD-000003"]
-    orders["order_status"] = ["FILLED", None, None, "FILLED"]
-    positions = generate_position_tracking_columns(orders)
-    assert positions.position_id.tolist() == ["POS-000001", None, None, "POS-000002"]
-    pd.testing.assert_series_equal(
-        positions.position_current_price,
-        pd.Series([100.0, float("nan"), float("nan"), 103.0], index=frame.index, name="position_current_price"),
-    )
-    assert positions.position_time.iloc[0] == frame.index[0][2]
+def test_snapshot_ids_are_preserved_with_duplicate_timestamps(tmp_path):
+    from test_vectorized_execution import candidate, config
+
+    from application.xauusd_trading_strategy_1_vector.actions import generate_actions
+    from infrastructure.result_processing.__main__ import merge_results_with_candles
+    from infrastructure.result_processing.io import ResultFilesManifest
+
+    frame = ticks(["2026-09-24 00:00"] * 4, [103, 103, 103, 103])
+    day = frame.broker_day.iloc[0]
+    strategy = VectorizedXauUsdStrategy(EmptyZones())
+    state = strategy._initialize_per_tick_temp_state(frame)
+    state["bar_open"] = 101.0
+    state["breakout_signals"] = pd.Series([(candidate(),), (), (), ()], index=frame.index)
+    from test_vectorized_execution import ZONES
+
+    state = generate_actions(frame, state, ZONES, config())
+    manifest = ResultFilesManifest(root=tmp_path)
+    try:
+        manifest.save_daily_ticks(day, frame)
+        manifest.save_daily_candles(day, candles_from_ticks(frame))
+        manifest.save_daily_ticks_temp_state(day, state)
+        merge_results_with_candles(manifest)
+        generate_order_management_columns(manifest)
+        generate_position_tracking_columns(manifest)
+        positions = manifest.read_positions(day)
+        assert positions.index.equals(frame.index)
+        assert positions.order_id.nunique() == 1
+        assert positions.position_id.nunique() == 1
+        assert positions.position_current_price.tolist() == [103.0] * 4
+    finally:
+        manifest.close()
 
 
 def test_daily_zone_dataframe_selection_and_strategy_adapter():
@@ -246,37 +264,27 @@ def test_zone_group_rejects_invalid_frame(defect):
 def test_supplied_candles_match_tick_history_with_gaps_and_day_reset():
     frame = ticks(pd.date_range("2026-09-17 23:00", periods=100, freq="min", tz="UTC"), np.arange(100) + 100)
     frame = frame.drop(frame.index[20:35])
-    candles = (
-        frame.groupby(frame.index.get_level_values("precise_time").floor("15min"))
-        .agg(open=("bid", "first"), high=("bid", "max"), low=("bid", "min"))
-        .rename_axis("bar_time")
-        .reset_index()
-    )
+    candles = candles_from_ticks(frame)
     strategy = VectorizedXauUsdStrategy(EmptyZones())
-    strategy.process_tick_data(frame, candles.sample(frac=1, random_state=1))
-    pd.testing.assert_frame_equal(strategy._per_tick_temp_state, calculate(frame))
+    state, _ = calculate_manifest(strategy, frame, candles.sample(frac=1, random_state=1))
+    pd.testing.assert_frame_equal(state, calculate(frame))
 
 
 def test_supplied_candle_ranges_are_used_only_after_close():
     frame = ticks(["2026-09-18 00:00", "2026-09-18 00:15", "2026-09-18 00:30"], [100, 101, 102])
-    candles = pd.DataFrame(
-        {
-            "bar_time": frame.index.get_level_values("precise_time"),
-            "open": [100.0, 101.0, 102.0],
-            "high": [110.0, 120.0, 9999.0],
-            "low": [90.0, 80.0, 1.0],
-        }
-    )
+    candles = candles_from_ticks(frame)
+    candles["high"] = [110.0, 120.0, 9999.0]
+    candles["low"] = [90.0, 80.0, 1.0]
     strategy = VectorizedXauUsdStrategy(EmptyZones())
-    strategy.process_tick_data(frame, candles)
-    np.testing.assert_array_equal(strategy._per_tick_temp_state.trend_high_0, [0, 110, 110])
-    np.testing.assert_array_equal(strategy._per_tick_temp_state.trend_high_1, [0, 0, 120])
-    prefix = strategy._per_tick_temp_state.copy()
-    candles.loc[2, ["high", "low"]] = [99999.0, 0.0]
-    strategy.process_tick_data(frame, candles)
-    pd.testing.assert_frame_equal(strategy._per_tick_temp_state, prefix)
+    state, _ = calculate_manifest(strategy, frame, candles)
+    np.testing.assert_array_equal(state.trend_high_0, [0, 110, 110])
+    np.testing.assert_array_equal(state.trend_high_1, [0, 0, 120])
+    prefix = state.copy()
+    candles.iloc[2, candles.columns.get_indexer(["high", "low"])] = [99999.0, 0.0]
+    state, _ = calculate_manifest(strategy, frame, candles)
+    pd.testing.assert_frame_equal(state, prefix)
     with pytest.raises(ValueError, match="cover every observed tick bar"):
-        strategy.process_tick_data(frame, candles.iloc[:1])
+        calculate_manifest(strategy, frame, candles.iloc[:1])
 
 
 def test_per_candle_state_preserves_all_days_and_resets_between_batches():
@@ -285,19 +293,16 @@ def test_per_candle_state_preserves_all_days_and_resets_between_batches():
         [100, 104, 102, 103],
     )
     strategy = VectorizedXauUsdStrategy(EmptyZones())
-    assert strategy._per_tick_temp_state is None
-    assert strategy._per_candle_temp_state is None
-    strategy.process_tick_data(frame, candles_from_ticks(frame))
-    per_candle_state = strategy._per_candle_temp_state
-    assert per_candle_state.index.names == ["broker", "symbol", "bar_time"]
-    assert len(strategy._per_tick_temp_state) == 4
+    state, per_candle_state = calculate_manifest(strategy, frame, candles_from_ticks(frame))
+    assert per_candle_state.index.names == ["date", "timeframe", "broker", "symbol", "bar_time"]
+    assert len(state) == 4
     assert len(per_candle_state) == 3
     np.testing.assert_array_equal(per_candle_state.high, [104, 102, 103])
     np.testing.assert_array_equal(per_candle_state.trend_count, [0, 1, 0])
     np.testing.assert_array_equal(per_candle_state.trend_high_0, [0, 104, 0])
-    strategy.process_tick_data(frame.iloc[-1:], candles_from_ticks(frame.iloc[-1:]))
-    assert len(strategy._per_candle_temp_state) == 1
-    assert strategy._per_candle_temp_state.trend_count.iloc[0] == 0
-    strategy.process_tick_data(frame.iloc[:0], candles_from_ticks(frame.iloc[:0]))
-    assert strategy._per_tick_temp_state.empty
-    assert strategy._per_candle_temp_state.empty
+    state, per_candle_state = calculate_manifest(strategy, frame.iloc[-1:], candles_from_ticks(frame.iloc[-1:]))
+    assert len(per_candle_state) == 1
+    assert per_candle_state.trend_count.iloc[0] == 0
+    state, per_candle_state = calculate_manifest(strategy, frame.iloc[:0], candles_from_ticks(frame.iloc[:0]))
+    assert state.empty
+    assert per_candle_state.empty

@@ -51,7 +51,9 @@ def generate_actions(
         strict=True,
     )
     for time, day, bar, bar_open, bid, ask, openings, breakouts, reversals in rows:
-        records.append(replay.step(time, day, bar, bar_open, bid, ask, zones, openings, breakouts, reversals))
+        records.append(
+            replay.step(time, day.strftime("%Y-%m-%d"), bar, bar_open, bid, ask, zones, openings, breakouts, reversals)
+        )
     payload = pd.DataFrame.from_records(records, index=result.index)
     for column in payload:
         result[column] = payload[column].to_numpy()

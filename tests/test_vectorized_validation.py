@@ -2,13 +2,13 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandera.errors import SchemaErrors
-from vectorized_fixtures import candles_from_ticks, prepared_ticks
+from vectorized_fixtures import calculate_manifest, candles_from_ticks, prepared_ticks
 
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
     EngagementResult,
+    PerTickState,
     PositionTrackingResult,
     ReferenceTrendInfo,
-    StrategyResult,
 )
 from application.xauusd_trading_strategy_1_vector.engagement import update_zone_engagement
 from application.xauusd_trading_strategy_1_vector.runner import run_vectorized_strategy
@@ -29,6 +29,7 @@ def test_runner_preserves_position_tracking_dtypes(debug):
         ),
     )
     result = run_vectorized_strategy(ticks, candles_from_ticks(ticks), zones, debug=debug)
+    result = result.read_positions(ticks.broker_day.iloc[0])
     PositionTrackingResult.validate(result, lazy=True)
     for column, schema in PositionTrackingResult.to_schema().columns.items():
         if str(schema.dtype) in {"Int64", "float64"}:
@@ -63,7 +64,7 @@ def test_strategy_rejects_invalid_ticks(defect):
     else:
         ticks = ticks.droplevel("broker")
     with pytest.raises(SchemaErrors):
-        VectorizedXauUsdStrategy(EmptyZones()).process_tick_data(ticks, candles)
+        calculate_manifest(VectorizedXauUsdStrategy(EmptyZones()), ticks, candles)
 
 
 @pytest.mark.parametrize("defect", ["missing_column", "wrong_dtype"])
@@ -75,19 +76,19 @@ def test_strategy_rejects_invalid_candles(defect):
     else:
         candles["high"] = "invalid"
     with pytest.raises(SchemaErrors):
-        VectorizedXauUsdStrategy(EmptyZones()).process_tick_data(ticks, candles)
+        calculate_manifest(VectorizedXauUsdStrategy(EmptyZones()), ticks, candles)
 
 
 @pytest.mark.parametrize("defect", ["missing_column", "wrong_index_precision"])
 def test_strategy_output_rejects_broken_contract(defect):
     ticks = market_frame()
-    result = VectorizedXauUsdStrategy(EmptyZones()).process_tick_data(ticks, candles_from_ticks(ticks))
+    result, _ = calculate_manifest(VectorizedXauUsdStrategy(EmptyZones()), ticks, candles_from_ticks(ticks))
     if defect == "missing_column":
         result = result.drop(columns="breakout_signals")
     else:
         result.index = result.index.set_levels(result.index.levels[2].as_unit("us"), level="precise_time")
     with pytest.raises(SchemaErrors):
-        StrategyResult.validate(result, lazy=True)
+        PerTickState.validate(result, lazy=True)
 
 
 @pytest.mark.parametrize("operation", ["references", "engagement"])

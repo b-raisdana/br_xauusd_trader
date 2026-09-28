@@ -6,9 +6,12 @@ at Xenon rank B (low nesting, few branches per function).
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import numpy as np
 import pandas as pd
 from br_py_log_n_profile import log_d, profile_it
+from numpy.typing import NDArray
 
 from application.xauusd_trading_strategy_1_vector.config.core_vectors import CoreVectors
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
@@ -29,17 +32,15 @@ def _get_trend_max_points() -> int:
 
 @profile_it
 @pandera_validate(allow_pandas_dataframe=True)
-def compute_bar_time(datetime_series: pt.Series[pd.Timestamp]) -> pt.Series[pd.Timestamp]:
+def compute_bar_time(datetime_series: pd.DatetimeIndex) -> pd.DatetimeIndex:
     """Floor datetime to 15-minute intervals (PERIOD_M15)."""
-    if isinstance(datetime_series, pd.DatetimeIndex):
-        return datetime_series.floor("15min")
-    return datetime_series.dt.floor("15min")
+    return datetime_series.floor("15min")
     # return pd.to_datetime(ts // (60 * 15))
 
 
 @profile_it
 @pandera_validate(allow_pandas_dataframe=True)
-def compute_reference_high(tick_state_row: pd.Series) -> float:
+def compute_reference_high(tick_state_row: pt.Series[float]) -> float:
     """Compute reference high from trend history for a single row."""
     # log_w(NOT_TESTED)
     max_points = _get_trend_max_points()
@@ -53,7 +54,7 @@ def compute_reference_high(tick_state_row: pd.Series) -> float:
 
 
 @pandera_validate(allow_pandas_dataframe=True)
-def compute_reference_low(tick_state_row: pd.Series) -> float:
+def compute_reference_low(tick_state_row: pt.Series[float]) -> float:
     """Compute reference low from trend history for a single row."""
     # log_w(NOT_TESTED)
     max_points = _get_trend_max_points()
@@ -67,7 +68,11 @@ def compute_reference_low(tick_state_row: pd.Series) -> float:
 
 
 @profile_it
-def _reduce_trend_arrays(trend_arrays: list[np.ndarray], counts: np.ndarray, compare) -> np.ndarray:
+def _reduce_trend_arrays(
+    trend_arrays: list[NDArray[np.float64]],
+    counts: NDArray[np.int64],
+    compare: Callable[[NDArray[np.float64], NDArray[np.float64]], NDArray[np.bool_]],
+) -> NDArray[np.float64]:
     """Reduce per-point trend arrays to a single reference array.
 
     For each slot i (starting at 1), the value at slot i replaces the

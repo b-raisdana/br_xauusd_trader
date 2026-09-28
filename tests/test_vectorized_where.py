@@ -3,7 +3,7 @@ from itertools import product
 import numpy as np
 import pandas as pd
 import pytest
-from vectorized_fixtures import candles_from_ticks
+from vectorized_fixtures import candles_from_ticks, complete_tick_state
 
 from application.xauusd_trading_strategy_1_vector.engagement import update_zone_engagement
 from application.xauusd_trading_strategy_1_vector.signals import generate_reversal_signals
@@ -50,6 +50,7 @@ def test_engagement_without_zones_stays_false(length):
     per_tick_state["bid"] = per_tick_state["bid"].astype(float)
     per_tick_state["bar_time"] = pd.to_datetime(per_tick_state["bar_time"], utc=True).dt.as_unit("ns")
     per_tick_state[["buy_engaged", "sell_engaged", "multi_zone_tick_gap"]] = False
+    per_tick_state = complete_tick_state(per_tick_state)
     update_zone_engagement(per_tick_state, per_tick_state, [])
     assert not per_tick_state[["multi_zone_tick_gap", "buy_engaged", "sell_engaged"]].to_numpy().any()
 
@@ -78,6 +79,7 @@ def test_engagement_matches_captured_cross_gap_and_bar_reset_state(bids, expecte
     per_tick_state["bid"] = per_tick_state["bid"].astype(float)
     per_tick_state["bar_time"] = pd.to_datetime(per_tick_state["bar_time"], utc=True).dt.as_unit("ns")
     per_tick_state[["buy_engaged", "sell_engaged", "multi_zone_tick_gap"]] = False
+    per_tick_state = complete_tick_state(per_tick_state)
     update_zone_engagement(per_tick_state, per_tick_state, [XauZone("a", 100, 102), XauZone("b", 104, 105)])
     np.testing.assert_array_equal(per_tick_state[["multi_zone_tick_gap", "buy_engaged", "sell_engaged"]], expected)
 
@@ -98,7 +100,7 @@ def test_previous_prices_reset_at_bar_and_day_boundaries():
     )()
     strategy = VectorizedXauUsdStrategy(None)
     state = strategy._initialize_per_tick_temp_state(ticks)
-    result = strategy._process_bar_boundaries(ticks, state, candles_from_ticks(ticks))
+    result, _ = strategy._process_bar_boundaries(ticks, state, candles_from_ticks(ticks))
     assert result.bar_open.tolist() == [99.0, 99.0, 99.0, 105.0, 106.0]
     assert result.trend_count.tolist() == [0, 0, 0, 1, 0]
 
@@ -107,13 +109,14 @@ def test_reversal_scaffold_preserves_rows_with_duplicate_index():
     per_tick_state = pd.DataFrame(
         {
             "bid": [98.0, 99.0, 97.0],
-            "trend": [1, 1, -1],
+            "trend": [1, 1, 2],
             "multi_zone_tick_gap": False,
             "bar_time": pd.to_datetime(["2026-09-18"] * 3, utc=True),
         },
         index=[0, 0, 1],
     )
     per_tick_state["bar_time"] = per_tick_state.bar_time.dt.as_unit("ns")
+    per_tick_state = complete_tick_state(per_tick_state)
     expected = per_tick_state.assign(
         bar_time=per_tick_state.bar_time.dt.as_unit("ns"),
         reversal_signals=pd.Series([(), (), ()], index=per_tick_state.index, dtype=object),

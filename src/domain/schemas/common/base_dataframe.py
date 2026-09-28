@@ -9,10 +9,16 @@ from helper.pandera import pandera_validate
 class Timeseries(pa.DataFrameModel):
     date: pt.Index[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
 
+    class Config:
+        multiindex_ordered = False
+
 
 class MultiBrokerSymbol(pa.DataFrameModel):
     symbol: pt.Index[str]
     broker: pt.Index[str]
+
+    class Config:
+        multiindex_ordered = False
 
 
 class MultiBrokerSymbolTimeseries(Timeseries, MultiBrokerSymbol):
@@ -29,6 +35,9 @@ class TickMultiBrokerSymbolTimeseries(PreciseTimeSeries, MultiBrokerSymbolTimese
 
 class MultiTimeframe(pa.DataFrameModel):
     timeframe: pt.Index[str]
+
+    class Config:
+        multiindex_ordered = False
 
 
 class MultiTimeframeTimeseries(Timeseries, MultiTimeframe):

@@ -11,7 +11,9 @@ from br_py_log_n_profile import log_d, profile_it
 
 from application.xauusd_trading_strategy_1_vector.domain.schema import VectorbtBacktestInput
 from domain.xau_usd.enums import XauExecutionStatus
+from helper.importer import pt
 from helper.pandera import pandera_validate
+from infrastructure.result_processing.io import ResultFilesManifest
 
 if TYPE_CHECKING:
     from vectorbt import Portfolio
@@ -21,7 +23,9 @@ else:
 
 
 @profile_it
-def _extract_signals(result: VectorbtBacktestInput) -> tuple[pd.Series, pd.Series, pd.Series]:
+def _extract_signals(
+    result: pt.DataFrame[VectorbtBacktestInput],
+) -> tuple[pt.Series[float], pt.Series[bool], pt.Series[bool]]:
     """Extract entry/exit signals and price series from strategy results.
 
     Args:
@@ -60,7 +64,7 @@ def _extract_signals(result: VectorbtBacktestInput) -> tuple[pd.Series, pd.Serie
 @profile_it
 @pandera_validate
 def run_vectorbt_backtest(
-    result: VectorbtBacktestInput,
+    manifest: ResultFilesManifest,
     *,
     initial_cash: float = 100_000.0,
     fees: float = 0.0002,
@@ -84,6 +88,7 @@ def run_vectorbt_backtest(
         vectorbt Portfolio object with backtest results.
     """
     # log_w(NOT_TESTED)
+    result = pd.concat([manifest.read_positions(day) for day in manifest.successful_days("positions")])
     close, entries, exits = _extract_signals(result)
 
     import inspect
@@ -120,7 +125,7 @@ def run_vectorbt_backtest(
 
 @profile_it
 @pandera_validate
-def print_backtest_report(result: VectorbtBacktestInput) -> None:
+def print_backtest_report(manifest: ResultFilesManifest) -> None:
     """Print a comprehensive backtest report from strategy results.
 
     Runs the vectorbt backtest and prints performance metrics including
@@ -130,7 +135,7 @@ def print_backtest_report(result: VectorbtBacktestInput) -> None:
         result: DataFrame with strategy results (VectorbtBacktestInput schema).
     """
     # log_w(NOT_TESTED)
-    portfolio = run_vectorbt_backtest(result)
+    portfolio = run_vectorbt_backtest(manifest)
 
     print("\n=== Vectorbt Backtest Report ===")
 

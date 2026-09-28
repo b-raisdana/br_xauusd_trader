@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 from pandera.errors import SchemaErrors
+from vectorized_fixtures import complete_tick_state
 
 from application.xauusd_trading_strategy_1_vector.signals import generate_reversal_signals
 from domain.xau_usd.enums import XauDirection, XauOrderType, XauSignalFamily, XauTrend
@@ -9,14 +10,16 @@ from domain.xau_usd.models import XauZone
 
 def frame(prices, trend=XauTrend.UP):
     times = pd.date_range("2026-09-24", periods=len(prices), freq="s", tz="UTC").as_unit("ns")
-    return pd.DataFrame(
-        {
-            "bid": pd.Series(prices, dtype=float).to_numpy(),
-            "bar_time": times.floor("15min"),
-            "trend": int(trend),
-            "multi_zone_tick_gap": False,
-        },
-        index=times.rename("precise_time"),
+    return complete_tick_state(
+        pd.DataFrame(
+            {
+                "bid": pd.Series(prices, dtype=float).to_numpy(),
+                "bar_time": times.floor("15min"),
+                "trend": int(trend),
+                "multi_zone_tick_gap": False,
+            },
+            index=times.rename("precise_time"),
+        )
     )
 
 
@@ -36,7 +39,7 @@ def test_reversal_emits_first_touch_with_tick_metadata(prices, trend, direction)
     assert candidate.direction == direction
     assert candidate.family == XauSignalFamily.REVERSAL
     assert candidate.order_type == XauOrderType.MARKET
-    assert candidate.signal_time == data.index[1].to_pydatetime()
+    assert candidate.signal_time == data.index.get_level_values("precise_time")[1].to_pydatetime()
     assert candidate.entry_price == prices[1]
     assert candidate.zone_id == "z"
     assert generate_reversal_signals(result, result, [XauZone("z", 100, 102)]).equals(result)
@@ -48,7 +51,6 @@ def test_reversal_emits_first_touch_with_tick_metadata(prices, trend, direction)
         ([100, 101], XauTrend.UP),
         ([99, 100], XauTrend.NONE),
         ([99, 100], XauTrend.DOWN),
-        ([float("nan"), 100], XauTrend.UP),
     ],
 )
 def test_reversal_requires_directional_touch(prices, trend):
@@ -81,3 +83,10 @@ def test_empty_outputs_are_tuples(prices, zones):
 def test_reversal_rejects_missing_input():
     with pytest.raises(SchemaErrors):
         generate_reversal_signals(frame([99, 100]), frame([99, 100]).drop(columns="trend"), [])
+
+
+def test_reversal_rejects_nonfinite_market_input():
+    data = frame([99, 100])
+    data.iloc[0, data.columns.get_loc("bid")] = float("nan")
+    with pytest.raises(SchemaErrors):
+        generate_reversal_signals(data, data, [XauZone("z", 100, 102)])

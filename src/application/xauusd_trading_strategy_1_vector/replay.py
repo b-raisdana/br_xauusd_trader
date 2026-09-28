@@ -1,15 +1,25 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from copy import deepcopy
-from dataclasses import asdict
-from datetime import timedelta
+from datetime import datetime, timedelta
 from math import isfinite
 
 import pandas as pd
 from br_py_log_n_profile import profile_it
 
-from application.xauusd_trading_strategy_1_vector.domain.replay import ReplayConfig, ReplayOrder
-from application.xauusd_trading_strategy_1_vector.domain.schema import PullbackFeedback
+from application.xauusd_trading_strategy_1_vector.domain.replay import ReplayConfig, ReplayEconomics, ReplayOrder
+from application.xauusd_trading_strategy_1_vector.domain.schema import (
+    CandidateSnapshot,
+    OrderSnapshot,
+    PositionSnapshot,
+    PullbackFeedback,
+    ReplayAction,
+    ReplayEvent,
+    ReplayEventKind,
+    ReplayReason,
+    ReplaySnapshot,
+)
 from application.xauusd_trading_strategy_1_vector.domain.state import (
     evaluate_pullback_tp_failure,
     initialize_pullback_tp,
@@ -29,7 +39,14 @@ from domain.xau_usd.enums import (
     XauSignalFamily,
     XauTpFailureAction,
 )
-from domain.xau_usd.models import XauDailyZoneSignalState, XauMarketCoordinator, XauPreparedEntry
+from domain.xau_usd.models import (
+    XauDailyZoneSignalState,
+    XauMarketCoordinator,
+    XauPreparedEntry,
+    XauPullbackWindowState,
+    XauSignalCandidate,
+    XauZone,
+)
 
 from .domain.entry import initial_stop
 from .domain.protection import daily_loss_locked, profit_protection_stop
@@ -40,37 +57,42 @@ class ExecutionReplay:
     """Causal execution state for one broker/symbol; no terminal I/O."""
 
     @profile_it
-    def __init__(self, config: ReplayConfig, stream_id: str):
-        self.config = config
-        self.economics = config.economics
-        self.stream_id = stream_id
-        self.state = XauMarketCoordinator()
+    def __init__(self, config: ReplayConfig, stream_id: str) -> None:
+        self.config: ReplayConfig = config
+        self.economics: ReplayEconomics = config.economics
+        self.stream_id: str = stream_id
+        self.state: XauMarketCoordinator = XauMarketCoordinator()
         self.orders: dict[str, ReplayOrder] = {}
-        self.sequence = 0
-        self.balance = config.initial_balance
-        self.net_realized = self.gross_loss = 0.0
-        self.daily_locked = self.operational_locked = False
-        self.bar = None
-        self.previous_bid = self.previous_ask = self.bar_open = 0.0
-        self.events = []
-        self.feedback = []
-        self.actions = []
-        self.rejections = []
+        self.sequence: int = 0
+        self.balance: float = config.initial_balance
+        self.net_realized: float = 0.0
+        self.gross_loss: float = 0.0
+        self.daily_locked: bool = False
+        self.operational_locked: bool = False
+        self.bar: datetime | None = None
+        self.previous_bid: float = 0.0
+        self.previous_ask: float = 0.0
+        self.bar_open: float = 0.0
+        self.events: list[ReplayEvent] = []
+        self.feedback: list[PullbackFeedback] = []
+        self.actions: list[ReplayAction] = []
+        self.rejections: list[tuple[str, int]] = []
 
     @profile_it
-    def _event(self, order, kind, time, reason=""):
+    def _event(self, order: ReplayOrder, kind: ReplayEventKind, time: datetime, reason: ReplayReason = "") -> None:
+        snapshot: OrderSnapshot = self.order_snapshot(order)
         self.events.append(
             {
                 "request_id": order.request_id,
                 "event": kind,
                 "time": time,
                 "reason": reason,
-                **self.order_snapshot(order),
+                **snapshot,
             }
         )
 
     @profile_it
-    def order_snapshot(self, order):
+    def order_snapshot(self, order: ReplayOrder) -> OrderSnapshot:
         return {
             "order_id": order.request_id,
             "order_type": int(order.candidate.order_type),
@@ -87,7 +109,7 @@ class ExecutionReplay:
         }
 
     @profile_it
-    def position_snapshot(self, order, bid, ask):
+    def position_snapshot(self, order: ReplayOrder, bid: float, ask: float) -> PositionSnapshot:
         price = order.close_price if order.status == XauExecutionStatus.CLOSED else order.mark(bid, ask)
         pnl = (
             0.0
@@ -110,7 +132,7 @@ class ExecutionReplay:
         }
 
     @profile_it
-    def _window(self, order):
+    def _window(self, order: ReplayOrder) -> XauPullbackWindowState | None:
         return next(
             (
                 w
@@ -123,7 +145,7 @@ class ExecutionReplay:
         )
 
     @profile_it
-    def _feedback(self, order, filled=False):
+    def _feedback(self, order: ReplayOrder, filled: bool = False) -> None:
         if order.candidate.family != XauSignalFamily.PULLBACK:
             return
         zone = next(z for z in self.state.zones if z.zone.id == order.candidate.zone_id)
@@ -140,7 +162,7 @@ class ExecutionReplay:
         )
 
     @profile_it
-    def _fill(self, order, time, bid, ask):
+    def _fill(self, order: ReplayOrder, time: datetime, bid: float, ask: float) -> None:
         order.status = XauExecutionStatus.FILLED
         order.fill_price = ask if order.direction == XauDirection.BUY else bid
         order.fill_time = time
@@ -149,11 +171,14 @@ class ExecutionReplay:
         self._feedback(order, filled=True)
         if order.candidate.family == XauSignalFamily.PULLBACK:
             target = next(z.zone for z in self.state.zones if z.zone.id == order.target_zone_id)
-            initialize_pullback_tp(order.tp, order.position_id, order.direction, target)
+            position_id = order.position_id
+            if position_id is None:
+                raise ValueError("Filled pullback order requires a position ID")
+            initialize_pullback_tp(order.tp, position_id, order.direction, target)
         self._event(order, "FILL", time)
 
     @profile_it
-    def _close(self, order, time, bid, ask, reason):
+    def _close(self, order: ReplayOrder, time: datetime, bid: float, ask: float, reason: ReplayReason) -> None:
         if not self.economics.accepts("CLOSE", order.request_id, time):
             self._event(order, "CLOSE_REJECT", time, reason)
             return
@@ -170,7 +195,7 @@ class ExecutionReplay:
         self._event(order, "CLOSE", time, reason)
 
     @profile_it
-    def _cancel(self, order, time, reason):
+    def _cancel(self, order: ReplayOrder, time: datetime, reason: ReplayReason) -> None:
         if self.economics.accepts("CANCEL", order.request_id, time):
             order.status = XauExecutionStatus.CANCELLED
             self._feedback(order)
@@ -179,7 +204,17 @@ class ExecutionReplay:
             self._event(order, "CANCEL_REJECT", time, reason)
 
     @profile_it
-    def _roll(self, day, bar, bar_open, zones, openings, time, bid, ask):
+    def _roll(
+        self,
+        day: str,
+        bar: datetime,
+        bar_open: float,
+        zones: Sequence[XauZone],
+        openings: Sequence[XauPullbackWindowState],
+        time: datetime,
+        bid: float,
+        ask: float,
+    ) -> None:
         if self.state.broker_day != day:
             # A missing session-end tick cannot justify silently dropping existing exposure.
             for order in self.orders.values():
@@ -200,9 +235,10 @@ class ExecutionReplay:
             if self.bar is not None:
                 direction = int(self.previous_bid > self.bar_open) - int(self.previous_bid < self.bar_open)
                 for order in self.orders.values():
-                    signal_bar = order.candidate.signal_time.replace(
-                        minute=(order.candidate.signal_time.minute // 15) * 15, second=0, microsecond=0
-                    )
+                    signal_time = order.candidate.signal_time
+                    if signal_time is None:
+                        raise ValueError("Replay orders require a signal time")
+                    signal_bar = signal_time.replace(minute=(signal_time.minute // 15) * 15, second=0, microsecond=0)
                     if (
                         order.status in (XauExecutionStatus.SUBMITTED, XauExecutionStatus.FILLED)
                         and self.bar > signal_bar
@@ -223,7 +259,7 @@ class ExecutionReplay:
                 self.state.pullbacks.append(deepcopy(opening))
 
     @profile_it
-    def _settle(self, time, bid, ask):
+    def _settle(self, time: datetime, bid: float, ask: float) -> None:
         for order in self.orders.values():
             if order.status == XauExecutionStatus.SUBMITTED:
                 window = self._window(order)
@@ -245,7 +281,7 @@ class ExecutionReplay:
                     self._close(order, time, bid, ask, "SL" if stop_hit else "TP")
 
     @profile_it
-    def _modify(self, order, stop, target, time, bid, ask):
+    def _modify(self, order: ReplayOrder, stop: float, target: float, time: datetime, bid: float, ask: float) -> bool:
         accepted = self._protection_valid(order.direction, stop, target, bid, ask)
         accepted = accepted and self.economics.accepts("MODIFY", order.request_id, time)
         if accepted:
@@ -254,13 +290,16 @@ class ExecutionReplay:
         return accepted
 
     @profile_it
-    def _strict(self, order, bid, ask):
+    def _strict(self, order: ReplayOrder, bid: float, ask: float) -> bool:
         return strict_pullback_trend(order.direction, order.closed_directions, self.bar_open, bid, ask)
 
     @profile_it
-    def _manage_tp(self, order, time, bid, ask):
+    def _manage_tp(self, order: ReplayOrder, time: datetime, bid: float, ask: float) -> None:
         if order.candidate.family != XauSignalFamily.PULLBACK:
             return
+        position_id = order.position_id
+        if position_id is None:
+            raise ValueError("Pullback protection requires a filled position")
         strict = self._strict(order, bid, ask)
         zones = [z.zone for z in self.state.zones]
         target_index = next((i for i, z in enumerate(zones) if z.id == order.tp.current_target_zone_id), None)
@@ -269,7 +308,7 @@ class ExecutionReplay:
         if not order.tp.extended:
             previous = self.previous_bid if order.direction == XauDirection.BUY else self.previous_ask
             if not pre_zone_cross_once(
-                order.trigger, order.position_id, order.direction, zones[target_index], previous, order.mark(bid, ask)
+                order.trigger, position_id, order.direction, zones[target_index], previous, order.mark(bid, ask)
             ):
                 return
             next_index = target_index + (1 if order.direction == XauDirection.BUY else -1)
@@ -288,7 +327,7 @@ class ExecutionReplay:
                 self._close(order, time, bid, ask, "STRICT_TREND_FAILED")
 
     @profile_it
-    def _manage(self, time, bid, ask, breakouts):
+    def _manage(self, time: datetime, bid: float, ask: float, breakouts: Sequence[XauSignalCandidate]) -> None:
         for order in self.orders.values():
             if order.status != XauExecutionStatus.FILLED:
                 continue
@@ -302,7 +341,7 @@ class ExecutionReplay:
             offset = max(order.costs, 0.0) / cash
             rf = order.fill_price + (offset if order.direction == XauDirection.BUY else -offset)
             valid, stop = profit_protection_stop(order.direction, order.fill_price, rf, bid, ask, order.stop_loss)
-            if valid:
+            if valid and stop is not None:
                 self._modify(order, stop, order.take_profit, time, bid, ask)
             if order.candidate.family == XauSignalFamily.REVERSAL and any(
                 c.zone_id == order.candidate.zone_id and c.direction != order.direction for c in breakouts
@@ -310,14 +349,14 @@ class ExecutionReplay:
                 self._close(order, time, bid, ask, "OPPOSITE_BREAKOUT")
 
     @profile_it
-    def _protection_valid(self, direction, stop, target, bid, ask):
+    def _protection_valid(self, direction: XauDirection, stop: float, target: float, bid: float, ask: float) -> bool:
         distance = self.economics.minimum_stop_distance
         if direction == XauDirection.BUY:
             return 0 < stop < bid < target and bid - stop >= distance and target - bid >= distance
         return 0 < target < ask < stop and stop - ask >= distance and ask - target >= distance
 
     @profile_it
-    def _risk(self, bid, ask):
+    def _risk(self, bid: float, ask: float) -> tuple[float, float, int, float]:
         open_risk = pending_risk = margin = unrealized = 0.0
         count = 0
         for order in self.orders.values():
@@ -339,7 +378,7 @@ class ExecutionReplay:
         return open_risk, pending_risk, count, self.balance + unrealized - margin
 
     @profile_it
-    def _blocked_reversal(self, candidate, bid, ask):
+    def _blocked_reversal(self, candidate: XauSignalCandidate, bid: float, ask: float) -> bool:
         return candidate.family == XauSignalFamily.REVERSAL and any(
             o.status == XauExecutionStatus.FILLED
             and o.candidate.family == XauSignalFamily.PULLBACK
@@ -350,12 +389,12 @@ class ExecutionReplay:
         )
 
     @profile_it
-    def _submit(self, candidate, time, bid, ask):
+    def _submit(self, candidate: XauSignalCandidate, time: datetime, bid: float, ask: float) -> None:
         if not candidate_attempt_available(self.state, candidate) or self._blocked_reversal(candidate, bid, ask):
             return
         zones = [z.zone for z in self.state.zones]
         found, stop, _ = initial_stop(candidate.direction, candidate.entry_price, zones)
-        if not found:
+        if not found or stop is None:
             self.rejections.append((candidate.candidate_id, int(XauEntryRejection.INITIAL_RISK)))
             return
         cash_risk = abs(self.economics.profit(candidate.direction, 0.01, candidate.entry_price, stop))
@@ -408,7 +447,17 @@ class ExecutionReplay:
         self.actions.append(
             {
                 "request_id": order.request_id,
-                "candidate": asdict(candidate),
+                "candidate": CandidateSnapshot(
+                    candidate_id=candidate.candidate_id,
+                    parent_breakout_id=candidate.parent_breakout_id,
+                    bar_id=candidate.bar_id,
+                    zone_id=candidate.zone_id,
+                    family=candidate.family,
+                    direction=candidate.direction,
+                    order_type=candidate.order_type,
+                    signal_time=candidate.signal_time,
+                    entry_price=candidate.entry_price,
+                ),
                 "direction": int(candidate.direction),
                 "order_type": int(candidate.order_type),
                 "entry_price": candidate.entry_price,
@@ -429,7 +478,19 @@ class ExecutionReplay:
             self._feedback(order)
 
     @profile_it
-    def step(self, time, day, bar, bar_open, bid, ask, zones, openings, breakouts, reversals):
+    def step(
+        self,
+        time: datetime,
+        day: str,
+        bar: datetime,
+        bar_open: float,
+        bid: float,
+        ask: float,
+        zones: Sequence[XauZone],
+        openings: Sequence[XauPullbackWindowState],
+        breakouts: Sequence[XauSignalCandidate],
+        reversals: Sequence[XauSignalCandidate],
+    ) -> ReplaySnapshot:
         self.events, self.feedback, self.actions, self.rejections = [], [], [], []
         if not (isfinite(bid) and isfinite(ask) and 0 < bid <= ask):
             raise ValueError("Replay requires positive finite Bid/Ask and nonnegative spread")
@@ -447,7 +508,7 @@ class ExecutionReplay:
                     self._cancel(order, time, "SESSION_OR_RESTART" if self.operational_locked else "DAILY_LOSS")
                 elif self.operational_locked and order.status == XauExecutionStatus.FILLED:
                     self._close(order, time, bid, ask, "SESSION_OR_RESTART")
-        pullbacks = []
+        pullbacks: list[XauSignalCandidate] = []
         if not self.operational_locked:
             self._manage(time, bid, ask, breakouts)
             self.daily_locked = daily_loss_locked(self.config.strategy_capital, self.net_realized, self.daily_locked)
@@ -455,9 +516,9 @@ class ExecutionReplay:
                 self._submit(candidate, time, bid, ask)
             for window in self.state.pullbacks:
                 zone = next(z for z in self.state.zones if z.zone.id == window.zone.id)
-                candidate = _pullback_candidate(window, bid, bar, time, zone.pullback_fills)
-                if candidate is not None:
-                    pullbacks.append(candidate)
+                pullback_candidate = _pullback_candidate(window, bid, bar, time, zone.pullback_fills)
+                if pullback_candidate is not None:
+                    pullbacks.append(pullback_candidate)
             for candidate in (*reversals, *pullbacks):
                 self._submit(candidate, time, bid, ask)
         self.previous_bid, self.previous_ask = bid, ask
@@ -467,7 +528,7 @@ class ExecutionReplay:
             for o in self.orders.values()
             if o.request_id in changed_ids or o.status in (XauExecutionStatus.SUBMITTED, XauExecutionStatus.FILLED)
         ]
-        snapshot = {
+        snapshot: ReplaySnapshot = {
             "action": self.actions[0] if self.actions else None,
             "actions": tuple(self.actions),
             "execution_events": tuple(self.events),

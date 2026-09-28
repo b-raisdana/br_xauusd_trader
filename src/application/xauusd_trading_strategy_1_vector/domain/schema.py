@@ -1,25 +1,25 @@
-"""Pandera schemas for the vectorized XAUUSD trading strategy."""
+"""Column contracts shared by calculation stages and persisted result artifacts."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from datetime import datetime
+from typing import Annotated, Literal, TypedDict
 
 import pandas as pd
 from pandera import Field
 from pandera.pandas import DataFrameModel
 
-from domain.schemas.common.base_dataframe import TickMultiBrokerSymbolTimeseries
+from domain.schemas.common.base_dataframe import MultiBrokerSymbol, MultiTimeframe, TickMultiBrokerSymbolTimeseries
+from domain.schemas.common.ohlcv import MultiTimeframeOHLC
 from domain.schemas.tick import Tick
-from domain.xau_usd.enums import XauDirection, XauExecutionStatus, XauOrderType
+from domain.xau_usd.enums import XauDirection, XauExecutionStatus, XauOrderType, XauSignalFamily
 from domain.xau_usd.models import XauPullbackWindowState, XauSignalCandidate
-from helper.importer import pa, pt
+from helper.importer import pt
 
 
 @dataclass(frozen=True, slots=True)
 class PullbackFeedback:
-    """Execution snapshot applied before candidate evaluation on its tick."""
-
     zone_id: str
     direction: XauDirection
     daily_fills: int
@@ -27,257 +27,139 @@ class PullbackFeedback:
     filled: bool = False
 
 
-# Type aliases for object columns that contain specific data structures
+type ReplayEventKind = Literal[
+    "SUBMIT", "REJECT", "FILL", "CLOSE", "CLOSE_REJECT", "CANCEL", "CANCEL_REJECT", "MODIFY", "MODIFY_REJECT"
+]
+type ReplayReason = Literal[
+    "",
+    "DAY_ROLLOVER",
+    "WINDOW_EXPIRED",
+    "SL",
+    "TP",
+    "STRICT_TREND_FAILED",
+    "OPPOSITE_BREAKOUT",
+    "SESSION_OR_RESTART",
+    "DAILY_LOSS",
+]
+
+
+class CandidateSnapshot(TypedDict):
+    candidate_id: str
+    parent_breakout_id: str
+    bar_id: str
+    zone_id: str
+    family: XauSignalFamily
+    direction: XauDirection
+    order_type: int
+    signal_time: datetime | None
+    entry_price: float
+
+
+class OrderSnapshot(TypedDict):
+    order_id: str
+    order_type: int
+    order_direction: int
+    order_status: int
+    entry_price: float
+    stop_loss: float
+    take_profit: float
+    order_time: datetime
+    fill_price: float
+    close_price: float
+    candidate_id: str
+    parent_breakout_id: str
+
+
+class PositionSnapshot(TypedDict):
+    position_id: str | None
+    position_direction: int
+    position_size: float
+    position_entry_price: float
+    position_current_price: float
+    position_unrealized_pnl: float
+    position_realized_pnl: float
+    position_status: int
+    position_time: datetime | None
+    position_close_time: datetime | None
+    stop_loss: float
+    take_profit: float
+
+
+class ReplayEvent(OrderSnapshot):
+    request_id: str
+    event: ReplayEventKind
+    time: datetime
+    reason: ReplayReason
+
+
+class ReplayAction(TypedDict):
+    request_id: str
+    candidate: CandidateSnapshot
+    direction: int
+    order_type: int
+    entry_price: float
+    stop_loss: float
+    take_profit: float
+    volume: float
+    accepted: bool
+
+
+class ReplaySnapshot(TypedDict):
+    action: ReplayAction | None
+    actions: tuple[ReplayAction, ...]
+    execution_events: tuple[ReplayEvent, ...]
+    orders: tuple[OrderSnapshot, ...]
+    positions: tuple[PositionSnapshot, ...]
+    pullback_signals: tuple[XauSignalCandidate, ...]
+    pullback_feedback: tuple[PullbackFeedback, ...]
+    attempted_bars: str
+    entry_rejections: tuple[tuple[str, int], ...]
+    daily_net_realized_pnl: float
+    daily_gross_loss: float
+    account_balance: float
+    daily_loss_locked: bool
+    operational_locked: bool
+
+
 SignalCandidatesTuple = tuple[XauSignalCandidate, ...]
 PullbackWindowsTuple = tuple[XauPullbackWindowState, ...]
-TradingAction = dict[str, object]  # Action dict with trading details
-OrderId = str  # | int
-PositionId = str  # | int
+TradingAction = ReplayAction
+OrderId = str
+PositionId = str
 
 
-# class VectorizedTickInput(TickMultiBrokerSymbolTimeseries):
-#     """Input tick data for vectorized strategy.
-#
-#     MultiIndex: (broker, symbol, date, datetime)
-#     Columns: bid, ask
-#     """
-#
-#     bid: pt.Series[float]
-#     ask: pt.Series[float]
-#
-#     class Config:
-#         coerce = True
-#         strict = False
-#         multiindex_ordered = False
-
-
-class VectorizedTick(Tick):
-    bar_time: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
-    broker_day: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
-
-
-class MarketBarInput(DataFrameModel):
-    bid: pt.Series[float] = Field(nullable=True)
-    bar_time: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
-
-
-class VectorizedCandleInput(DataFrameModel):
-    bar_time: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
-    open: pt.Series[float]
-    high: pt.Series[float]
-    low: pt.Series[float]
-
-
-class PerCandleState(DataFrameModel):
-    broker: pt.Index[str]
-    symbol: pt.Index[str]
-    bar_time: pt.Index[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
-    # open: pt.Series[float]
-    # high: pt.Series[float]
-    # low: pt.Series[float]
-    trend_count: pt.Series[int] = Field(ge=0, le=3)
-    trend_high_0: pt.Series[float]
-    trend_high_1: pt.Series[float]
-    trend_high_2: pt.Series[float]
-    trend_low_0: pt.Series[float]
-    trend_low_1: pt.Series[float]
-    trend_low_2: pt.Series[float]
-
-
-class PerTickState(TickMultiBrokerSymbolTimeseries):
-    """Base columns of per-tick intermediate state (fixed columns).
-
-    MultiIndex: (broker, symbol, date, datetime)
-    """
-
-    # # bid: pt.Series[float]
-    # # ask: pt.Series[float]
-    # bar_time: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
-    # # broker_day: pt.Series["str"]
-    # broker_day: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
-
-    trend: pt.Series[int] = Field(isin=[0, 1, 2])
-    trend_count: pt.Series[int] = Field(ge=0, le=3)
-    trend_high_0: pt.Series[float] = Field(ge=0.0)
-    trend_high_1: pt.Series[float] = Field(ge=0.0)
-    trend_high_2: pt.Series[float] = Field(ge=0.0)
-    trend_low_0: pt.Series[float] = Field(ge=0.0)
-    trend_low_1: pt.Series[float] = Field(ge=0.0)
-    trend_low_2: pt.Series[float] = Field(ge=0.0)
-
-    bar_open: pt.Series[float] = Field(ge=0.0)
-    bar_active: pt.Series[bool]
-    day_active: pt.Series[bool]
-
-    buy_engaged: pt.Series[bool]
-    sell_engaged: pt.Series[bool]
-
-    breakout_sequence: pt.Series[int] = Field(ge=0)
-    reversal_keys: pt.Series[str]
-    attempted_bars: pt.Series[str]
-
-    pullback_active: pt.Series[bool]
-    pullback_bar_offset: pt.Series[int] = Field(ge=0, le=5)
-    pullback_penetration_latched: pt.Series[bool]
-    pullback_sequence: pt.Series[int] = Field(ge=0)
-
-    reference_high: pt.Series[float] = Field(ge=0.0)
-    reference_low: pt.Series[float] = Field(ge=0.0)
-    multi_zone_tick_gap: pt.Series[bool]
-
-    action: pt.Series[TradingAction] = Field(nullable=True)
-    breakout_signals: pt.Series[SignalCandidatesTuple]
-    pullback_windows_opened: pt.Series[PullbackWindowsTuple]
-    pullback_feedback: Optional[pt.Series[tuple[PullbackFeedback, ...]]]
-
+class FrameContract(DataFrameModel):
     class Config:
         coerce = False
         strict = False
         multiindex_ordered = False
 
 
-class PullbackResult(PerTickState):
-    pullback_signals: pt.Series[SignalCandidatesTuple]
+class HasDay(FrameContract):
+    broker_day: pt.Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
 
 
-class StrategyResult(TickMultiBrokerSymbolTimeseries):
-    action: pt.Series[TradingAction] = Field(nullable=True)
-    breakout_signals: pt.Series[SignalCandidatesTuple]
-    pullback_windows_opened: pt.Series[PullbackWindowsTuple]
-    reversal_signals: pt.Series[SignalCandidatesTuple]
-    pullback_signals: pt.Series[SignalCandidatesTuple]
-    actions: pt.Series[tuple[dict, ...]]
-    execution_events: pt.Series[tuple[dict, ...]]
-    orders: pt.Series[tuple[dict, ...]]
-    positions: pt.Series[tuple[dict, ...]]
-    execution_mode: pt.Series[str] = Field(isin=["replay", "signals_only"])
-
-    class Config:
-        multiindex_ordered = False
+class BarTime(FrameContract):
+    bar_time: pt.Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
 
 
-class OrderInput(TickMultiBrokerSymbolTimeseries):
-    action: pt.Series[object] = Field(nullable=True)
-    orders: pt.Series[tuple[dict, ...]] = Field(nullable=True, default=None)
-    positions: pt.Series[tuple[dict, ...]] = Field(nullable=True, default=None)
+class VectorizedTick(Tick, HasDay, BarTime):
+    class Config(Tick.Config, FrameContract.Config):
+        coerce = False
 
-    class Config:
-        multiindex_ordered = False
+
+class StrategyCandles(MultiTimeframeOHLC, MultiBrokerSymbol, FrameContract):
+    class Config(MultiTimeframeOHLC.Config, MultiTimeframe.Config, MultiBrokerSymbol.Config, FrameContract.Config):
+        coerce = False
+
+    bar_time: pt.Index[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
+
+
+class TrendInfo(FrameContract):
+    class Config(FrameContract.Config):
         coerce = True
-        add_missing_columns = True
 
-
-class StrategyResultWithCandles(StrategyResult):
-    """Strategy result merged with candle context."""
-
-    candle_close: pt.Series[float] = Field(default=None, nullable=True)
-    candle_high: pt.Series[float] = Field(default=None, nullable=True)
-    candle_low: pt.Series[float] = Field(default=None, nullable=True)
-    candle_open: pt.Series[float] = Field(default=None, nullable=True)
-    candle_volume: pt.Series[float] = Field(default=None, nullable=True)
-
-    class Config:
-        coerce = False
-        strict = False
-        multiindex_ordered = False
-        add_missing_columns = True
-
-
-class OrderManagementResult(OrderInput):
-    """Strategy result with order management columns."""
-
-    # order_id: pt.Series[OrderId] = Field(nullable=True)
-    order_id: pt.Series[str] = Field(nullable=True)
-    # order_type: pt.Series[XauOrderType] = Field(nullable=True)
-    # order_direction: pt.Series[XauDirection] = Field(nullable=True)
-    # order_status: pt.Series[XauExecutionStatus] = Field(nullable=True)
-    order_type: pt.Series[pd.Int64Dtype] = pa.Field(
-        nullable=True,
-        isin=[member.value for member in XauOrderType],
-    )
-    order_direction: pt.Series[pd.Int64Dtype] = pa.Field(
-        nullable=True,
-        isin=[member.value for member in XauDirection],
-    )
-    order_status: pt.Series[pd.Int64Dtype] = pa.Field(
-        nullable=True,
-        isin=[member.value for member in XauExecutionStatus],
-    )
-
-    entry_price: pt.Series[float] = Field(nullable=True)
-    stop_loss: pt.Series[float] = Field(nullable=True)
-    take_profit: pt.Series[float] = Field(nullable=True)
-    order_time: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")] = Field(nullable=True)
-
-    class Config:
-        coerce = False
-        strict = False
-        multiindex_ordered = False
-
-
-class PositionInput(OrderManagementResult):
-    bid: pt.Series[float]
-
-    class Config:
-        coerce = True
-        multiindex_ordered = False
-
-
-class PositionTrackingResult(OrderManagementResult):
-    """Strategy result with position tracking columns."""
-
-    # position_id: pt.Series[PositionId] = Field(nullable=True)
-    position_id: pt.Series[str] = Field(nullable=True)
-    # position_direction: pt.Series[XauDirection] = Field(nullable=True)
-    position_direction: pt.Series[pd.Int64Dtype] = pa.Field(
-        nullable=True,
-        isin=[member.value for member in XauDirection],
-    )
-
-    position_size: pt.Series[float] = Field(nullable=True)
-    position_entry_price: pt.Series[float] = Field(nullable=True)
-    position_current_price: pt.Series[float] = Field(nullable=True)
-    position_unrealized_pnl: pt.Series[float] = Field(nullable=True)
-    position_realized_pnl: pt.Series[float] = Field(nullable=True)
-    # position_status: pt.Series[XauExecutionStatus] = Field(nullable=True)
-    position_status: pt.Series[pd.Int64Dtype] = Field(
-        nullable=True,
-        isin=[member.value for member in XauExecutionStatus],
-    )
-    position_time: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")] = Field(nullable=True)
-    position_close_time: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")] = Field(nullable=True)
-
-    # class Config:
-    #     coerce = False
-    #     strict = False
-    #     multiindex_ordered = False
-
-
-class VectorbtBacktestInput(TickMultiBrokerSymbolTimeseries):
-    """Schema for vectorbt backtest input.
-
-    Only includes columns used by _extract_signals:
-    - bid: close price for backtest
-    - position_id: to detect new position openings
-    - position_status: to check FILLED/CLOSED status
-    """
-
-    bid: pt.Series[float]
-    position_id: pt.Series[str] = Field(nullable=True)
-    position_status: pt.Series[pd.Int64Dtype] = pa.Field(
-        nullable=True,
-        isin=[member.value for member in XauExecutionStatus],
-    )
-
-    class Config:
-        coerce = False
-        strict = False
-        multiindex_ordered = False
-
-
-class TrendInfo(DataFrameModel):
     trend_count: pt.Series[int] = Field(ge=0)
-    # todo: parameterize number of extrema used for trend
     trend_high_0: pt.Series[float] = Field(nullable=True)
     trend_high_1: pt.Series[float] = Field(nullable=True)
     trend_high_2: pt.Series[float] = Field(nullable=True)
@@ -285,66 +167,164 @@ class TrendInfo(DataFrameModel):
     trend_low_1: pt.Series[float] = Field(nullable=True)
     trend_low_2: pt.Series[float] = Field(nullable=True)
 
-    class Config:
-        coerce = True
-
 
 class ReferenceTrendInfo(TrendInfo):
+    class Config(TrendInfo.Config):
+        coerce = False
+
     reference_high: pt.Series[float] = Field(nullable=True)
     reference_low: pt.Series[float] = Field(nullable=True)
 
-    class Config:
-        coerce = False
 
-
-# class EngagementInput(DataFrameModel):
-#     bid: pt.Series[float] = Field(nullable=True)
-#     bar_time: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
-#
-#     class Config:
-#         coerce = True
-
-
-# class EngagementResult(EngagementInput):
-class EngagementResult(DataFrameModel):
-    buy_engaged: pt.Series[bool]
-    sell_engaged: pt.Series[bool]
-    multi_zone_tick_gap: pt.Series[bool]
-
-    class Config:
-        coerce = False
-
-
-# # class BarInput(EngagementInput):
-# class IsDayActive(DataFrameModel):
-#     # ask: pt.Series[float] = Field(nullable=True)
-#     # broker_day: pt.Series[str]
-#     day_active: pt.Series[bool]
-
-
-class BarInfo(TrendInfo):
+class ProcessBarBoundariesInPerTickState(FrameContract):
     day_active: pt.Series[bool]
+
+
+class ProcessedBarsTicks(ProcessBarBoundariesInPerTickState, TrendInfo):
+    class Config(TrendInfo.Config):
+        coerce = False
 
     bar_open: pt.Series[float]
     bar_active: pt.Series[bool]
 
-    class Config:
-        coerce = False
+
+class ProcessBarBoundariesOutPerTickState(ProcessedBarsTicks):
+    pass
 
 
-# class ReversalInput(EngagementInput):
-class ReversalInput(DataFrameModel):
-    trend: pt.Series[int]
+class EngagementResult(FrameContract):
+    buy_engaged: pt.Series[bool]
+    sell_engaged: pt.Series[bool]
     multi_zone_tick_gap: pt.Series[bool]
 
 
-class ReversalResult(ReversalInput):
-    reversal_signals: pt.Series[SignalCandidatesTuple] = Field(nullable=True)
+class ReversalInfo(EngagementResult):
+    trend: pt.Series[int] = Field(isin=[0, 1, 2])
 
-    class Config:
+
+class ReversalResult(ReversalInfo):
+    reversal_signals: pt.Series[SignalCandidatesTuple]
+
+
+class BreakoutSequence(FrameContract):
+    breakout_sequence: pt.Series[int] = Field(ge=0)
+    breakout_signals: pt.Series[SignalCandidatesTuple]
+    pullback_windows_opened: pt.Series[PullbackWindowsTuple]
+
+
+class PullbackGenerated(FrameContract):
+    pullback_signals: pt.Series[SignalCandidatesTuple]
+    pullback_penetration_latched: pt.Series[bool]
+    pullback_sequence: pt.Series[int] = Field(ge=0)
+
+
+class PullbackUpdated(FrameContract):
+    pullback_active: pt.Series[bool]
+    pullback_bar_offset: pt.Series[int] = Field(ge=0, le=5)
+
+
+class OrderInfo(FrameContract):
+    action: pt.Series[ReplayAction] = Field(nullable=True)
+    orders: pt.Series[tuple[OrderSnapshot, ...]]
+    positions: pt.Series[tuple[PositionSnapshot, ...]]
+
+
+class Step(FrameContract):
+    actions: pt.Series[tuple[ReplayAction, ...]]
+    execution_events: pt.Series[tuple[ReplayEvent, ...]]
+    execution_mode: pt.Series[str] = Field(isin=["replay", "signals_only"])
+    pullback_feedback: pt.Series[tuple[PullbackFeedback, ...]]
+    attempted_bars: pt.Series[str]
+    entry_rejections: pt.Series[tuple[tuple[str, int], ...]]
+    daily_net_realized_pnl: pt.Series[float] = Field(nullable=True)
+    daily_gross_loss: pt.Series[float] = Field(nullable=True)
+    account_balance: pt.Series[float] = Field(nullable=True)
+    daily_loss_locked: pt.Series[bool]
+    operational_locked: pt.Series[bool]
+
+
+class PerTickState(
+    TickMultiBrokerSymbolTimeseries,
+    ReferenceTrendInfo,
+    ProcessedBarsTicks,
+    ReversalResult,
+    BreakoutSequence,
+    PullbackGenerated,
+    PullbackUpdated,
+    OrderInfo,
+    Step,
+):
+    """Complete calculation state, excluding the separately stored market ticks."""
+
+    class Config(
+        TickMultiBrokerSymbolTimeseries.Config,
+        MultiBrokerSymbol.Config,
+        ReferenceTrendInfo.Config,
+        ProcessedBarsTicks.Config,
+    ):
         coerce = False
 
 
-class ZoneDayInput(DataFrameModel):
-    # broker_day: pt.Series[str]
-    broker_day: pt.Series[pd.DatetimeTZDtype(tz="UTC", unit="ns")]
+class PerCandleState(StrategyCandles, TrendInfo):
+    class Config(StrategyCandles.Config, TrendInfo.Config):
+        coerce = False
+
+
+class StrategyResult(PerTickState, VectorizedTick):
+    """Calculation state joined to its original market ticks."""
+
+    class Config(PerTickState.Config, VectorizedTick.Config):
+        coerce = False
+
+
+class StrategyResultWithCandles(StrategyResult):
+    candle_close: pt.Series[float] = Field(nullable=True)
+    candle_high: pt.Series[float] = Field(nullable=True)
+    candle_low: pt.Series[float] = Field(nullable=True)
+    candle_open: pt.Series[float] = Field(nullable=True)
+    candle_volume: pt.Series[float] = Field(nullable=True)
+
+
+class OrderInput(StrategyResultWithCandles):
+    pass
+
+
+class OrderManagementResult(OrderInput):
+    order_id: pt.Series[str] = Field(nullable=True)
+    order_type: pt.Series[pd.Int64Dtype] = Field(nullable=True, isin=[m.value for m in XauOrderType])
+    order_direction: pt.Series[pd.Int64Dtype] = Field(nullable=True, isin=[m.value for m in XauDirection])
+    order_status: pt.Series[pd.Int64Dtype] = Field(nullable=True, isin=[m.value for m in XauExecutionStatus])
+    entry_price: pt.Series[float] = Field(nullable=True)
+    stop_loss: pt.Series[float] = Field(nullable=True)
+    take_profit: pt.Series[float] = Field(nullable=True)
+    order_time: pt.Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]] = Field(nullable=True)
+
+
+# class PositionInput(OrderManagementResult):
+#     pass
+
+
+class VectorbtBacktestInput(Tick, FrameContract):
+    class Config(Tick.Config, FrameContract.Config):
+        coerce = False
+
+    position_id: pt.Series[str] = Field(nullable=True)
+    position_status: pt.Series[pd.Int64Dtype] = Field(nullable=True, isin=[m.value for m in XauExecutionStatus])
+
+
+class PositionTrackingResult(OrderManagementResult, VectorbtBacktestInput):
+    class Config(OrderManagementResult.Config, VectorbtBacktestInput.Config):
+        coerce = False
+
+    position_direction: pt.Series[pd.Int64Dtype] = Field(nullable=True, isin=[m.value for m in XauDirection])
+    position_size: pt.Series[float] = Field(nullable=True)
+    position_entry_price: pt.Series[float] = Field(nullable=True)
+    position_current_price: pt.Series[float] = Field(nullable=True)
+    position_unrealized_pnl: pt.Series[float] = Field(nullable=True)
+    position_realized_pnl: pt.Series[float] = Field(nullable=True)
+    position_time: pt.Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]] = Field(nullable=True)
+    position_close_time: pt.Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]] = Field(nullable=True)
+
+
+# Never Used!
+# reversal_keys: obsolete; reversal deduplication uses the local seen_keys set.

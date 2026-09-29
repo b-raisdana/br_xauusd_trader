@@ -144,7 +144,7 @@ def test_inplace_validation_still_rejects_broken_outputs(defect):
             frame["reference_high"] = "invalid"
         return frame
 
-    frame = pd.DataFrame({f"trend_{side}_{slot}": [1.0] for side in ("high", "low") for slot in range(3)})
+    frame = pd.DataFrame({column: [1.0] for column in trend_row_columns()})
     frame["trend_count"] = 1
     frame["reference_high"] = frame["reference_low"] = np.float64(1)
     with pytest.raises(SchemaErrors):

@@ -1,97 +1,83 @@
-﻿# Divergence Report: MT5 vs Python vs Documentation
+# Divergence Report: MT5 vs Python vs Documentation
 
 ## Scope and conclusion
 
-Reviewed 2026-09-20 against the working tree, including staged and unstaged changes. This is source inspection with previously stored test evidence, not a new runtime test.
+Source audit dated 2026-09-29. The Leader-designated replacement is [XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5](../mt5/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5). The former MVP/include/generated source and its test claims do not describe this EA. Existing documentation moves/deletions are preserved; [the glossary](State-Variables.Glossary.csv) now resides directly under `docs/`.
 
-**Original source of truth, explicitly confirmed by the Leader: [`mt5/XAUUSD_MVP.mq5`](../../mt5/XAUUSD_MVP.mq5), including its called include modules.** Python and other documentation do not override this reference. Runtime wiring is distinguished from isolated contract helpers and smoke checks.
+**Python and the new EA are not equivalent.** Python now has causal state, reversal/pullback candidates and an optional execution replay, making the old blanket placeholder claims obsolete. The CLI does not enable replay; replay itself retains different lifecycle, quota, risk and protection rules.
 
-The selected Python path is **not equivalent to MT5**. Its M15 interval matches, but state propagation is incomplete, signal methods are placeholders, `action` is always `None`, and native risk/order/position management is absent. The [updated implementation plan](Vectorization%20Implementation%20Plan.md) now specifies the actual MQL semantics, reference caveats and prioritized work with acceptance criteria.
+**The supplied EA is incomplete:** final include `XauRobustLiveEnvelope.mqh` is absent from the working tree and `mt5/archive.zip`. Final platform callbacks, account/release guards, emergency handling and reconciliation cannot be audited. Only `ApprovedStrategyOn*` bodies are visible. No successful compile or runtime parity is claimed. `<Trade/Trade.mqh>` is a separate standard platform dependency.
 
-The three comparison targets are the EA and its dependencies; the implementation plan; and [`__main__.py`](../../src/application/xauusd_trading_strategy_1_vector/__main__.py) with its reachable implementation. The plan is a target specification, not executable evidence.
+This review documents source behavior without changing strategy code or trading rules. Deleted Rules/Decisions/test reports are not recreated or treated as current evidence.
 
-## Reachable Python path
+## Reachable Python flow
 
-`cli → asyncio.run(main) → load_zones_from_file → get_ticks → get_ohlcv(timeframe="15min") → run_vectorized_strategy → ZaoneCache → VectorizedXauUsdStrategy.process_tick_data → candle merge → order columns → position columns → save → summary`.
+Sources: [entry point](../src/application/xauusd_trading_strategy_1_vector/__main__.py), [runner](../src/application/xauusd_trading_strategy_1_vector/runner.py), [strategy](../src/application/xauusd_trading_strategy_1_vector/the_strategy.py), [signals](../src/application/xauusd_trading_strategy_1_vector/signals.py), [replay](../src/application/xauusd_trading_strategy_1_vector/replay.py).
 
-All acquisition precedes strategy construction. The runner passes **only ticks** into the strategy; fetched candles are joined afterward. `preload_days` is compatibility-only and unused; CLI/main accept `debug` but do not use it. The internal-state accessor is separately exported, but the runner does not return its strategy object.
+1. CLI → `asyncio.run(main)` → zone loader → tick/M15 fetches → floor bar time/normalize broker_day → runner. Current acquisition end is **last zone day + two hours − epsilon**, not next midnight. Candle timestamps are explicitly UTC; this path provides no broker-calendar conversion. Tick conversion now forwards requested symbol.
+2. Runner enters config contexts and saves daily tick/candle artifacts through `ResultFilesManifest`. Strategy reads these artifacts, partitions broker/symbol, rejects decreasing timestamps and requires unique covering M15 candles. Daily state initializes independently.
+3. `_process_bar_boundaries` reads candle opens and gathers only preceding observed same-day candle extrema, up to `TREND_POINTS_N=3`; bootstrap/unobserved history is excluded. `update_trend` reduces references and forward-fills threshold events per day.
+4. Per-zone cumulative engagement → BO candidates/window-opening snapshots → unique reversal candidates → signals-only PB scan. BO close comes from the last observed tick before the next same-day bar. Final/day-boundary closes are not emitted.
+5. Only with caller-supplied `execution=ReplayConfig(...)`: `generate_actions` calls one `ExecutionReplay` per stream, retained across days. `_roll` → session/restart lock → pending/SL/TP settlement → daily lock/cancel/flatten → management → BO submissions → PB evaluation → reversal/PB submissions → quote/snapshots/pruning. Economics and acceptance are injected offline assumptions, not terminal outcomes.
+6. Manifest stages join the **previous** M15 candle with `validate="many_to_one"`, project orders/positions, export and report. Collections preserve multiple records, but scalar projections take the **last** snapshot and `action` takes the first action.
 
-The active class is `the_strategy.py`. Sibling `trend.py`, `engagement.py`, `signals.py`, scalar helpers and archived alternatives do not establish behavior unless this class calls them. In particular, earlier alternative-implementation test results cannot validate the selected class.
+The CLI passes no execution configuration, leaving action/order/position outputs unexecuted despite candidate generation. `--backtest` feeds scalar position fields/Bid into vectorbt using independent default cash/fees/slippage; it does not enable replay, supply direction-aware short orders, or preserve a multi-position execution ledger. `debug` is accepted/passed but does not branch in the current runner.
 
-## Three-way comparison
+## Detailed comparison
 
-Status describes selected Python relative to MQL. The plan column describes requirements, not completed work.
+MQ5 anchors are functions in the replacement file. Python anchors are in the active package; optional replay behavior is distinguished from default CLI behavior.
 
-| Area / source anchor | MQL source of truth | Updated plan | Python reached from CLI / finding |
-|---|---|---|---|
-| Modes — `OnInit`, `OnTick` | Research default; explicit event-loop switch; guarded tester execution; live flag rejected | Preserve modes, no live expansion | Offline scaffold/acquisition, no matching execution mode. **Different scope** |
-| Inputs | Native symbol/ticks/M15/session data and generated daily zones; project Magic | Explicit data/native-outcome contracts | Typer symbol/zones/output/debug; zone dates bound acquisition; fetch-before-construction. **Partial** |
-| Symbol propagation — `get_ticks`, `Tick.from_ndarray` | `_Symbol` passed through native path | End-to-end nondefault-symbol validation | Requested symbol used for fetch, but converter called without symbol/broker and defaults to config; candle label uses requested symbol. **P0 mismatch** |
-| Index/day | Broker day from native tick time | Stable event IDs and explicit broker-time mapping | Index `(symbol,broker,date,datetime)`; date is UTC second floor. Class derives day directly from datetime, normally UTC. **Not broker-day parity** |
-| M15 — `_compute_bar_time` | Native `PERIOD_M15` throughout | Retain and verify bar alignment | Floors `15min`; CLI fetches `15min`. **Period matches**; not a configurable bar-time port |
-| Startup — `InitializeCurrentEventLoop` | Same-day closed history bootstrap and native current open; trend crossings not replayed | Supply history/open to causal computation | Fetched candles never enter class; no history bootstrap; first tick substitutes for native open. **Missing** |
-| Day/bar flow — `ProcessCurrentEventLoopTick` | Day reset before old close; close before begin; management then BOs then current tick | Preserve exact phases | `day_active` set only on first index label; later bar groups usually skipped. Supplied bar group is closed before beginning, before tick calculations. **Incorrect** |
-| Trend — `RecordTrendCandle`, `ProcessTrendTick` | Prior closed bars, count≤3, same-day sticky direction | Shift references; threshold events and within-day propagation | Zero/NONE defaults per row; history written at group last row without propagation; group future max/min used; row-wise `apply`; nested `where` retains row default, not preceding tick trend. **Incorrect/noncausal** |
-| Zones — `BuildMergedZones` | Normal0/High1; normalized, sorted, chain merge<1.5; daily IDs | Reuse validated metadata | Cache validates/filter Enabled/maps priority/merges/deep-copies. **Implemented component**, not full parity; cache date-only |
-| Missing zones | Initialization fails | Explicit failure/diagnostic | Cache returns empty list; class skips zone work and can return null actions. **Different** |
-| Engagement — `BeginSignalBar`, `UpdateZoneEngagement` | Per-zone latches, inclusive open, bar reset | Per-zone segmented cumulative OR | Only aggregate pair; open reset false rather than containment; no cumulative propagation. **Incorrect shape/behavior** |
-| Previous quote/gap | Previous processed quote; opening reset; multi-gap destination-only new latches | Partition shifts and gap masks | Shifts mostly-zero `last_bid` before tick pass populates it; ordinary crossing masks also run on multi-gaps. **Incorrect** |
-| BO — `CloseCoordinatorBar` | Close engagement/trend/strict±1; BO IDs and PB parent windows | Ordered close candidates before history roll | Expressions discarded; no candidates/sequence/window creation. **Placeholder** |
-| Reversal — `ProcessCoordinatorTick` | Updated trend, directional touch, no multi-gap, bar/zone/side uniqueness | Candidate uniqueness separate from attempts | Masks/key expressions discarded; `reversal_signals=None`; no uniqueness/quota. **Placeholder** |
-| PB — `EvaluatePullbackPrice` | Penetration±0.20, pending at edge, offsets1–5, parent retention | Separate emission/pending/fill/cancel/expiry | Active defaults false; no window evaluation or signals. **Placeholder** |
-| Candidate ordering — `ProcessTesterCandidates` | BOs first, then reversals/PBs; gate→audit→send→commit | Ordered events/reducer | No arbitration, gates or submission. **Missing** |
-| Quotas — `CommitPreparedEntryAttempt`, `RecordPullbackFill` | Reversal attempts Normal1/High2; PB fills Normal1/High∞; attempted candidate-bar slot | Distinguish candidate/attempt/fill | Key/attempt string placeholders; no per-zone consumption. **Missing** |
-| SL/TP/free space — `XauContracts`, `XauRequests` | Nearest qualifying boundaries; stop cap6, target≥6, gap>3 for all families | Exact formulas/order and boundary tests | No reachable protection preparation. **Missing** |
-| Capital/risk — `XauTesterRisk` | 0.01 lot, 200/300 profiles, native cash/margin, GROSS15, daily loss below300 | Native fixture boundary and reasons | No risk, capital, margin or concurrency engine. **Missing** |
-| Request/fill prices — `SubmitTesterPreparedEntry` | Candidate Bid/close; market Ask/Bid request; pending edge; native fill | Preserve distinct prices | No generated orders/fills. **Missing** |
-| Execution — `OnTradeTransaction` | Symbol/Magic filter, audit/projection/bindings, callback recovery/idempotence | Ordered outcome records | No native outcome source/projector. **Missing** |
-| Strict PB/TP — `ManageTesterPullbackTp` | Current-candle and closed directions; pre-zone1; one extension, restore/close | Exact anchor/latch/acceptance semantics | No position TP management. **Missing** |
-| RF/SL — `ManageTesterProfitProtection` | Observed native costs, 6-unit steps, never loosen | Match measured cost/quote fixtures | No cost/protection engine. **Missing** |
-| Conflict close — `CloseTesterOppositeReversals` | Close same-zone opposite reversal for valid BO before BO entry | Separate from touch-time blocking | Neither close nor touch-block implemented. **Missing** |
-| Session/restart — `ExecuteTesterOperationalSafety` | Broker session end−5, project cancel/flatten/lock, restart simulation | Explicit scope and outcomes | No calendar/lock/flatten. **Missing** |
-| Actions — `_generate_actions` | Ordered candidates/requests/outcomes; no native action-column enum | Tick rows plus ordered events; compatibility summary | Core returns only all-null `action`. Order/position helpers mostly initialize null columns. **No trading parity** |
-| Diagnostics | Audit/counters/native results/specification/deinit summary | Optional trace/state and first mismatch | `_per_tick_temp_state` exists but runner drops its extra fields; summary cannot show them; debug unused. **Partial** |
-| Vectorization | Stateful native tick loop | Day-level batching, no Python bar/tick loops or row `apply` in hot path | Bar `groupby` loop and row-wise reference `apply` remain. **Requirement unmet** |
-
-## Additional integration findings
-
-- **P0 export collision:** `merge_results_with_candles` constructs a MultiIndex from arrays while retaining same-named broker/symbol/datetime/date columns. `save_results_to_file` then calls `reset_index()`, which can raise `ValueError: cannot insert …, already exists`. This is source-level analysis, not a CLI execution recorded here.
-- **P0 join cardinality:** no `validate="many_to_one"` on candle merge; duplicate candle keys can multiply tick rows. Final full-bar OHLC joined to earlier ticks is retrospective context and would leak future information if later reused as a causal feature.
-- **P0 duplicate identity:** `.loc[first_index]`/`.loc[group.index]` use labels, so duplicate tuples can update multiple rows or misalign assignment. Stable sorting does not repair these writes or preserve arbitrary caller cross-group order.
-- **P0 quote alignment:** runner reattaches Bid/Ask positionally from sorted input, assuming exact agreement with output cardinality/order. Test stable event identity across supported index layouts rather than assuming it.
-- **P0 empty/error flow:** core empty handling does not prove runner merge/enrichment/export; `main` explicitly rejects empty zones. Missing native data and missing zone days need deterministic failure behavior.
-- **P1 data scope:** date-only zone cache shares one daily set across instruments/brokers; CLI labels candles with configured broker. Define supported scope and account/risk mapping.
-- **P1 debug/report semantics:** exported accessor is not a functioning CLI debug path; initialized order/position columns do not imply simulated lifecycle or accounting.
-
-## MQL limitations and differences from other documentation
-
-MQL remains the reference. These source findings must be preserved and labeled in parity work, not silently replaced by what another document says should happen. The plan names them M1–M8.
-
-| ID | Source evidence and implication | Plan/Python treatment |
+| Area | New MQ5 body | Current Python / verdict |
 |---|---|---|
-| M1 | `BlocksOppositeReversal` is exercised by smoke checks but not production coordinator/preparation | No claim of wired strict-PB blocking at actual touch; distinguish breakout conflict close |
-| M2 | `BeginPullbackBar` reports expiry cancellation; event loop only counts/logs it; broker stops are GTC | Internal inactive window is not native cancellation; include possible late-fill behavior |
-| M3 | Daily-loss lock updated with candidates; pending cancellation wired for session/restart, not daily loss | Preserve actual entry-lock scope; do not claim other docs' cancellation behavior exists |
-| M4 | Attempt gate/commit use candidate bar; close BO and current reversal/PB can use different IDs on same tick | Trace signal bar and physical attempt bar separately; do not silently impose a different slot rule |
-| M5 | Restart flag is simulation input, not persisted activation-day detection | Tester scenario is not automatic reattach protection |
-| M6 | Free-space gate includes BO; other rule text explicitly names reversal/PB | Port all-family MQL behavior |
-| M7 | Strict history starts after candidate bar; TP failure uses current quote, not historical crossing | Delayed fills and crossing/retreat need reference fixtures |
-| M8 | Day branch bypasses old close; gaps read one previous bar; failure flag only suppresses repeated logs | No invented batch-end close, missing-bar replay or persistent failure latch |
+| Modes | Disabled/demo/live declarations; missing envelope owns final wiring | Signals-only CLI and opt-in offline replay; no native reconciliation. Different scope; reference delivery incomplete |
+| Zones | `LoadAllRawZones`: six-field CSV; disabled/invalid rows skipped; broker YYYY.MM.DD; missing daily zones mark day invalid | `ZoneCache` validates input schema, filters Enabled, date-only cache, missing day empty. Different failure policy |
+| Merge/IDs | Low-only sort; gap<1.5; High dominates; premerge R IDs concatenate with & | low/high sort; same merge geometry; postmerge YYYY-MM-DD:R IDs. Identity/tie ordering differ |
+| Bootstrap | `UpdateTrendReference`: exactly native shifts1–3, including prior day; four bars required at init | Only preceding observed same-day bars, first bar count 0. Different |
+| Sticky trend | No day reset of g_trend; threshold update after new bar | New daily state; ffill within day. Overnight/bootstrap differ |
+| Bar/day order | `ProcessNewBar`: age cycles → old close → day change → new reference/open | Daily partition drops cross-day close; old observed tick Bid used as close. Midnight/sparse/gapped bars differ |
+| Previous Bid | Persists across bar/day; updated at end or locked return | Engagement/reversal replace previous Bid with current Bid at bar start. First-tick crossings suppressed |
+| Engagement | Inclusive native-open seed, then directional crossings; multi-gap destination-only new latches | First observed tick containment, not bar_open; per-zone cumulative OR. Opening behavior differs; latching otherwise similar |
+| Reversal | Updated UP/upward low touch→SELL; DOWN/downward high touch→BUY; no multi-gap; per-bar/zone/side claim before gates | Same predicates/dedup given equal inputs; differing trend/previous quote means no overall parity |
+| Reversal quota | `AddPositionTrack` counts real fills Normal 1/High 2; usage enum unused/active/consumed changes on fill/exit | Replay reversal_usage counts prepared attempts, including rejected sends. Same-name state has different meaning |
+| Global bar slot | `ClaimGlobalEntrySlot` optional, default off; enabled slot uses physical current bar before send | Always enforced on candidate bar; BO old bar versus reversal/PB current bar. Different |
+| BO execution | Strict ±1 buffer/old trend; BO#01 IDs; invalidated reversal close must succeed before PB; direct entry default off | BO1 IDs; precomputed windows independent of close acceptance; replay submits BOs. Different |
+| PB parent | Active parent retained; fill ends cycle; later BO can create next cycle | Static five-bar opening cooldown ignores actual fills; active window survives fill. Different renewal ownership |
+| PB penetration/window | ±0.20 inclusive; offset starts 1, expires after configured 5 new-bar transitions | Same default threshold and1–5 window; hard-coded timing. Partial |
+| PB fill | Count fill, deactivate cycle, clear ticket | Count fill, clear pending/penetration, retain active window; may rearm same parent. Different |
+| PB quota | Explicit Normal 2/High 10 fills; High 0 unlimited | Normal 1/High unlimited; CLI has no fills. Different |
+| Pending lifecycle | Exact native stop validity then risk/send; ticket/disappearance retry; deletion requested on expiry | Synthetic submit/fill/cancel with injected acceptance. Rejected cancel retains pending; EA EndCycle deactivates even if delete fails. Different |
+| Selectivity | PB gap≥12; High reversal gap≥12; Normal reversal lacks that filter; absent neighbor filter returns DBL_MAX | All families gap>3; absent neighbor fails. No matching profile/family toggles |
+| Initial stop | Adjacent zone relative to signal zone, base cap 6; High reversal expands base R0×1.5 | Nearest qualifying boundary relative to candidate price, cap 6; no expansion. Different |
+| Initial TP | Directional target distance≥actual R0×multiplier (default 1), including expanded High risk | Target distance≥fixed 6. Different when actual R0≠6 |
+| Price anchors | Reversal request Ask/Bid, PB edge; stores requested anchor separately from actual fill | Preparation uses candidate Bid/old close/edge; market fill Ask/Bid; protection anchors fill. Different |
+| Risk budget | Default GROSS_DAILY 30% initialization balance; OFF/NET/GROSS options, pending reservation enforcement and postfill overflow response | Fixed15% of configured 200/300; pre-entry gate, no matching postfill policy |
+| Concurrency/lot | Configurable3/0.01 defaults; postfill closes newest on overflow | Fixed0.01; max3 at 200 or5 at 300; no identical overflow response |
+| Daily loss | Native full-position net at tracked exit;20% below 300, optional override/QA bypass; cancel cycles | Simulated close P&L; fixed 20% below 300, sticky lock and cancel pending. Partial accounting/timing match |
+| Protection | Sticky1R/1.5R/2R stages: actual-fill cost BE; requested-anchor +0.5R; confirmed structure trailing and retries | Fixed6-unit stair steps from fill/simulated costs; no matching stage/pivot/retry state |
+| PB TP | No strict PB extension/restore manager in visible body | Replay extension/restore/close and opposing-reversal blocking remain implemented. Python-only relative to visible body |
+| Session | Native containing session; ALL_FLAT default, carry/PB-only alternatives; preclose flag false outside session; repeated close attempts during cutoff | Injected end per date; sticky lock until day reset; flatten all. Different |
+| Restart | Native same-day Magic history/exposure; optional exposure-free fresh start; next day unlock | Explicit restart_days only; no native discovery/reconstruction |
+| Day exposure | Cancels cycles/resets daily zones, loss/slots; day change itself does not flatten positions; trend persists | `_roll` cancels pending/closes positions, fails on unresolved exposure, resets coordinator/counters |
+| Transactions | Visible DEAL_ADD callback filters Magic, not explicitly symbol; full-position/non-partial assumption | Per-stream synthetic IDs/outcomes, no native tickets/partial-deal projector; envelope unknown |
+| Audit | Native journal/summary, chart objects, retry/session telemetry | Manifest action/event/state snapshots; different diagnostic state |
 
-Other corrected details: priority0/1; daily loss resets on initialization; runtime counters do not all reset daily; PB sequence can advance on a later-gated candidate; active PB parent is retained; market request differs from candidate price; pre-zone latch precedes strict/modify success; RF uses observed native costs rather than unknown future fees.
+## Defaults and reference caveats
 
-## Plan assessment and optimization
+- Read assignments, not scenario comments: ReversalHighOnly=false; PB/High reversal free space12 despite comments saying15; Normal PB2 despite selected1; High PB10; portfolio30%. Property version 2.20 differs from initialization journal text 2.10. Comments establish neither performance nor approval.
+- Missing envelope behavior is unknown. It cannot be presumed to supply tested account guards, callbacks or reconciliation, and its variables cannot be inventoried.
+- `EndCycle` attempts deletion but does not check success before deactivation. The old report's claim of logging-only expiry is obsolete.
+- `ApprovedStrategyOnTradeTransaction` accumulates full-position net on tracked exit; `FindPositionTrack` matches identifier without requiring active. Partial/repeated exits need native fixtures; no idempotence claim is justified.
+- New-bar `UpdateTrendReference` return is ignored, unlike init; short history reads can retain old references. Missing bars use native shift1 values tagged with stored prior bar time, without replaying intermediate bars.
+- `HandleDayChange` runs after prior-close processing, preserves trend/previous Bid and does not itself close positions. That differs from both the former EA report and Python replay.
+- Margin precheck functions explicitly log only. Native acceptance, portfolio gates and offline margin calculations are distinct boundaries.
+- A parsed entry deal without matching active request metadata is tracked with default zero requested price/SL/TP/R0. Profit protection skips nonpositive R0; metadata recovery by an unseen envelope cannot be assumed.
 
-The plan now replaces general algorithm prose with source-specific execution phases, state ownership, exact thresholds/formulas, candidate/attempt/fill distinctions and native management scope. It removes the unsupported claim that the selected Python is largely consistent with MT5.
+## Documentation and validation
 
-Its TODO order is data/time fidelity → causal state → candidates → feedback-dependent attempts/outcomes → risk/management/reporting → measured optimization. Each stage has completion criteria. M1–M8 are explicit reference caveats rather than accidental behavior changes.
+The glossary is rebuilt against every visible global, all fields of RawZone/ZoneRuntime/PullbackCycle/RequestMeta/PositionTrack, every declared input and EA_MAGIC. Each row gives read/write review anchors and lifecycle/verdict information. Obsolete MVP variables are removed from the current inventory; Git history retains them. See [glossary method](State-Variables.Glossary.md).
 
-Vectorize shifted closed-bar references, threshold events, per-zone cumulative engagement and static boundary lookups. Keep memory bounded by day and use sparse candidate/event records where appropriate. Submission/fill/quota/risk feedback needs an explicit ordered reducer or verified compiled scan; independent masks alone cannot establish equivalence. Profile only after correctness; measure peak memory as well as elapsed time. No strategy parameter tuning is proposed.
+The old report's missing-candidate, all-null-action, unused-candle, symbol-propagation and unvalidated-join claims no longer describe the opt-in pipeline. Historical test results remain historical; they do not validate this source revision or the replacement EA. Old scalar contracts are not an independent oracle for this EA.
 
-## Evidence and completion status
+This documentation-only review validates inventory coverage, CSV shape/unique names, cited paths/line ranges and changed-document link/diff hygiene. It runs no strategy, backtest, terminal or broker connection and changes no implementation. Missing envelope blocks full MT5 inspection/build; static matches do not constitute runtime parity.
 
-- MQL anchors: `InitializeCurrentEventLoop`, `ProcessCurrentEventLoopTick`, `ProcessTesterCandidates`, `ManageTesterPullbackTp`, `ManageTesterProfitProtection`, `ExecuteTesterOperationalSafety`, `OnInit/OnTick/OnTradeTransaction`; [`XauContracts.mqh`](../../mt5/include/XauContracts.mqh), [`XauCoordinator.mqh`](../../mt5/include/XauCoordinator.mqh), [`XauState.mqh`](../../mt5/include/XauState.mqh), [`XauRequests.mqh`](../../mt5/include/XauRequests.mqh), [`XauTesterBroker.mqh`](../../mt5/include/XauTesterBroker.mqh), [`XauTesterRisk.mqh`](../../mt5/include/XauTesterRisk.mqh).
-- Python anchors: [`runner.py`](../../src/application/xauusd_trading_strategy_1_vector/runner.py), [`the_strategy.py`](../../src/application/xauusd_trading_strategy_1_vector/the_strategy.py), [`zone_cache.py`](../../src/application/xauusd_trading_strategy_1_vector/zone_cache.py), [`io.py`](../../src/infrastructure/result_processing/__main__.py), [`reporting.py`](../../src/application/xauusd_trading_strategy_1_vector/reporting.py), [`tick.py` adapter](../../src/infrastructure/mt5/tick.py), [`TickLifecycle` schema](../../src/domain/schemas/tick.py).
-- Latest 2026-09-20 sections in [`CURRENT_STATE.md`](../CURRENT_STATE.md)/[`TEST_STATUS.md`](../TEST_STATUS.md) report 4 cache tests passing and 17 selected-class state/where failures. Repository gate also has missing fixture/ratchet problems. Earlier 18/34-pass results and the 0.607-second benchmark belong to an alternative class, not the selected implementation.
-- Frozen MVP contract/native-test evidence has narrower scope than this vector CLI and does not prove every runtime wiring path. This review ran no tests or MT5 and makes no new runtime parity claim.
-- **DONE:** Update both requested documents with the source comparison and optimized implementation plan. **TODO:** Execute the plan's implementation stages. No implementation code was changed by this review.
+Follow-up acceptance: supply matching envelope and compile; align explicit defaults, broker time/zone identity and lifecycle semantics; compare first differing state/event at bootstrap, midnight, sparse bars, gaps, rejected sends/deletes/modifications, fills and restart; verify accounting and intentionally enable replay in any execution-mode integration. These remain implementation work, not completed parity claims.

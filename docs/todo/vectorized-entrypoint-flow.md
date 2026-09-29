@@ -1,24 +1,20 @@
-# Vector Entry Point Flow
+# Vector entry point flow
 
-Reviewed 2026-09-20: `src/application/xauusd_trading_strategy_1_vector/__main__.py` → zone/MT5 fetches → `ZaoneCache` → `VectorizedXauUsdStrategy` → candle context → order/position projections → export/summary. Research output is not an execution ledger. Strategy-core files were changing concurrently during this review; this batch modifies the CLI, runner, result processing, reporting and MT5 fetch error handling only.
+Reviewed 2026-09-29 against the active source. `__main__.py` → zone/tick/M15 acquisition → bar/day keys → `run_vectorized_strategy` → daily ResultFilesManifest → selected strategy → previous-candle context → order/position projections → export/summary → optional vectorbt report.
 
-## Verified repairs
+## Implemented
 
-- [x] CLI normal/debug dispatch works. Debug exports internal state; normal output retains the strategy's public columns.
-- [x] Request complete zone days: normalize the first day, fetch through next midnight and retain ticks in `[start, end)`. The minute-resolution range string previously excluded the last day's final minute.
-- [x] Preserve the requested MT5 symbol; report `copy_ticks_range`/`copy_rates_range` failures when MT5 returns `None`.
-- [x] Reject empty zones/ticks and unsupported output extensions before writing results; invalid extensions fail before fetching.
-- [x] Join only the immediately preceding closed M15 candle, prefix its payload with `candle_`, preserve tick index/order/duplicates and reject duplicate candle keys. Missing previous candles remain missing; final current-bar OHLC is not exposed at earlier ticks.
-- [x] Export without duplicated index columns. Create output parent directories and encode dataclass candidate/window collections as JSON in CSV/Parquet without mutating input. Summary counts collection members rather than non-null containers.
-- [x] `.venv/Scripts/python.exe -m pytest tests/test_vectorized_pipeline.py tests/test_vectorized_cache.py -q`: 20 passed. Tests cover normal/debug × CSV/Parquet, actual fetch index layouts, duplicate timestamps/candles, causal context, final-minute coverage, empty inputs, candidate serialization, symbol identity and MT5 errors. All broker calls mocked; no live run or profitability evidence.
+- [x] Tick conversion forwards requested symbol; empty tick input and unsupported export suffix fail explicitly.
+- [x] Native candles enter strategy bar/reference computation through daily manifest artifacts; unique covering M15 candles are required.
+- [x] Prior M15 output context uses many-to-one merge; tick/state indexes must agree. Export consumes manifest artifacts.
+- [x] Order/position fields project replay snapshots; optional programmatic ReplayConfig enables actions and execution. Default CLI omits it.
 
-## Remaining strategy work
+## Remaining work
 
-- [ ] Complete reversal candidate emission and per-bar/zone/direction deduplication; compare candidates with `process_coordinator_tick`, including trend-before-touch and multi-zone gaps.
-- [ ] Complete pullback penetration/attempt/fill transitions, five-bar expiry and per-zone daily usage. Window creation alone is insufficient; prove Normal/High limits and repeated pullbacks against domain/MQL fixtures.
-- [ ] Replace `actions.py`'s unconditional `None` with confirmed entry preparation, risk/concurrency/margin/session/restart gates and explicit outcomes. Candidate generation must not imply execution acceptance.
-- [ ] Replace order/position placeholders with accepted submissions, fills, cancellations, closes and protection events. Specify broker contract/session/account inputs and execution costs before reporting P&L; retain bid/ask side correctness and idempotent outcomes.
-- [ ] Integrate native candle open/closed history into strategy decisions or explicitly retain tick-derived research semantics. Fetched OHLC currently supplies output context only; sparse ticks and mid-day initialization do not establish native MQL parity.
-- [ ] Resolve repository gate: recorded changed-file pre-commit run passed Ruff check/format, but pytest reported 3 concurrently edited breakout-test failures plus 10 missing `data/random_ohlcv.zip` fixture errors; incremental ratchet reported missing `ratchet` module. Full snapshot: 66 passed, 3 failed, 10 errors. No hook bypass or clean checkpoint claimed.
+- [ ] **Complete final-day acquisition:** current end bound is maximum zone day + 2 hours−epsilon. Define/use full intended interval and verify last tick/minute/day coverage with mocked acquisition.
+- [ ] **Execution mode:** expose intentional offline replay configuration with explicit economics/session inputs; prove CLI mode in deterministic integration tests. `--backtest` only reports scalar positions and does not enable replay.
+- [ ] **Debug contract:** debug is accepted/passed but unused by runner. Implement/document a meaningful artifact/output difference or remove the unsupported option; verify both paths.
+- [ ] **Reporting fidelity:** scalar projection chooses last order/position; vectorbt uses Bid and no short direction. Reconcile complete event collections, concurrent positions and costs before treating reporting as an execution ledger.
+- [ ] **New-EA parity:** follow [current acceptance tasks](Vectorization.Remaining%20not-implemented%20placeholders.md); native bootstrap/cross-day state and current thresholds differ. The missing MT5 envelope prevents final event wiring verification.
 
-The broader parity and execution acceptance criteria are in [Vectorization Implementation Plan](Vectorization%20Implementation%20Plan.md). Reconcile concurrent core edits before treating earlier state/scaffold test results as current evidence.
+No strategy execution or new runtime test evidence is claimed by this source audit. Previously recorded CLI tests apply only to their source revisions; current code must determine current behavior.

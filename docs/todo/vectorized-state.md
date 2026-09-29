@@ -1,14 +1,20 @@
-# Vectorized State Processing
+# Vectorized state processing
 
-Scope: `src/application/xauusd_trading_strategy_1_vector/`. Time-partition Python loops may cover days or larger units; bars and ticks must use pandas/NumPy batch operations. Zone metadata iteration is allowed. Preserve confirmed daily trend rules and avoid future-data leakage.
+Scope: active `src/application/xauusd_trading_strategy_1_vector/`. State calculations use pandas/NumPy batches; sparse candidate construction, PB feedback and optional execution replay use ordered loops. [Current MT5 comparison](../Divergence%20Report%20-%20MT5%20vs%20Python%20vs%20Documentation.md) supersedes old MVP equivalence claims.
 
-- [x] **DONE:** Replace bar iteration with grouped aggregation and array gathering; carry only preceding closed-bar history, cap references at three bars, reset per day, preserve duplicate tick order and reject decreasing timestamps.
-- [x] **DONE:** Remove row-wise reference `apply` and order/position ID loops; forward-fill trend per day and latch engagement per bar without group callbacks.
-- [x] **DONE:** Repair synchronous core execution, package imports and daily zone selection needed to exercise the state pipeline; reuse existing calculation helpers rather than duplicate them in the strategy class.
-- [x] **DONE:** Verify 18 focused tests, including scalar domain parity, future-prefix invariance, empty/singleton/gapped/duplicate data, day/instrument isolation, zone selection and loop guards. Measure 100,000 synthetic ticks: vector state pipeline 0.607 s; scalar trend oracle 10.280 s; exact parity. One local sample, not the old pipeline or trading profitability.
-- [x] **DONE, current repository gate:** 84 collected tests pass, including dtype, partial-state validation, mutation policy, duplicate rows and instrument isolation. Ruff check/format and incremental ratchet pass with the documented shared-tool environment. This does not validate previously commented-out vectorbt/CLI scenarios.
-- [x] **DONE, breakout flow:** Restore causal closed-bar history, per-zone engagement and close-trend/strict-buffer evaluation; emit ordered `XauSignalCandidate` tuples and daily `BO1...` IDs at the next observed same-day bar. Open per-zone/direction pullback windows, retain active parents, expire after offsets 1-5 and permit renewal after expiry. No final-batch or cross-day close. Sparse emitted events alone use Python iteration for object creation and sequential parent ownership; bar/tick calculations remain batched.
-- [x] **DONE, breakout verification:** 14 breakout tests plus 38 existing state/cache/selection tests pass; current runner integration brings focused coverage to 68 tests. State fixtures now use the adopted merged-zone list cache and validate malformed input at cache construction. See `docs/TEST_STATUS.md` for gate evidence.
-- [ ] **FOLLOW-UP, remaining execution:** Complete reversal and pullback candidates, penetration/pending/fill/usage feedback, opposite-reversal closure, risk gates and final actions. Breakout candidates and window-opening snapshots are exposed in results; `action` remains unset. Prove full MQL parity, native OHLC and broker-time fidelity before execution use.
-- [ ] **FOLLOW-UP, scalar coordinator defect:** `begin_coordinator_bar` calls `begin_pullback_bar` on inactive slots; an expired slot can reject a later bar. Reproduce offset 6 followed by another bar with no replacement breakout, align inactive-slot handling with confirmed MQL behavior, then add regression coverage. Current random breakout oracle comparisons stop before this defective path; vector expiry/renewal have separate deterministic tests.
-- [ ] **FOLLOW-UP, existing runner work:** Repair CLI/debug imports and obsolete `zone_cache` references, debug cache return, and candle merge input contracts. Accept when normal/debug entrypoints consume the actual tick/candle/zone schemas in a deterministic integration test; avoid external MT5 calls in that test.
+## Implemented
+
+- [x] Gather preceding observed same-day M15 extrema; cap configurable trend points(default 3), seed open from native candle and forward-fill trend within day.
+- [x] Per-zone engagement via cumulative masks; unique reversal candidates; ordered BO candidates and parent-window snapshots; PB penetration/pending/fill feedback.
+- [x] Per-stream optional replay preserves execution state across daily artifacts; rollover explicitly resolves exposure before replacing coordinator.
+- [x] Manifest order/position projections consume snapshots. Actions are populated only with replay configuration.
+
+## Remaining work
+
+- [ ] **Reference alignment:** new EA retains trend/previous quote across days and uses exactly three native closed bars. Resolve bootstrap, midnight close, native-open engagement and sparse-bar differences with paired state fixtures.
+- [ ] **Feedback ownership:** remove mismatch between precomputed opening cooldown and actual PB fills; new EA ends cycle on fill and requires a later BO. Prove renewal, expiry, rejected deletion and parent lineage at each event.
+- [ ] **Usage/slots:** match fill counters versus attempts and the EA's default-disabled one-order slot. Verify rejected submissions do not masquerade as fills.
+- [ ] **Execution contract:** align risk/targets/R0 protection and session/restart lifecycle per [acceptance tasks](Vectorization.Remaining%20not-implemented%20placeholders.md).
+- [ ] **Scalar-oracle scope:** any old coordinator test oracle, including inactive-window aging behavior, must first be reconciled with current MQ5. An obsolete helper is not the source of truth.
+
+Earlier synthetic performance evidence (2026-09-19: 100,000 ticks, 0.607 s vector state versus 10.280 s scalar trend, exact trend/reference agreement) concerns that revision and narrow oracle, not current full execution or trading profitability. No rerun or new runtime parity is claimed here.

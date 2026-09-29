@@ -1,61 +1,18 @@
-# XAUUSD EA
+# XAUUSD EA and Python research pipeline
 
-Repository-based scientific design, implementation and validation of an M15 XAUUSD price-action strategy using instructor-provided daily Zones.
+Repository for an M15 XAUUSD price-action strategy using daily zones. MT5 strategy and Python signals/offline replay are separate implementations with documented behavioral differences.
 
-## Leader dashboard
-| Item | Current value |
-|---|---|
-| Goal | Auditable MVP → Shadow/Demo |
-| Market | XAUUSD / M15 / MT5 Real Ticks |
-| Current milestone | Complete EA event orchestration, then targeted replay |
-| Status | Python matrix, durable journal, and inert MQL5 core/native/visual payload smoke are green |
-| Live state | Research only |
-| Next Leader decision | None |
-| GitHub | Private `behrad203-tech/XAAUSD-PAction-projectFolder`; `main` synchronized |
+## Current source and status
 
-## Roles
-- Project Leader: goals, priorities, confirmed trading/risk rules, high-impact approvals.
-- ChatGPT Work: scientific research and documentation.
-- Codex: implementation, tests, environment, Git/GitHub.
+- [MT5 source](mt5/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5) replaces the former MVP/include/generated set. [MT5 README](mt5/README.md) describes actual inputs and visible lifecycle.
+- **Build dependency missing:** `XauRobustLiveEnvelope.mqh`. Final platform callbacks/release guards cannot be verified from the supplied file. The live-RC filename is not deployment approval.
+- [Python package](src/application/xauusd_trading_strategy_1_vector/README.md) implements signals and optional execution replay. Its CLI currently runs signals-only; vectorbt reporting does not enable replay.
+- [Divergence report](docs/Divergence%20Report%20-%20MT5%20vs%20Python%20vs%20Documentation.md) records current flow, defaults and state differences.
+- [State glossary](docs/State-Variables.Glossary.md) explains the [143-row CSV](docs/State-Variables.Glossary.csv).
+- [Parity follow-up](docs/todo/Vectorization.Remaining%20not-implemented%20placeholders.md) defines remaining acceptance work. No new compile, strategy run or runtime parity is claimed by the 2026-09-29 documentation audit.
 
-## Start a new Work chat
-`Read CHATGPT_WORK.md and recover the project from this repository before discussing the scientific question.`
+## Working in this repository
 
-## Start a new Codex chat
-`Read AGENTS.md, recover the project from the repository, and continue the next executable task autonomously.`
+Read [AGENTS.md](AGENTS.md), inspect the current working tree and follow the linked current evidence. Several former project-control documents have been removed; do not treat their old links or archived test claims as present acceptance evidence. The Project Leader owns scope and trading/risk approval; Codex owns implementation and verification; ChatGPT Work owns research discussion/documentation.
 
-## Core source of truth
-- `docs/PROJECT_BRIEF.md`
-- `docs/RULES.md`
-- `docs/RULES_ARCHIVE_FUTURE.md`
-- `docs/CURRENT_STATE.md`
-- `docs/TODO.md`
-
-
-## Standard control files
-- `docs/DECISIONS.md`
-- `docs/EXPERIMENTS.md`
-- `docs/TEST_STATUS.md`
-- `docs/LIVE_GATES.md`
-- `docs/RUNBOOK.md`
-
-This level is the default recommendation for a strategy expected to reach Demo or Live.
-
-## Historical material
-
-- `data/ranges.csv` is the canonical migrated daily-Zone input.
-- `legacy_reference/PREVIOUS_TECHNICAL_BUNDLE/` preserves historical code, research scripts, settings and test evidence. It is a Regression reference and must not override `docs/RULES.md`.
-
-## Folder structure
-
-```text
-XAUUSD_PROJECT_MIGRATION_FINAL_v3/
-├─ docs/                 # Source of Truth, decisions, evidence status and runbook
-├─ data/                 # Canonical small inputs; ranges.csv is included
-├─ src/                  # New current implementation only
-├─ tests/                # Current deterministic and integration tests
-├─ config/               # Non-secret reproducible configuration
-├─ integrations/mt5/     # MT5 integration instructions and adapters
-├─ artifacts/            # Regenerable current outputs
-└─ legacy_reference/     # Intact historical technical bundle for Regression/Audit
-```
+`src/` contains Python implementation; `mt5/` contains the supplied EA and its documentation; `docs/` contains the comparison/glossary; `docs/todo/` contains executable follow-up. `mt5/archive.zip` is historical reference and does not override the supplied current source.

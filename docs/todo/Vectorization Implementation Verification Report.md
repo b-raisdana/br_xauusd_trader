@@ -1,96 +1,18 @@
-# Vectorization Implementation Verification Report
+# Vectorization implementation verification status
 
-**Date**: 2026-09-18
-**Primary Source of Truth**: `mt5/XAUUSD_MVP.mq5`
-**Implementation**: `src/application/xauusd_trading_strategy_1_vector/`
+Reviewed 2026-09-29. Current reference: [XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5](../../mt5/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5). Current comparison: [divergence report](../Divergence%20Report%20-%20MT5%20vs%20Python%20vs%20Documentation.md).
 
----
+## Verified by source inspection
 
-## Executive Summary
+- Python uses M15 native candle opens and preceding observed same-day extrema; vectorized trend changes carry within each day.
+- Per-zone engagement, unique reversal candidates, BO candidates/window openings and PB penetration/feedback scans exist.
+- Optional ExecutionReplay models orders/positions/risk/P&L and management; default CLI does not enable it.
+- New EA uses cross-day native three-bar references, persistent trend/previous Bid, fill quotas and an actual-R0 protection model; these differ from Python.
+- The 143-row glossary covers visible declarations with lifecycle findings. The missing release envelope remains outside inspection.
 
-The vectorized implementation has been verified against the MT5 source of truth for core algorithmic components. The implementation correctly follows the MT5 semantics for 15-minute bar processing, trend calculation, zone engagement, and signal generation framework. Several components require additional implementation for full functionality.
+## Acceptance limits
 
----
+Earlier verification against `XAUUSD_MVP.mq5` is superseded for current-reference purposes; it must not be read as verification of the new EA. No runtime test, benchmark or successful MT5 compile was performed during this documentation audit. The missing `XauRobustLiveEnvelope.mqh` blocks full source/build verification.
 
-## Verification Results
-
-### Verified Components
-
-#### Bar Period
-**Status**: **CORRECT**
-
-The implementation correctly uses 15-minute bars as specified in the source of truth.
-
-#### Trend Calculation
-**Status**: **CORRECT**
-
-Reference high = max of available trend highs; Reference low = min of available trend lows. If bid > reference_high: trend = UP; if bid < reference_low: trend = DOWN; else: trend unchanged. The implementation correctly implements reference calculation with rolling window of 3 candles.
-
-#### Zone Engagement
-**Status**: **CORRECT**
-
-Count directional zone crosses; detect multi-zone tick gaps; update engagement incrementally or based on current position. Engagement resets at each M15 bar open.
-
-#### Day Boundary Processing
-**Status**: **CORRECT**
-
-Detect broker_day change; reinitialize event loop on day change; reset all state variables.
-
-#### Bar Boundary Processing
-**Status**: **CORRECT**
-
-Detect bar_time change; close previous bar (generate breakouts); begin new bar (reset engagement, advance pullback windows).
-
-#### State Variable Mapping
-**Status**: **CORRECT**
-
-State variables are correctly mapped to data columns as documented in the state variable glossary.
-
-### Framework Components (Requiring Additional Implementation)
-
-#### Breakout Signal Generation
-**Status**: **FRAMEWORK IMPLEMENTED**
-
-Framework implements engagement and trend validation, boundary + buffer check. Missing: zone state management, pullback window creation logic, breakout sequence tracking.
-
-#### Reversal Signal Generation
-**Status**: **FRAMEWORK IMPLEMENTED**
-
-Framework implements directional touch validation and trend alignment check. Missing: reversal key tracking, per-zone state management, bar_id tracking.
-
-#### Pullback Signal Generation
-**Status**: **FRAMEWORK IMPLEMENTED**
-
-Framework implements active window check. Missing: pullback window state management, penetration condition logic, usage allowance validation, sequence number management.
-
-#### Final Action Generation
-**Status**: **FRAMEWORK IMPLEMENTED**
-
-Framework has stub structure. Missing: signal candidate collection, risk management integration, stop loss/take profit calculation, final action value mapping.
-
-### Infrastructure Components
-
-#### Zone Loading
-**Status**: **CORRECT**
-
-Zone loading infrastructure is correctly implemented with caching support and date format handling.
-
-#### Data Schema
-**Status**: **CORRECT**
-
-All state variables properly mapped with correct types, intermediate calculations included, and action column present.
-
----
-
-## Divergence Analysis
-
-### No Critical Divergences Found
-
-The implementation correctly follows the source of truth for bar period, trend calculation, zone engagement, day/bar boundary processing, and state variable mapping.
-
-### Intentional Simplifications
-
-Intentional for the framework implementation:
-- Zone-specific state is flattened into single columns rather than per-zone columns
-- Pullback windows use simplified state representation
-- Signal candidates use placeholder collection logic
+- [ ] Complete [parity acceptance tasks](Vectorization.Remaining%20not-implemented%20placeholders.md) before claiming strategy equivalence.
+- [ ] Record reproducible current-revision native/replay traces and first mismatches; do not substitute old scalar-oracle passes for replacement-EA evidence.

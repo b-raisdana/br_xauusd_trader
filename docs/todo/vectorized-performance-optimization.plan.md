@@ -12,7 +12,7 @@
 
 **Priority 1 — `_initialize_per_tick_temp_state` (trend.py area): ~27 minutes, one call.**
 This single one-shot call is bigger than every other stage combined. That's a huge red flag for a "vectorized" strategy — a setup step shouldn't dwarf the actual computation. Classic causes at this scale (17.5M rows):
-- A full `tick_df.copy()` or column-by-column assignment that repeatedly reallocates/fragments the frame instead of building state as pre-sized numpy arrays and attaching once.
+- A full `tick_df.copy()` or column-by-column assignment that repeatedly reallocates/fragments the frame instead of building state as pre-sized numpy arrays and attach once.
 - Object/string dtype columns instead of proper numeric/datetime64 dtypes (the log shows a generic `dtype='str'` index — worth checking bid/ask/volume aren't being kept as strings/objects, which kills vectorized math).
 - Row-wise `.apply()` or Python loops hiding inside what's meant to be a vectorized init.
 This is the one function worth profiling line-by-line (`cProfile` or `py-spy record` around just this call) before touching anything else — fixing it alone could cut total runtime by ~40%.
@@ -25,4 +25,35 @@ The variance suggests uneven per-day tick counts or repeated work that isn't sca
 
 **Lower priority:** `update_zone_engagement` and `_process_bar_boundaries` are already cheap (13s and 3.4s total) — not worth touching yet.
 
-If you can share `trend.py` and `the_strategy.py` (or the relevant functions), I can point to exact lines rather than reasoning from the log alone — the log tells us *where* the time goes, but the fix for #1 in particular depends on what that function is actually doing.
+If you can share `trend.py` and `the_strategy.py` (or the relevant functions), I can point to exact lines rather than reasoning from the log alone — the log tells us *where* the time goes, but the fix for #1 in particular depends on what that function is actually doing.**
+
+## Measured follow-up: the ranking above is validation-bound, not algorithm-bound
+
+`scripts/benchmark_tick_stages.py` times the per-stream stages on synthetic ticks in both validation modes
+(`DLF_ENVIRONMENT=development` keeps the pandera decorators, `production` bypasses them), 200k ticks per run:
+
+| Stage | development | production | validation share |
+|---|---|---|---|
+| `initialize_state` | 0.06s | 0.06s | 0% (after the fix below) |
+| `day_boundaries` | 0.00s | 0.00s | 0% (after the fix below) |
+| `bar_boundaries` | 69.27s | 0.03s | 99.96% |
+| `tick_operations` | 161.52s | 0.99s | 99.4% |
+| total | 230.85s | 1.08s | 99.5% |
+
+Column-group isolation at 200k rows: 22 numeric columns validate in 0.10s, the 10 element-typed `object`
+columns in 7.29s, and the same `object` columns declared without element types in 0.08s. Pandera's per-row
+element check is the cost, and it explains the ranking above.
+
+Applied in this batch:
+
+- `initialize_state`: dropped the output `@pandera_validate` (the frame is assembled from known constants) and
+  added `_assert_state_columns`, an O(columns) contract guard. 18.09s -> 0.13s at 500k rows.
+- `day_boundaries`: same treatment; it only sets one boolean column.
+- `tests/test_vectorized_state.py`: the `PerTickState.validate` contract that runtime validation used to
+  provide is now asserted on a small frame, plus negative tests for missing and extra columns.
+
+Open decision for the Project Leader, not taken here because it changes when contracts are enforced:
+`bar_boundaries` and `tick_operations` are per-row transformations, so their validation is a real guard, yet it
+is ~99% of their cost. Options are (a) leave development runs unchanged and run full history in `production`
+mode only, (b) validate the `object` columns for dtype only and check element types on non-empty values, or
+(c) validate once per stage boundary instead of on every input and output.

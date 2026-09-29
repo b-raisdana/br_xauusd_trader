@@ -6,6 +6,7 @@ from vectorized_fixtures import calculate_manifest, candles_from_ticks, prepared
 
 from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
 from application.xauusd_trading_strategy_1_vector.config.trend_points import trend_columns, trend_point_count
+from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickState
 from application.xauusd_trading_strategy_1_vector.domain.state import (
     begin_trend_day,
     process_trend_tick,
@@ -28,6 +29,23 @@ from infrastructure.result_processing.__main__ import (
 class EmptyZones:
     def get_zones_for_day(self, day):
         return []
+
+
+def test_initialized_state_satisfies_the_per_tick_contract():
+    frame = ticks(["2026-09-18 00:00", "2026-09-18 00:15"], [100, 101])
+    state = VectorizedXauUsdStrategy(EmptyZones())._initialize_per_tick_temp_state(frame)
+
+    assert PerTickState.validate(state, lazy=True).equals(state)
+
+
+@pytest.mark.parametrize("defect", ["missing_column", "extra_column"])
+def test_state_column_guard_rejects_contract_breaks(defect):
+    frame = ticks(["2026-09-18 00:00"], [100])
+    state = VectorizedXauUsdStrategy(EmptyZones())._initialize_per_tick_temp_state(frame)
+    broken = state.drop(columns="trend_count") if defect == "missing_column" else state.assign(unexpected=0)
+
+    with pytest.raises(ValueError, match="violate the contract"):
+        VectorizedXauUsdStrategy(EmptyZones())._process_day_boundaries(broken)
 
 
 @prepared_ticks

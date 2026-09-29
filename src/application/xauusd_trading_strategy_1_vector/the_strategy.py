@@ -35,6 +35,24 @@ from .signals import generate_breakout_signals, generate_pullback_signals, gener
 from .trend import compute_bar_time, update_trend
 from .zone_cache import ZoneCache
 
+_STATE_COLUMNS = frozenset(trend_schema_columns(PerTickState))
+
+
+def _assert_state_columns(per_tick_state: pd.DataFrame) -> pd.DataFrame:
+    """Cheap O(columns) contract guard replacing O(rows) schema validation.
+
+    The per-tick state is assembled from known constants, so value-level checks
+    cannot fail; only a missing, extra or renamed column can. The full
+    `PerTickState` validation stays covered by the state contract tests.
+    """
+    if frozenset(per_tick_state.columns) != _STATE_COLUMNS:
+        missing = _STATE_COLUMNS - set(per_tick_state.columns)
+        extra = set(per_tick_state.columns) - _STATE_COLUMNS
+        raise ValueError(
+            f"Per-tick state columns violate the contract: missing={sorted(missing)} extra={sorted(extra)}"
+        )
+    return per_tick_state
+
 
 class VectorizedXauUsdStrategy:
     """Batch M15 breakout candidates; execution still requires risk approval.
@@ -98,7 +116,6 @@ class VectorizedXauUsdStrategy:
         return tick_df
 
     @profile_it
-    @pandera_validate
     def _initialize_per_tick_temp_state(self, tick_df: pt.DataFrame[VectorizedTick]) -> pt.DataFrame[PerTickState]:
         """Initialize tick inputs, intermediate fields and output columns."""
         index = tick_df.index
@@ -110,9 +127,6 @@ class VectorizedXauUsdStrategy:
 
         # Keep the exact intended output-column order.
         new_columns: dict[str, int | float | bool | str | None | NDArray[np.object_]] = {
-            # # Derived time columns
-            # "bar_time":  compute_bar_time(datetime_index),
-            # "broker_day": datetime_index.normalize(), #, #datetime_index.strftime("%Y-%m-%d"),
             # Trend state columns
             "trend": XauTrend.NONE.value,
             "trend_count": 0,
@@ -127,7 +141,6 @@ class VectorizedXauUsdStrategy:
             # Signal generation state
             "breakout_sequence": 0,
             "attempted_bars": "",
-            # "attempted_bars": "",
             # Pullback window state
             "pullback_active": False,
             "pullback_bar_offset": 0,
@@ -159,13 +172,12 @@ class VectorizedXauUsdStrategy:
         }
 
         initialized = pd.DataFrame(new_columns, index=index)
-        return initialized  # pd.concat([per_tick_state, initialized])
+        return _assert_state_columns(initialized)  # pd.concat([per_tick_state, initialized])
 
     @profile_it
-    @pandera_validate(allow_pandas_dataframe=True)
     def _process_day_boundaries(self, per_tick_state: pt.DataFrame[PerTickState]) -> pt.DataFrame[PerTickState]:
         # Each daily partition is initialized independently before processing.
-
+        _assert_state_columns(per_tick_state)
         per_tick_state["day_active"] = True
         return per_tick_state
 
@@ -229,13 +241,6 @@ class VectorizedXauUsdStrategy:
         per_tick_state["bar_active"] = per_tick_state["day_active"]
         return per_tick_state, per_candle_state
 
-    # @pandera_validate()
-    # def _generate_breakout_signals(
-    #     self, per_tick_state: pt.DataFrame[PerTickBaseState], zones: list[XauZone]
-    # ) -> pt.DataFrame[PerTickBaseState]:
-    #     log_w(NOT_TESTED)
-    #     return generate_breakout_signals(per_tick_state, zones)
-
     @profile_it
     @pandera_validate()
     def _process_tick_operations(
@@ -243,11 +248,9 @@ class VectorizedXauUsdStrategy:
         ticks: pt.DataFrame[VectorizedTick],
         per_tick_state: pt.DataFrame[PerTickState],
     ) -> pt.DataFrame[PerTickState]:
-        # zones = self._get_zones_for_group(per_tick_state)
         zones = self._zone_cache.get_zones_for_day(ticks["broker_day"].iloc[0])
         per_tick_state = update_trend(ticks, per_tick_state)
         per_tick_state = update_zone_engagement(ticks, per_tick_state, zones)
-        # per_tick_state = self._generate_breakout_signals(per_tick_state, zones)
         per_tick_state = generate_breakout_signals(ticks, per_tick_state, zones)
         per_tick_state = generate_reversal_signals(ticks, per_tick_state, zones)
         if self.execution is None:
@@ -255,21 +258,9 @@ class VectorizedXauUsdStrategy:
 
         return per_tick_state
 
-    # @profile_it
-    # @pandera_validate(allow_pandas_dataframe=True)
-    # def _update_trend(self, per_tick_state: pt.DataFrame[PerTickBaseState]) -> pt.DataFrame[PerTickBaseState]:
-    #     # log_w(NOT_TESTED)
-    #     return update_trend(ticks, per_tick_state)
-
     @profile_it
     @pandera_validate(allow_pandas_dataframe=True)
     def _get_zones_for_group(self, ticks: pt.DataFrame[HasDay]) -> list[XauZone]:
         log_w(NOT_TESTED)
         zones = self._zone_cache.get_zones_for_day(ticks["broker_day"].iloc[0])
         return zones
-
-    # @profile_it
-    # @pandera_validate(allow_pandas_dataframe=True)
-    # def _generate_actions(self, per_tick_state: pt.DataFrame[PerTickBaseState]) -> pt.DataFrame[PerTickBaseState]:
-    #     log_w(NOT_TESTED)
-    #     return generate_actions(per_tick_state)

@@ -5,6 +5,7 @@ from pandera.errors import SchemaErrors
 from vectorized_fixtures import calculate_manifest, candles_from_ticks, prepared_ticks
 
 from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
+from application.xauusd_trading_strategy_1_vector.config.trend_points import trend_columns, trend_point_count
 from application.xauusd_trading_strategy_1_vector.domain.state import (
     begin_trend_day,
     process_trend_tick,
@@ -141,17 +142,15 @@ def test_unsorted_input_is_rejected():
 
 
 def test_reference_reduction_ignores_unused_slots():
-    per_tick_state = pd.DataFrame(
-        {
-            "trend_count": [0, 1, 2, 3],
-            "trend_high_0": [100, 5, 5, 5],
-            "trend_high_1": [100, 100, 6, 6],
-            "trend_high_2": [100, 100, 100, 7],
-            "trend_low_0": [-100, 5, 5, 5],
-            "trend_low_1": [-100, -100, 4, 4],
-            "trend_low_2": [-100, -100, -100, 3],
-        }
-    )
+    counts = [0, 1, 2, 3]
+    recorded = {"high": [100, 5, 5, 5], "low": [-100, 5, 5, 5]}
+    fillers = {"high": 100.0, "low": -100.0}
+    per_tick_state = pd.DataFrame({"trend_count": counts})
+    for slot, filler in fillers.items():
+        for index in range(trend_point_count()):
+            per_tick_state[trend_columns(slot)[index]] = [
+                value if count > index else filler for value, count in zip(recorded[slot], counts, strict=True)
+            ]
     expected_high = [compute_reference_high(row) for _, row in per_tick_state.iterrows()]
     expected_low = [compute_reference_low(row) for _, row in per_tick_state.iterrows()]
     compute_references(per_tick_state)

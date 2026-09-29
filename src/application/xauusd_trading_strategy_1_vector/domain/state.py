@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from application.xauusd_trading_strategy_1_vector.config.trend_points import trend_point_count
 from application.xauusd_trading_strategy_1_vector.domain.constants import PULLBACK_PENETRATION_USD
 from application.xauusd_trading_strategy_1_vector.domain.protection import pullback_tp_failure_action
 from application.xauusd_trading_strategy_1_vector.domain.zone import (
@@ -288,22 +289,22 @@ def begin_trend_day() -> XauTrendReferenceState:
 
 
 def record_trend_candle(state: XauTrendReferenceState, high: float, low: float) -> bool:
+    """Record one closed bar, keeping only the last `TREND_POINTS_N` extrema."""
     if high < low:
         return False
 
-    if state.count < 3:
-        state.highs[state.count] = high
-        state.lows[state.count] = low
-        state.count += 1
-        return True
-
-    state.highs[0], state.highs[1], state.highs[2] = state.highs[1], state.highs[2], high
-    state.lows[0], state.lows[1], state.lows[2] = state.lows[1], state.lows[2], low
+    if len(state.highs) < trend_point_count():
+        state.highs.append(high)
+        state.lows.append(low)
+    else:
+        state.highs = [*state.highs[1:], high]
+        state.lows = [*state.lows[1:], low]
+    state.count = len(state.highs)
     return True
 
 
 def trend_references(state: XauTrendReferenceState) -> tuple[bool, float, float]:
-    if state.count <= 0:
+    if not state.highs[: state.count]:
         return False, 0.0, 0.0
 
     reference_high = max(state.highs[: state.count])

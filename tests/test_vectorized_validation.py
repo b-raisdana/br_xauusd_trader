@@ -1,9 +1,12 @@
+import re
+
 import numpy as np
 import pandas as pd
 import pytest
 from pandera.errors import SchemaErrors
 from vectorized_fixtures import calculate_manifest, candles_from_ticks, prepared_ticks
 
+from application.xauusd_trading_strategy_1_vector.config.trend_points import trend_columns, trend_row_columns
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
     EngagementResult,
     PerTickState,
@@ -31,9 +34,12 @@ def test_runner_preserves_position_tracking_dtypes(debug):
     result = run_vectorized_strategy(ticks, candles_from_ticks(ticks), zones, debug=debug)
     result = result.read_positions(ticks.broker_day.iloc[0])
     PositionTrackingResult.validate(result, lazy=True)
-    for column, schema in PositionTrackingResult.to_schema().columns.items():
+    for alias, schema in PositionTrackingResult.to_schema().columns.items():
+        columns = [column for column in result.columns if re.fullmatch(alias, column)] if schema.regex else [alias]
+        assert columns
         if str(schema.dtype) in {"Int64", "float64"}:
-            assert str(result[column].dtype) == str(schema.dtype)
+            for column in columns:
+                assert str(result[column].dtype) == str(schema.dtype)
     assert result.order_type.isna().all()
     assert result.position_size.isna().all()
 
@@ -95,9 +101,9 @@ def test_strategy_output_rejects_broken_contract(defect):
 @pytest.mark.parametrize("defect", ["missing_column", "wrong_dtype"])
 def test_partial_state_operations_reject_invalid_inputs(operation, defect):
     if operation == "references":
-        frame = pd.DataFrame({f"trend_{side}_{slot}": [1.0] for side in ("high", "low") for slot in range(3)})
+        frame = pd.DataFrame({column: [1.0] for column in trend_row_columns()})
         frame["trend_count"] = 1
-        function, column = compute_references, "trend_high_0"
+        function, column = compute_references, trend_columns("high")[0]
     else:
         frame = pd.DataFrame({"bid": [1.0], "bar_time": pd.date_range("2026-09-18", periods=1, tz="UTC")})
         function, column = lambda data: update_zone_engagement(data, data, []), "bid"

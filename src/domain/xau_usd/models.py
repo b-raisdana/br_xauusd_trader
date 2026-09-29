@@ -140,16 +140,12 @@ class XauNativeDealOutcome:
 
 @dataclass(slots=True)
 class XauTrendReferenceState:
+    """Rolling extrema of the closed bars of the current day, oldest first."""
+
     trend: XauTrend = XauTrend.NONE
     count: int = 0
     highs: list[float] = field(default_factory=list)
     lows: list[float] = field(default_factory=list)
-
-    def __init__(self, number_of_extrema: int = 3) -> None:
-        self.trend = XauTrend.NONE
-        self.count = 0
-        self.highs = [0.0] * number_of_extrema
-        self.lows = [0.0] * number_of_extrema
 
 
 @dataclass(slots=True)

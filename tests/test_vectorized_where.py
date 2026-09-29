@@ -5,6 +5,11 @@ import pandas as pd
 import pytest
 from vectorized_fixtures import candles_from_ticks, complete_tick_state
 
+from application.xauusd_trading_strategy_1_vector.config.trend_points import (
+    trend_columns,
+    trend_point_count,
+    trend_row_columns,
+)
 from application.xauusd_trading_strategy_1_vector.engagement import update_zone_engagement
 from application.xauusd_trading_strategy_1_vector.signals import generate_reversal_signals
 from application.xauusd_trading_strategy_1_vector.the_strategy import VectorizedXauUsdStrategy
@@ -18,9 +23,10 @@ from domain.xau_usd.models import XauZone
 
 @pytest.mark.parametrize("count", [0, 1, 2, 3, 4])
 def test_references_match_scalar_with_nan_infinity_and_signed_zero(count):
-    values = np.array(list(product([np.nan, -np.inf, -2.0, -0.0, 0.0, 3.0, np.inf], repeat=3)))
-    per_tick_state = pd.DataFrame(values, columns=[f"trend_high_{i}" for i in range(3)])
-    per_tick_state[[f"trend_low_{i}" for i in range(3)]] = values
+    points = trend_point_count()
+    values = np.array(list(product([np.nan, -np.inf, -2.0, -0.0, 0.0, 3.0, np.inf], repeat=points)))
+    per_tick_state = pd.DataFrame(values, columns=trend_columns("high"))
+    per_tick_state[trend_columns("low")] = values
     per_tick_state["trend_count"] = count
     expected_high = per_tick_state.apply(compute_reference_high, axis=1).to_numpy()
     expected_low = per_tick_state.apply(compute_reference_low, axis=1).to_numpy()
@@ -34,9 +40,7 @@ def test_references_match_scalar_with_nan_infinity_and_signed_zero(count):
 
 
 def test_empty_reference_columns_remain_float():
-    per_tick_state = pd.DataFrame(
-        columns=["trend_count", *[f"trend_{side}_{i}" for side in ("high", "low") for i in range(3)]]
-    )
+    per_tick_state = pd.DataFrame(columns=["trend_count", *trend_row_columns()])
     compute_references(per_tick_state)
     assert per_tick_state.reference_high.dtype == per_tick_state.reference_low.dtype == np.dtype(float)
     assert per_tick_state.empty

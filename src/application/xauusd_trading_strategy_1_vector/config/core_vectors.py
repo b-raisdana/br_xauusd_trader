@@ -126,8 +126,6 @@ class CoreVectors(BaseContextConfig):
     vec_causal_previous: float = 99
     vec_causal_bid: float = 101
 
-    vec_trend_max_points: int = 3
-
     @classmethod
     def settings_customise_sources(
         cls,

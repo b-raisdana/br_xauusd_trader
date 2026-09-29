@@ -6,13 +6,19 @@ from br_py_log_n_profile import log_w, profile_it
 from br_py_log_n_profile.do_log.log_it import NOT_TESTED
 from numpy.typing import NDArray
 
+from application.xauusd_trading_strategy_1_vector.config.trend_points import (
+    TREND_SIDES,
+    trend_columns,
+    trend_point_count,
+    trend_row_columns,
+)
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
     HasDay,
     PerCandleState,
     PerTickState,
     StrategyCandles,
-    TrendInfo,
     VectorizedTick,
+    trend_schema_columns,
 )
 from domain.schemas.tick import Tick
 from domain.xau_usd.enums import XauTrend
@@ -110,12 +116,7 @@ class VectorizedXauUsdStrategy:
             # Trend state columns
             "trend": XauTrend.NONE.value,
             "trend_count": 0,
-            "trend_high_0": 0.0,
-            "trend_high_1": 0.0,
-            "trend_high_2": 0.0,
-            "trend_low_0": 0.0,
-            "trend_low_1": 0.0,
-            "trend_low_2": 0.0,
+            **{column: 0.0 for column in trend_row_columns()},
             # Bar state columns
             "bar_open": 0.0,
             "bar_active": False,
@@ -188,8 +189,8 @@ class VectorizedXauUsdStrategy:
         """Use observed bars only; completed ranges enter history at the next bar."""
         if ticks.empty:
             empty_candles = candle_15min_df.iloc[:0].copy()
-            for name, field in TrendInfo.to_schema().columns.items():
-                empty_candles[name] = pd.Series(index=empty_candles.index, dtype=str(field.dtype))
+            for column, field in trend_schema_columns().items():
+                empty_candles[column] = pd.Series(index=empty_candles.index, dtype=str(field.dtype))
             return per_tick_state, PerCandleState.validate(empty_candles, lazy=True)
 
         bar_ids, bar_changed = self._get_ticks_bar_ids(ticks)
@@ -206,24 +207,24 @@ class VectorizedXauUsdStrategy:
         days = ticks.loc[bar_changed, "broker_day"].to_numpy()
 
         counts = per_candle_state.groupby(days, sort=False).cumcount().to_numpy()
-        available = np.minimum(counts, 3)
+        points = trend_point_count()
+        available = np.minimum(counts, points)
         per_candle_state["trend_count"] = available
         per_tick_state["trend_count"] = available[bar_ids]
 
         # Gather only preceding bars. Unavailable bootstrap slots remain zero.
-        slots = np.arange(3)
+        slots = np.arange(points)
         positions = np.arange(len(per_candle_state))[:, None] - available[:, None] + slots
         valid = slots < available[:, None]
 
         # Pull high/low for valid slots, zero-pad missing
         high = np.where(valid, per_candle_state["high"].to_numpy()[positions.clip(0, len(per_candle_state) - 1)], 0.0)
         low = np.where(valid, per_candle_state["low"].to_numpy()[positions.clip(0, len(per_candle_state) - 1)], 0.0)
-        # todo: parameterize number of extrema used for trend
-        per_candle_state[["trend_high_0", "trend_high_1", "trend_high_2"]] = high
-        per_candle_state[["trend_low_0", "trend_low_1", "trend_low_2"]] = low
-        # Broadcast back to original tick rows via bar_ids
-        per_tick_state[["trend_high_0", "trend_high_1", "trend_high_2"]] = high[bar_ids]
-        per_tick_state[["trend_low_0", "trend_low_1", "trend_low_2"]] = low[bar_ids]
+        for side, extrema in zip(TREND_SIDES, (high, low), strict=True):
+            columns = trend_columns(side)
+            per_candle_state[columns] = extrema
+            # Broadcast back to original tick rows via bar_ids
+            per_tick_state[columns] = extrema[bar_ids]
         per_tick_state["bar_open"] = per_candle_state["open"].to_numpy()[bar_ids]
         per_tick_state["bar_active"] = per_tick_state["day_active"]
         return per_tick_state, per_candle_state

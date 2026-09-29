@@ -13,7 +13,11 @@ import pandas as pd
 from br_py_log_n_profile import log_d, profile_it
 from numpy.typing import NDArray
 
-from application.xauusd_trading_strategy_1_vector.config.core_vectors import CoreVectors
+from application.xauusd_trading_strategy_1_vector.config.trend_points import (
+    TREND_SIDES,
+    trend_columns,
+    trend_point_count,
+)
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
     PerTickState,
     ReferenceTrendInfo,
@@ -25,11 +29,6 @@ from helper.importer import pt
 from helper.pandera import pandera_validate
 
 
-def _get_trend_max_points() -> int:
-    """Get the maximum number of trend points from config."""
-    return CoreVectors.current().vec_trend_max_points
-
-
 @profile_it
 @pandera_validate(allow_pandas_dataframe=True)
 def compute_bar_time(datetime_series: pd.DatetimeIndex) -> pd.DatetimeIndex:
@@ -38,33 +37,26 @@ def compute_bar_time(datetime_series: pd.DatetimeIndex) -> pd.DatetimeIndex:
     # return pd.to_datetime(ts // (60 * 15))
 
 
-@profile_it
 @pandera_validate(allow_pandas_dataframe=True)
 def compute_reference_high(tick_state_row: pt.Series[float]) -> float:
     """Compute reference high from trend history for a single row."""
     # log_w(NOT_TESTED)
-    max_points = _get_trend_max_points()
     count = int(tick_state_row["trend_count"])
-    if count == 0:
+    columns = trend_columns("high")[: min(count, trend_point_count())]
+    if not columns:
         return 0.0
-    if count == 1:
-        return float(tick_state_row["trend_high_0"])
-    values = [float(tick_state_row[f"trend_high_{i}"]) for i in range(min(count, max_points))]
-    return max(values)
+    return max(float(tick_state_row[column]) for column in columns)
 
 
 @pandera_validate(allow_pandas_dataframe=True)
 def compute_reference_low(tick_state_row: pt.Series[float]) -> float:
     """Compute reference low from trend history for a single row."""
     # log_w(NOT_TESTED)
-    max_points = _get_trend_max_points()
     count = int(tick_state_row["trend_count"])
-    if count == 0:
+    columns = trend_columns("low")[: min(count, trend_point_count())]
+    if not columns:
         return 0.0
-    if count == 1:
-        return float(tick_state_row["trend_low_0"])
-    values = [float(tick_state_row[f"trend_low_{i}"]) for i in range(min(count, max_points))]
-    return min(values)
+    return min(float(tick_state_row[column]) for column in columns)
 
 
 @profile_it
@@ -77,7 +69,7 @@ def _reduce_trend_arrays(
 
     For each slot i (starting at 1), the value at slot i replaces the
     running reduced value where counts > i and compare(arr, reduced)
-    is true. Slots beyond the configured max_points are ignored;
+    is true. Slots beyond the configured trend point count are ignored;
     ordered comparisons preserve scalar ties and NaNs.
     """
     reduced = trend_arrays[0]
@@ -92,10 +84,9 @@ def _reduce_trend_arrays(
 def compute_references(per_tick_state: pt.DataFrame[TrendInfo]) -> pt.DataFrame[ReferenceTrendInfo]:
     """Populate reference_high and reference_low columns on the per-tick DataFrame."""
 
-    max_points = _get_trend_max_points()
     counts = per_tick_state["trend_count"].to_numpy(dtype=np.int64)
-    for side, compare in (("high", np.greater), ("low", np.less)):
-        trend_arrays = [per_tick_state[f"trend_{side}_{i}"].to_numpy(dtype=float) for i in range(max_points)]
+    for side, compare in zip(TREND_SIDES, (np.greater, np.less), strict=True):
+        trend_arrays = [per_tick_state[column].to_numpy(dtype=float) for column in trend_columns(side)]
         reduced = _reduce_trend_arrays(trend_arrays, counts, compare)
         per_tick_state[f"reference_{side}"] = np.where(counts == 0, 0.0, reduced)
     return per_tick_state

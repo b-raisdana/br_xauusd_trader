@@ -4,18 +4,37 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Annotated, Literal, TypedDict
+from typing import Annotated, Any, Literal, TypedDict, cast
 
 import pandas as pd
+import pandera.pandas as pa
+from br_py_log_n_profile import log_e
 from pandera import Field
 from pandera.pandas import DataFrameModel
 
+from application.xauusd_trading_strategy_1_vector.config.trend_points import TREND_POINTS_N, trend_columns
 from domain.schemas.common.base_dataframe import MultiBrokerSymbol, MultiTimeframe, TickMultiBrokerSymbolTimeseries
 from domain.schemas.common.ohlcv import MultiTimeframeOHLC
 from domain.schemas.tick import Tick
 from domain.xau_usd.enums import XauDirection, XauExecutionStatus, XauOrderType, XauSignalFamily
 from domain.xau_usd.models import XauPullbackWindowState, XauSignalCandidate
 from helper.importer import pt
+
+_REQUIRED_TREND_COLUMNS = "required_trend_columns"
+
+
+def _trend_field(side: str, points: int = TREND_POINTS_N) -> pt.Series[float]:
+    columns = trend_columns(side, points)
+    prefix = columns[0].rsplit("_", 1)[0]
+    return cast(
+        pt.Series[float],
+        pa.Field(
+            alias=rf"{prefix}_[0-{len(columns) - 1}]",
+            regex=True,
+            nullable=True,
+            metadata={_REQUIRED_TREND_COLUMNS: tuple(columns)},
+        ),
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -156,16 +175,38 @@ class StrategyCandles(MultiTimeframeOHLC, MultiBrokerSymbol, FrameContract):
 
 
 class TrendInfo(FrameContract):
+    """Trend window state: one column per configured preceding bar extrema slot."""
+
     class Config(FrameContract.Config):
         coerce = True
 
     trend_count: pt.Series[int] = Field(ge=0)
-    trend_high_0: pt.Series[float] = Field(nullable=True)
-    trend_high_1: pt.Series[float] = Field(nullable=True)
-    trend_high_2: pt.Series[float] = Field(nullable=True)
-    trend_low_0: pt.Series[float] = Field(nullable=True)
-    trend_low_1: pt.Series[float] = Field(nullable=True)
-    trend_low_2: pt.Series[float] = Field(nullable=True)
+    trend_high: pt.Series[float] = _trend_field("high")
+    trend_low: pt.Series[float] = _trend_field("low")
+
+    @pa.dataframe_check
+    @classmethod
+    def has_all_trend_columns(cls, data: pd.DataFrame) -> bool:
+        """Require every concrete column represented by the inherited trend regex fields."""
+        required = {
+            column_name
+            for column in cls.to_schema().columns.values()
+            for column_name in (column.metadata or {}).get(_REQUIRED_TREND_COLUMNS, ())
+        }
+        if not required.issubset(data.columns):
+            log_e(f"Missing required trend columns: {required - set(data.columns)}")
+        return required.issubset(data.columns)
+
+
+def trend_schema_columns(model: type[FrameContract] = TrendInfo) -> dict[str, Any]:
+    """Expand the inherited trend regex fields into every concrete column."""
+    columns: dict[str, Any] = {}
+    for alias, field in model.to_schema().columns.items():
+        if field.regex:
+            columns.update(dict.fromkeys((field.metadata or {}).get(_REQUIRED_TREND_COLUMNS, ()), field))
+        else:
+            columns[alias] = field
+    return columns
 
 
 class ReferenceTrendInfo(TrendInfo):

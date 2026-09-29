@@ -160,13 +160,12 @@ The output DataFrame maintains the same MultiIndex as the input (broker, symbol,
 ### Trend State Columns
 
 - `trend`: Current trend (int: 0=NONE, 1=UP, 2=DOWN)
-- `trend_count`: Number of trend candles recorded (int: 0-3+)
-- `trend_high_0`: First high in trend window (float)
-- `trend_high_1`: Second high in trend window (float)
-- `trend_high_2`: Third high in trend window (float)
-- `trend_low_0`: First low in trend window (float)
-- `trend_low_1`: Second low in trend window (float)
-- `trend_low_2`: Third low in trend window (float)
+- `trend_count`: Number of trend candles recorded (int: 0..`TREND_POINTS_N`)
+- `trend_high_<i>`: `i`-th most recent bar high in the trend window, `i` in `0..TREND_POINTS_N-1` (float)
+- `trend_low_<i>`: `i`-th most recent bar low in the trend window, `i` in `0..TREND_POINTS_N-1` (float)
+
+`TREND_POINTS_N` lives in `config/trend_points.py` and sizes every trend high/low definition, usage and
+validation point, so the trend window is resized by changing that single setting.
 
 ### Bar State Columns
 

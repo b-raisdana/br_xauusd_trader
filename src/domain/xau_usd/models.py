@@ -45,6 +45,11 @@ class XauPullbackWindowState:
     penetration_latched: bool = False
     pending_active: bool = False
     sequence: int = 0
+    breakout_bar_time: datetime | None = None
+    broker_day: str = ""
+    order_ticket: str = ""
+    waiting_logged: bool = False
+    risk_waiting_logged: bool = False
 
 
 @dataclass(slots=True)
@@ -155,6 +160,9 @@ class XauDailyZoneSignalState:
     sell_engaged: bool = False
     reversal_usage: int = 0
     pullback_fills: int = 0
+    reversal_fill_count: int = 0
+    last_reversal_buy_signal_bar: datetime | None = None
+    last_reversal_sell_signal_bar: datetime | None = None
 
 
 @dataclass(slots=True)

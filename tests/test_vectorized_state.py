@@ -2,17 +2,11 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandera.errors import SchemaErrors
-from vectorized_fixtures import calculate_manifest, candles_from_ticks, prepared_ticks
+from vectorized_fixtures import calculate_manifest, candles_from_ticks, prepared_ticks, with_native_bootstrap
 
 from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
 from application.xauusd_trading_strategy_1_vector.config.trend_points import trend_columns, trend_point_count
 from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickState
-from application.xauusd_trading_strategy_1_vector.domain.state import (
-    begin_trend_day,
-    process_trend_tick,
-    record_trend_candle,
-    trend_references,
-)
 from application.xauusd_trading_strategy_1_vector.engagement import update_zone_engagement
 from application.xauusd_trading_strategy_1_vector.trend import (
     compute_reference_high,
@@ -66,28 +60,22 @@ def calculate(frame, cache=None):
 
 
 def scalar_trend(frame):
-    previous_day = previous_bar = None
-    reference = begin_trend_day()
-    high = low = 0.0
+    candles = with_native_bootstrap(candles_from_ticks(frame))
+    times = candles.index.get_level_values("bar_time")
     expected = []
+    trend = 0
     for (_, _, timestamp, _), row in frame.iterrows():
-        day, bar = timestamp.date(), timestamp.floor("15min")
-        if day != previous_day:
-            reference = begin_trend_day()
-        elif bar != previous_bar:
-            record_trend_candle(reference, high, low)
-        if bar != previous_bar:
-            high = low = row.bid
-        else:
-            high, low = max(high, row.bid), min(low, row.bid)
-        trend = process_trend_tick(reference, row.bid)
-        _, reference_high, reference_low = trend_references(reference)
-        expected.append((reference.count, reference_high, reference_low, trend.value))
-        previous_day, previous_bar = day, bar
+        prior = candles.loc[times < timestamp.floor("15min")].tail(3)
+        high, low = prior.high.max(), prior.low.min()
+        if row.bid > high:
+            trend = 1
+        elif row.bid < low:
+            trend = -1
+        expected.append((3, high, low, trend))
     return np.asarray(expected)
 
 
-def test_trend_matches_scalar_contract_with_gaps_duplicates_and_day_reset():
+def test_trend_matches_scalar_contract_with_gaps_duplicates_and_day_continuity():
     rng = np.random.default_rng(12)
     times = pd.date_range("2026-09-17 23:00", periods=650, freq="min", tz="UTC")
     times = times.delete(np.arange(75, 115)).insert(150, times[150 + 40])
@@ -98,7 +86,7 @@ def test_trend_matches_scalar_contract_with_gaps_duplicates_and_day_reset():
     actual = per_tick_state[["trend_count", "reference_high", "reference_low", "trend"]].to_numpy()
     np.testing.assert_array_equal(actual, scalar_trend(frame))
     pd.testing.assert_frame_equal(frame, original)
-    assert per_tick_state.day_active.all() and per_tick_state.bar_active.all()
+    assert not per_tick_state.day_active.any() and per_tick_state.bar_active.all()
 
 
 @pytest.mark.parametrize("length", [0, 1, 2, 15, 16, 30, 31, 60, 61])
@@ -133,8 +121,8 @@ def test_broker_symbol_partitions_and_daily_zone_loading_are_isolated():
     cache = DailyZones()
     per_tick_state = calculate(frame, cache)
     assert cache.days == list(pd.to_datetime(["2026-09-18", "2026-09-18", "2026-09-19", "2026-09-19"], utc=True))
-    assert per_tick_state.trend_count.eq(0).all()
-    assert per_tick_state.reference_high.eq(0).all()
+    assert per_tick_state.trend_count.eq(3).all()
+    assert set(per_tick_state.reference_high) == {100.0, 200.0}
 
 
 # def test_bar_processing_never_iterates_groupby_or_applies_rows(monkeypatch):
@@ -294,8 +282,8 @@ def test_supplied_candle_ranges_are_used_only_after_close():
     candles["low"] = [90.0, 80.0, 1.0]
     strategy = VectorizedXauUsdStrategy(EmptyZones())
     state, _ = calculate_manifest(strategy, frame, candles)
-    np.testing.assert_array_equal(state.trend_high_0, [0, 110, 110])
-    np.testing.assert_array_equal(state.trend_high_1, [0, 0, 120])
+    np.testing.assert_array_equal(state.trend_high_0, [100, 100, 100])
+    np.testing.assert_array_equal(state.trend_high_1, [100, 100, 110])
     prefix = state.copy()
     candles.iloc[2, candles.columns.get_indexer(["high", "low"])] = [99999.0, 0.0]
     state, _ = calculate_manifest(strategy, frame, candles)
@@ -315,11 +303,11 @@ def test_per_candle_state_preserves_all_days_and_resets_between_batches():
     assert len(state) == 4
     assert len(per_candle_state) == 3
     np.testing.assert_array_equal(per_candle_state.high, [104, 102, 103])
-    np.testing.assert_array_equal(per_candle_state.trend_count, [0, 1, 0])
-    np.testing.assert_array_equal(per_candle_state.trend_high_0, [0, 104, 0])
+    np.testing.assert_array_equal(per_candle_state.trend_count, [3, 3, 3])
+    np.testing.assert_array_equal(per_candle_state.trend_high_0, [100, 100, 100])
     state, per_candle_state = calculate_manifest(strategy, frame.iloc[-1:], candles_from_ticks(frame.iloc[-1:]))
     assert len(per_candle_state) == 1
-    assert per_candle_state.trend_count.iloc[0] == 0
+    assert per_candle_state.trend_count.iloc[0] == 3
     state, per_candle_state = calculate_manifest(strategy, frame.iloc[:0], candles_from_ticks(frame.iloc[:0]))
     assert state.empty
     assert per_candle_state.empty

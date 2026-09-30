@@ -1,5 +1,6 @@
 # Vector entry point flow
 
+Current status (2026-09-30): the ordered source port, explicit CLI replay configuration and full-day acquisition are implemented. The historical checklist below describes the pre-port audit; use [active parity work](vectorized-state.md) and [the current divergence report](../Divergence%20Report%20-%20MT5%20vs%20Python%20vs%20Documentation.md) for remaining acceptance gaps.
 Reviewed 2026-09-29 against the active source. `__main__.py` → zone/tick/M15 acquisition → bar/day keys → `run_vectorized_strategy` → daily ResultFilesManifest → selected strategy → previous-candle context → order/position projections → export/summary → optional vectorbt report.
 
 ## Implemented

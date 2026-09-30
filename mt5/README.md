@@ -50,3 +50,5 @@ Assignments take precedence over adjacent comments describing earlier selected s
 `EndCycle` deactivates after requesting deletion without checking success. The visible deal callback filters Magic, not explicitly symbol, and assumes a non-partial full-position lifecycle for realized accounting. Envelope reconciliation is unknown. Initialization journal text still says 2.10 despite property 2.20.
 
 See [state glossary](../docs/State-Variables.Glossary.csv) and [Python divergence report](../docs/Divergence%20Report%20-%20MT5%20vs%20Python%20vs%20Documentation.md). Python replay and old MVP tests do not establish parity with this EA.
+
+Python now ports visible strategy transitions through an ordered market controller and optional explicit-economics replay. Shared-state snapshots support comparison, but native callbacks, session windows, broker outcomes and the missing envelope prevent an exact-parity claim. See the [current divergence report](../docs/Divergence%20Report%20-%20MT5%20vs%20Python%20vs%20Documentation.md).

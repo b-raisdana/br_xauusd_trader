@@ -51,6 +51,10 @@ type ReplayEventKind = Literal[
 ]
 type ReplayReason = Literal[
     "",
+    "POSITION_CAP",
+    "PORTFOLIO_RISK",
+    "INVALID_PROTECTION",
+    "PULLBACK_FILTER",
     "DAY_ROLLOVER",
     "WINDOW_EXPIRED",
     "SL",
@@ -240,7 +244,7 @@ class EngagementResult(FrameContract):
 
 
 class ReversalInfo(EngagementResult):
-    trend: pt.Series[int] = Field(isin=[0, 1, 2])
+    trend: pt.Series[int] = Field(isin=[0, 1, -1])
 
 
 class ReversalResult(ReversalInfo):
@@ -261,7 +265,7 @@ class PullbackGenerated(FrameContract):
 
 class PullbackUpdated(FrameContract):
     pullback_active: pt.Series[bool]
-    pullback_bar_offset: pt.Series[int] = Field(ge=0, le=5)
+    pullback_bar_offset: pt.Series[int] = Field(ge=0, le=10)
 
 
 class OrderInfo(FrameContract):
@@ -271,6 +275,7 @@ class OrderInfo(FrameContract):
 
 
 class Step(FrameContract):
+    mt5_state: pt.Series[str]
     actions: pt.Series[tuple[ReplayAction, ...]]
     execution_events: pt.Series[tuple[ReplayEvent, ...]]
     execution_mode: pt.Series[str] = Field(isin=["replay", "signals_only"])

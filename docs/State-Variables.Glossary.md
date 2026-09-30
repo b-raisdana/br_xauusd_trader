@@ -31,17 +31,11 @@ Unlike the retired glossary contract, the Python columns intentionally give revi
 
 ## Findings
 
-- **62 DIFFERENT, 25 PARTIAL, 56 ABSENT; no full-parity verdict.** Absence includes MT5-specific native identity/telemetry/release controls, not only missing trading logic.
-- Trend references use exactly three native closed bars across days in MT5; Python uses available preceding observed same-day bars and resets daily trend.
-- MT5 previous Bid survives bar changes and engagement seeds from native open. Python resets previous Bid at bar starts and seeds from first observed tick.
-- MT5 reversal_usage is an enum changed on fill/exit; Python's same-name field counts attempts. MT5 has a separate fill counter and per-side signal-bar stamps.
-- MT5 PB fill ends its cycle; Python clears pending/penetration but retains the window. Static opening cooldown is independent of replay fills. Normal/High caps are2/10 versus1/unlimited.
-- Requested risk anchor, actual fill, immutable R0, sticky R stage, desired SL and retry state are distinct MT5 concepts; Python does not reproduce that management model.
-- Input rows expose actual assignments, including12-unit filters and30% risk budget, rather than inconsistent adjacent comments.
+The 2026-09-30 Python port replaces the prior daily-reset signal path with `MarketState` and updates `ExecutionReplay`. The CSV still covers all 143 MQ5 declarations exactly once. PARTIAL now includes implemented source transitions with native execution evidence outstanding; it never means proven exact parity. Read/write columns remain function review anchors rather than an exhaustive alias-sensitive index.
 
-See [the divergence report](Divergence%20Report%20-%20MT5%20vs%20Python%20vs%20Documentation.md) for phase ordering, defaults and missing-envelope limitations. Declaration coverage, CSV schema/uniqueness and source-reference ranges are checked without executing either trading engine. Static correspondence is not runtime parity.
+Shared state snapshots use MQ5 field names for zones, cycles, requests, positions, trend/reference and accounting. Reversal usage is an enum separate from fill count; side/bar stamps precede gates. PB fill ends the cycle; requested anchor, actual fill, immutable R0, sticky stage and SL retry state are separate. `TREND_DOWN=-1` now matches MQ5. Raw-input validation, native identity, callbacks, native session acquisition, release controls and journal/visual-only state remain explicitly outside proven equivalence.
 
-Validation result: all 143 declarations covered exactly once; 1,903 cited line occurrences exist and match MQL identifiers or Python function/class anchors; 34 local links in changed Markdown resolve; `git diff --check` passes. Audited MQ5 SHA-256: `b8bbf960e443c2fa8f2acab297b63d36f5a88473add5caf78eb403536f9ac923`. These checks validate the documentation's structure and references, not semantic equivalence or broker outcomes.
+See [the current divergence report](Divergence%20Report%20-%20MT5%20vs%20Python%20vs%20Documentation.md) for implementation and acceptance gaps. MQ5 SHA-256 remains `b8bbf960e443c2fa8f2acab297b63d36f5a88473add5caf78eb403536f9ac923`; no native compile or matching run is claimed.
 
 ## Prior inventory disposition
 

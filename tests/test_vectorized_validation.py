@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandera.errors import SchemaErrors
-from vectorized_fixtures import calculate_manifest, candles_from_ticks, prepared_ticks
+from vectorized_fixtures import calculate_manifest, candles_from_ticks, prepared_ticks, with_native_bootstrap
 
 from application.xauusd_trading_strategy_1_vector.config.trend_points import trend_columns, trend_row_columns
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
@@ -31,7 +31,7 @@ def test_runner_preserves_position_tracking_dtypes(debug):
             names=["timeframe", "date"],
         ),
     )
-    result = run_vectorized_strategy(ticks, candles_from_ticks(ticks), zones, debug=debug)
+    result = run_vectorized_strategy(ticks, with_native_bootstrap(candles_from_ticks(ticks)), zones, debug=debug)
     result = result.read_positions(ticks.broker_day.iloc[0])
     PositionTrackingResult.validate(result, lazy=True)
     for alias, schema in PositionTrackingResult.to_schema().columns.items():

@@ -18,10 +18,10 @@ class XauDirection(AutoIntEnum):
     SELL = auto()
 
 
-class XauTrend(AutoIntEnum):
-    NONE = auto()
-    UP = auto()
-    DOWN = auto()
+class XauTrend(IntEnum):
+    NONE = 0
+    UP = 1
+    DOWN = -1
 
 
 class XauExecutionStatus(AutoIntEnum):

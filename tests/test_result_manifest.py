@@ -55,7 +55,7 @@ def test_manifest_categories_are_distinct_and_reads_wait_for_writes(tmp_path):
         pd.testing.assert_frame_equal(manifest.read_daily_ticks(day), ticks)
         pd.testing.assert_frame_equal(manifest.read_daily_candles(day), candles)
         assert len(manifest.read_daily_ticks_temp_state(day)) == len(ticks)
-        assert len(manifest.read_daily_candles_temp_state(day)) == len(candles)
+        assert len(manifest.read_daily_candles_temp_state(day)) == ticks.bar_time.nunique()
     finally:
         manifest.close()
 

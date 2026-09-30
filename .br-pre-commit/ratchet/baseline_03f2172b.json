@@ -22,7 +22,7 @@
   "mypy:union-attr": 1,
   "mypy:unused-ignore": 9,
   "mypy:valid-type": 3,
-  "mypy:var-annotated": 3,
+  "mypy:var-annotated": 1,
   "ruff:E501": 1,
   "ruff:E721": 1,
   "ruff:F821": 1,

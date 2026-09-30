@@ -113,7 +113,7 @@ def test_reversal_scaffold_preserves_rows_with_duplicate_index():
     per_tick_state = pd.DataFrame(
         {
             "bid": [98.0, 99.0, 97.0],
-            "trend": [1, 1, 2],
+            "trend": [1, 1, -1],
             "multi_zone_tick_gap": False,
             "bar_time": pd.to_datetime(["2026-09-18"] * 3, utc=True),
         },

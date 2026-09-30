@@ -9,6 +9,7 @@ from vectorized_fixtures import prepared_ticks
 
 from application.xauusd_trading_strategy_1_vector.actions import generate_actions
 from application.xauusd_trading_strategy_1_vector.domain.replay import LinearReplayEconomics, ReplayConfig
+from application.xauusd_trading_strategy_1_vector.domain.robust import RobustInputs
 from application.xauusd_trading_strategy_1_vector.replay import ExecutionReplay
 from application.xauusd_trading_strategy_1_vector.the_strategy import VectorizedXauUsdStrategy
 from domain.xau_usd.enums import XauDirection, XauExecutionStatus, XauOrderType, XauSignalFamily
@@ -25,6 +26,16 @@ def config(**kwargs):
         20.0,
         0.0,
         {day: pd.Timestamp(day + " 23:00", tz="UTC") for day in ("2026-09-24", "2026-09-25")},
+    )
+    kwargs.setdefault(
+        "inputs",
+        RobustInputs(
+            enable_direct_breakout=True,
+            breakout_normal_only=False,
+            pullback_min_space=0,
+            high_reversal_min_space=0,
+            one_order_per_candle=True,
+        ),
     )
     return ReplayConfig(economics, **kwargs)
 
@@ -72,8 +83,8 @@ def window(priority=1, direction=XauDirection.BUY):
 @pytest.mark.parametrize(
     "direction,price,entry,stop,target",
     [
-        (XauDirection.BUY, 103, 103.1, 102, 110),
-        (XauDirection.SELL, 99, 99, 100, 92),
+        (XauDirection.BUY, 103, 103.1, 97.1, 110),
+        (XauDirection.SELL, 99, 99, 105, 92),
     ],
 )
 def test_market_fill_uses_quote_side_and_zone_protection(direction, price, entry, stop, target):
@@ -90,20 +101,20 @@ def test_market_fill_uses_quote_side_and_zone_protection(direction, price, entry
 
 def test_rejected_broker_attempt_consumes_bar_but_risk_rejection_does_not():
     replay = ExecutionReplay(config(), "test")
-    no_stop = candidate(entry=80, name="bad")
+    no_stop = candidate(zone="below", name="bad")
     valid = candidate()
     output = step(replay, 103, breakouts=(no_stop, valid))
     assert len(output["entry_rejections"]) == 1
     assert len(output["actions"]) == 1
     assert step(replay, 103, time="2026-09-24 00:01", breakouts=(valid,))["actions"] == ()
-    replay = ExecutionReplay(replace(config(), economics=replace(config().economics, minimum_stop_distance=2)), "test")
+    replay = ExecutionReplay(replace(config(), economics=replace(config().economics, minimum_stop_distance=8)), "test")
     rejected = step(replay, 103, breakouts=(valid, valid))
     assert len(rejected["actions"]) == 1
     assert rejected["orders"][0]["order_status"] == XauExecutionStatus.REJECTED
     assert step(replay, 103, time="2026-09-24 00:01", breakouts=(valid,))["actions"] == ()
 
 
-@pytest.mark.parametrize("priority,expected", [(0, 0), (1, 1)])
+@pytest.mark.parametrize("priority,expected", [(0, 0), (1, 0)])
 def test_pullback_feedback_prevents_duplicate_pending_and_consumes_fills(priority, expected):
     zones = deepcopy(ZONES)
     zones[1].priority = priority
@@ -135,11 +146,11 @@ def test_pullback_pending_expires_and_does_not_fill_on_expiry_tick():
 def test_stop_gap_pnl_and_native_cost_inputs_are_accounted_once():
     replay = ExecutionReplay(config(), "test")
     step(replay, 103, breakouts=(candidate(),))
-    closed = step(replay, 100, time="2026-09-24 00:01")
+    closed = step(replay, 96, time="2026-09-24 00:01")
     assert closed["positions"][0]["position_status"] == XauExecutionStatus.CLOSED
-    assert closed["daily_net_realized_pnl"] == pytest.approx(-3.4)
-    assert closed["daily_gross_loss"] == pytest.approx(3.4)
-    assert closed["account_balance"] == pytest.approx(196.6)
+    assert closed["daily_net_realized_pnl"] == pytest.approx(-7.4)
+    assert closed["daily_gross_loss"] == pytest.approx(7.4)
+    assert closed["account_balance"] == pytest.approx(192.6)
     assert step(replay, 100, time="2026-09-24 00:02")["positions"] == ()
 
 
@@ -152,24 +163,23 @@ def test_profit_protection_uses_cost_adjusted_rf_and_never_loosens():
     assert retrace["positions"][0]["stop_loss"] == pytest.approx(103.2)
 
 
-def test_pullback_tp_extends_then_restores_when_current_bar_turns():
+def test_pullback_tp_remains_fixed_when_current_bar_turns():
     replay = ExecutionReplay(config(), "test")
     step(replay, 101.8, openings=(window(),))
     step(replay, 102, time="2026-09-24 00:01")
     extended = step(replay, 109, time="2026-09-24 00:02")
-    assert extended["positions"][0]["take_profit"] == 120
+    assert extended["positions"][0]["take_profit"] == 110
     restored = step(replay, 108, time="2026-09-24 00:15", bar_open=109)
     assert restored["positions"][0]["take_profit"] == 110
 
 
-def test_strict_pullback_blocks_opposite_reversal_at_target_touch():
+def test_pullback_does_not_block_opposite_reversal_at_target_touch():
     replay = ExecutionReplay(config(), "test")
     step(replay, 101.8, openings=(window(),))
     step(replay, 102, time="2026-09-24 00:01")
     step(replay, 109, time="2026-09-24 00:02")
     reversal = candidate(XauDirection.SELL, XauSignalFamily.REVERSAL, "2026-09-24 00:15:00+00:00", 120, "next")
-    # Target touch uses the currently extended target, independently of pre-zone TP decisions.
-    assert replay._blocked_reversal(reversal, 120, 120.1)
+    assert not replay._blocked_reversal(reversal, 120, 120.1)
 
 
 def test_session_flatten_cancels_pending_and_closes_positions():
@@ -178,7 +188,7 @@ def test_session_flatten_cancels_pending_and_closes_positions():
     step(replay, 101.8, time="2026-09-24 22:45", openings=(window(),))
     output = step(replay, 101.8, time="2026-09-24 22:55")
     assert output["operational_locked"]
-    assert not replay.orders
+    assert all(o.status in (XauExecutionStatus.CLOSED, XauExecutionStatus.CANCELLED) for o in replay.orders.values())
     assert not step(replay, 103, time="2026-09-24 22:56", breakouts=(candidate(),))["actions"]
 
 
@@ -208,13 +218,23 @@ def test_risk_gates_prevent_attempts(kind):
     replay = ExecutionReplay(cfg, "test")
     step(replay, 103)
     if kind == "gross":
-        replay.gross_loss = 30
+        replay.gross_loss = 60
     if kind == "concurrency":
         for i in range(3):
-            step(replay, 103, breakouts=(candidate(bar=f"2026-09-24 00:{i * 15:02d}:00+00:00"),))
-    rejected = step(replay, 103, breakouts=(candidate(bar="2026-09-24 01:00:00+00:00"),))
-    assert not rejected["actions"]
-    assert len(rejected["entry_rejections"]) == 1
+            step(
+                replay,
+                103,
+                time=f"2026-09-24 00:{i * 15:02d}",
+                breakouts=(candidate(bar=f"2026-09-24 00:{i * 15:02d}:00+00:00"),),
+            )
+    rejected = step(replay, 103, time="2026-09-24 01:00", breakouts=(candidate(bar="2026-09-24 01:00:00+00:00"),))
+    if kind == "margin":
+        assert len(rejected["actions"]) == 1
+        assert not rejected["actions"][0]["accepted"]
+        assert rejected["orders"][-1]["order_status"] == XauExecutionStatus.REJECTED
+    else:
+        assert not rejected["actions"]
+        assert len(rejected["entry_rejections"]) == 1
     assert "unused" not in rejected["attempted_bars"]
 
 
@@ -246,7 +266,7 @@ class Zones:
 #         XauExecutionStatus.CLOSED,
 #     ]
 #     assert result.position_unrealized_pnl.iloc[1] == pytest.approx(0.8)
-#     assert result.position_realized_pnl.iloc[2] == pytest.approx(-3.4)
+#     assert result.position_realized_pnl.iloc[2] == pytest.approx(-7.4)
 #     assert result.position_id.nunique() == 1
 #     assert data.action.isna().all()
 #     for broken in (result.drop(columns="position_status"), result.assign(position_status="FILLED")):

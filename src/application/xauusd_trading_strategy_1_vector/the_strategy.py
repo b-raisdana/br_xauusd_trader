@@ -27,9 +27,10 @@ from helper.importer import pt
 from helper.pandera import pandera_validate
 from infrastructure.result_processing.io import ResultFilesManifest
 
-from .actions import generate_actions
 from .domain.replay import ReplayConfig
+from .domain.robust import RobustInputs
 from .engagement import update_zone_engagement
+from .market import MarketState
 from .replay import ExecutionReplay
 from .signals import generate_breakout_signals, generate_pullback_signals, generate_reversal_signals
 from .trend import compute_bar_time, update_trend
@@ -55,22 +56,20 @@ def _assert_state_columns(per_tick_state: pd.DataFrame) -> pd.DataFrame:
 
 
 class VectorizedXauUsdStrategy:
-    """Batch M15 breakout candidates; execution still requires risk approval.
+    """Ordered MT5-source state transitions over persisted market artifacts."""
 
-    Each call is an independent batch. Only a later bar in the same day confirms
-    a close; the final observed bar remains open. Candidate rows are availability
-    ticks, while candidate signal_time identifies the new observed bar boundary.
-    """
-
-    def __init__(self, zone_cache: ZoneCache, execution: ReplayConfig | None = None) -> None:
+    def __init__(
+        self, zone_cache: ZoneCache, execution: ReplayConfig | None = None, inputs: RobustInputs | None = None
+    ) -> None:
         self._zone_cache = zone_cache
         self.execution = execution
+        self.inputs = execution.inputs if execution else (inputs or RobustInputs())
 
     @profile_it
     @pandera_validate
     def process_tick_data(self, manifest: ResultFilesManifest) -> ResultFilesManifest:
         """Read daily market artifacts and persist validated calculation states."""
-        replays: dict[tuple[str, str], ExecutionReplay] = {}
+        markets: dict[tuple[str, str], MarketState] = {}
         for day in manifest.successful_days("ticks"):
             ticks = manifest.read_daily_ticks(day)
             candles = manifest.read_daily_candles(day)
@@ -83,19 +82,10 @@ class VectorizedXauUsdStrategy:
                     (candles.index.get_level_values("broker") == stream[0])
                     & (candles.index.get_level_values("symbol") == stream[1])
                 ]
-                state = self._process_day_boundaries(self._initialize_per_tick_temp_state(instrument_ticks))
-                state, candle_state = self._process_bar_boundaries(instrument_ticks, state, stream_candles)
-                state = self._process_tick_operations(instrument_ticks, state)
-                if self.execution is not None:
-                    if stream not in replays:
-                        replays[stream] = ExecutionReplay(self.execution, repr(stream))
-                    state = generate_actions(
-                        instrument_ticks,
-                        state,
-                        self._zone_cache.get_zones_for_day(day),
-                        self.execution,
-                        replays[stream],
-                    )
+                if stream not in markets:
+                    replay = ExecutionReplay(self.execution, repr(stream)) if self.execution else None
+                    markets[stream] = MarketState(self.inputs, replay)
+                state, candle_state = self._process_native_stream(instrument_ticks, stream_candles, markets[stream])
                 states.append(state)
                 candle_states.append(candle_state)
             if states:
@@ -104,14 +94,66 @@ class VectorizedXauUsdStrategy:
         manifest.wait_for_writes()
         return manifest
 
+    @pandera_validate
+    def _process_native_stream(
+        self,
+        ticks: pt.DataFrame[VectorizedTick],
+        candles: pt.DataFrame[StrategyCandles],
+        market: MarketState,
+    ) -> tuple[pt.DataFrame[PerTickState], pt.DataFrame[PerCandleState]]:
+        candles = candles.loc[candles.index.get_level_values("timeframe") == "15min"].sort_index(level="bar_time")
+        times = candles.index.get_level_values("bar_time")
+        if times.duplicated().any():
+            raise ValueError("M15 candles must be unique per broker/symbol/bar_time")
+        locations = times.get_indexer(ticks.bar_time)
+        if (locations < 0).any():
+            raise ValueError("M15 candles must cover every observed tick bar")
+        if (locations < 3).any():
+            raise ValueError("MT5 startup requires three native closed M15 candles")
+        values = list(candles[["open", "high", "low", "close"]].itertuples(index=False, name=None))
+        state = self._initialize_per_tick_temp_state(ticks)
+        histories = {i: values[max(0, i - 102) : i] for i in set(locations)}
+        rows = []
+        zones = self._zone_cache.get_zones_for_day(ticks.broker_day.iloc[0])
+        for row, (time, tick) in enumerate(
+            zip(ticks.index.get_level_values("precise_time"), ticks.itertuples(), strict=True)
+        ):
+            location = locations[row]
+            rows.append(
+                market.step(
+                    time,
+                    str(tick.broker_day.date()),
+                    tick.bar_time,
+                    values[location][0],
+                    tick.bid,
+                    tick.ask,
+                    histories[location],
+                    zones,
+                )
+            )
+        payload = pd.DataFrame(rows, index=ticks.index)
+        for column in payload:
+            state[column] = payload[column]
+        observed = list(dict.fromkeys(locations))
+        per_candle = candles.iloc[observed].copy()
+        per_candle["trend_count"] = 3
+        for slot in range(3):
+            per_candle[f"trend_high_{slot}"] = [values[i - 3 + slot][1] for i in observed]
+            per_candle[f"trend_low_{slot}"] = [values[i - 3 + slot][2] for i in observed]
+        return PerTickState.validate(state, lazy=True), PerCandleState.validate(per_candle, lazy=True)
+
     @staticmethod
     @profile_it
     @pandera_validate
-    def add_bar_time_n_broker_day(tick_df: pt.DataFrame[Tick]) -> pt.DataFrame[VectorizedTick]:
+    def add_bar_time_n_broker_day(
+        tick_df: pt.DataFrame[Tick], broker_timezone: str = "UTC"
+    ) -> pt.DataFrame[VectorizedTick]:
         datetime_index = tick_df.index.get_level_values("precise_time")
 
         tick_df["bar_time"] = compute_bar_time(datetime_index)
-        tick_df["broker_day"] = datetime_index.normalize()
+        tick_df["broker_day"] = (
+            datetime_index.tz_convert(broker_timezone).tz_localize(None).normalize().tz_localize("UTC")
+        )
 
         return tick_df
 
@@ -152,6 +194,7 @@ class VectorizedXauUsdStrategy:
             "multi_zone_tick_gap": False,
             # Output
             "action": None,
+            "mt5_state": "{}",
             # Daily/account state
             "daily_net_realized_pnl": float("nan"),
             "daily_gross_loss": float("nan"),

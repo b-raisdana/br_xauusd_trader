@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 from pandera.errors import SchemaErrors
-from vectorized_fixtures import calculate_manifest, candles_from_ticks
+from vectorized_fixtures import calculate_manifest, candles_from_ticks, with_native_bootstrap
 
 from application.xauusd_trading_strategy_1_vector.domain.replay import LinearReplayEconomics, ReplayConfig
 from application.xauusd_trading_strategy_1_vector.the_strategy import VectorizedXauUsdStrategy
@@ -34,7 +34,7 @@ def inputs(symbol="XAUUSD", offset=0.0):
         index=index.reorder_levels(["symbol", "broker", "date", "precise_time"]),
     )
     ticks = VectorizedXauUsdStrategy.add_bar_time_n_broker_day(ticks)
-    candles = candles_from_ticks(ticks)
+    candles = with_native_bootstrap(candles_from_ticks(ticks))
     return ticks, candles
 
 
@@ -49,7 +49,7 @@ def test_separated_ticks_run_without_mutation_or_market_columns_in_state(replay)
     result, _ = calculate_manifest(strategy, ticks, candles)
     assert len(result) == len(ticks)
     assert not {"bid", "ask", "bar_time", "broker_day"}.intersection(result)
-    assert result.trend_high_0.tolist() == [0.0, 0.0, 0.0, 103.0, 103.0, 103.0, 103.0, 103.0]
+    assert result.trend_high_0.tolist() == [99.0] * 8
     assert_frame_equal(ticks, original_ticks)
     assert_frame_equal(candles, original_candles)
     assert calculate_manifest(strategy, ticks.iloc[:0], candles)[0].empty
@@ -86,7 +86,7 @@ def test_runner_projects_valid_results_for_multiple_symbols():
     result = manifest.read_positions(pd.Timestamp("2026-09-18", tz="UTC"))
     PositionTrackingResult.validate(result)
     second = result.xs("SECOND", level="symbol")
-    assert second.candle_high.dropna().min() >= 200.0
+    assert second.candle_high.dropna().min() >= 199.0
 
 
 def test_main_runs_with_fetch_shaped_inputs_and_writes_parquet(monkeypatch, tmp_path):

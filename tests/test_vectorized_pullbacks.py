@@ -83,7 +83,7 @@ def test_penetration_latches_edge_candidates_and_retries(direction, prices, edge
 def test_window_expires_after_fifth_observed_bar_and_trend_flip_does_not_cancel():
     ticks, data = state([101.8] * 6, pd.date_range("2026-09-24", periods=6, freq="15min", tz="UTC"))
     open_window(data)
-    data["trend"] = [1, 2, 1, 2, 1, 2]
+    data["trend"] = [1, -1, 1, -1, 1, -1]
     result = generate_pullback_signals(ticks, data)
     assert result.pullback_signals.map(len).tolist() == [1, 1, 1, 1, 1, 0]
 

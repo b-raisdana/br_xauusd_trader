@@ -11,5 +11,6 @@
   "mypy:typeddict-item": 2,
   "mypy:unused-ignore": 9,
   "mypy:valid-type": 3,
+  "mypy:var-annotated": 1,
   "xenon": 25
 }

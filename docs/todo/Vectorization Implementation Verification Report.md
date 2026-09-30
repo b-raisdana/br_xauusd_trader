@@ -1,5 +1,6 @@
 # Vectorization implementation verification status
 
+Current status (2026-09-30): the ordered source port, explicit CLI replay configuration and full-day acquisition are implemented. The historical checklist below describes the pre-port audit; use [active parity work](vectorized-state.md) and [the current divergence report](../Divergence%20Report%20-%20MT5%20vs%20Python%20vs%20Documentation.md) for remaining acceptance gaps.
 Reviewed 2026-09-29. Current reference: [XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5](../../mt5/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5). Current comparison: [divergence report](../Divergence%20Report%20-%20MT5%20vs%20Python%20vs%20Documentation.md).
 
 ## Verified by source inspection

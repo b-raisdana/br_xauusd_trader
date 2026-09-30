@@ -2,19 +2,13 @@ from copy import deepcopy
 
 import numpy as np
 import pandas as pd
-from scalar_coordinator_reference import (
-    begin_coordinator_bar,
-    begin_coordinator_day,
-    close_coordinator_bar,
-    process_coordinator_tick,
-)
-from vectorized_fixtures import calculate_manifest, candles_from_ticks, prepared_ticks
+from vectorized_fixtures import calculate_manifest, candles_from_ticks, prepared_ticks, with_native_bootstrap
 
 from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
 
 # from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
-from domain.xau_usd.enums import XauDirection, XauTrend
-from domain.xau_usd.models import XauMarketCoordinator, XauZone
+from domain.xau_usd.enums import XauDirection, XauSignalFamily, XauTrend
+from domain.xau_usd.models import XauPullbackWindowState, XauSignalCandidate, XauZone
 
 
 class Zones:
@@ -44,32 +38,86 @@ def run(frame, zones):
 
 
 def oracle(frame, zones):
-    coordinator = XauMarketCoordinator()
+    candles = with_native_bootstrap(candles_from_ticks(frame))
+    candle_times = candles.index.get_level_values("bar_time")
     day = bar = None
-    high = low = 0.0
-    expected = []
-    snapshots = []
+    previous = None
+    trend = XauTrend.NONE
+    sequence = 0
+    engaged = [[False, False] for _ in zones]
+    windows, expected, snapshots = [], [], []
     for time, (_, tick) in zip(frame.index.get_level_values("precise_time"), frame.iterrows(), strict=True):
         candidates = []
-        next_day, next_bar = str(time.date()), time.floor("15min")
-        if next_day != day:
-            assert begin_coordinator_day(coordinator, next_day, deepcopy(zones))
-            bar = None
-        elif next_bar != bar:
-            ok, candidates = close_coordinator_bar(
-                coordinator, next_bar.to_pydatetime(), high, low, coordinator.last_bid
-            )
-            assert ok
+        next_day, next_bar = str(time.date()), tick.bar_time
+        history = candles.loc[candle_times < next_bar].tail(3)
         if next_bar != bar:
-            ok, _ = begin_coordinator_bar(coordinator, str(next_bar), tick.bid, tick.ask)
-            assert ok
-            high = low = tick.bid
-        high, low = max(high, tick.bid), min(low, tick.bid)
-        ok, _ = process_coordinator_tick(coordinator, time.to_pydatetime(), tick.bid, tick.ask)
-        assert ok
+            for w in windows:
+                if w.active:
+                    w.bar_offset += 1
+                    w.active = w.bar_offset <= 5
+            if bar is not None:
+                close = history.close.iloc[-1]
+                for i, zone in enumerate(zones):
+                    buy = engaged[i][0] and trend == XauTrend.UP and close > zone.high + 1
+                    sell = engaged[i][1] and trend == XauTrend.DOWN and close < zone.low - 1
+                    if not (buy or sell):
+                        continue
+                    sequence += 1
+                    direction = XauDirection.BUY if buy else XauDirection.SELL
+                    c = XauSignalCandidate(
+                        candidate_id=f"BO#{sequence:02d}",
+                        bar_id=str(bar),
+                        zone_id=zone.id,
+                        family=XauSignalFamily.BREAKOUT,
+                        direction=direction,
+                        signal_time=time,
+                        entry_price=close,
+                    )
+                    candidates.append(c)
+                    neighbor = i + (1 if buy else -1)
+                    space = (
+                        (zones[neighbor].low - zone.high if buy else zone.low - zones[neighbor].high)
+                        if 0 <= neighbor < len(zones)
+                        else float("inf")
+                    )
+                    if space >= 12 and not any(
+                        w.active and w.zone.id == zone.id and w.direction == direction for w in windows
+                    ):
+                        windows.append(
+                            XauPullbackWindowState(
+                                c.candidate_id,
+                                deepcopy(zone),
+                                direction,
+                                bar_offset=1,
+                                active=True,
+                                breakout_bar_time=bar,
+                                broker_day=day,
+                            )
+                        )
+            if next_day != day:
+                sequence = 0
+                for w in windows:
+                    w.active = False
+            opening = candles.loc[candle_times == next_bar].open.iloc[0]
+            engaged = [[z.low <= opening <= z.high] * 2 for z in zones]
+        if previous is None:
+            previous = tick.bid
+        if tick.bid > history.high.max():
+            trend = XauTrend.UP
+        elif tick.bid < history.low.min():
+            trend = XauTrend.DOWN
+        crosses = [(previous < z.low <= tick.bid, previous > z.high >= tick.bid) for z in zones]
+        multi = sum(a or b for a, b in crosses) >= 2
+        for i, (up, down) in enumerate(crosses):
+            if multi:
+                if zones[i].low <= tick.bid <= zones[i].high:
+                    engaged[i] = [True, True]
+            else:
+                engaged[i][0] |= up
+                engaged[i][1] |= down
         expected.append(tuple(candidates))
-        snapshots.append((coordinator.breakout_sequence, deepcopy(coordinator.pullbacks)))
-        day, bar = next_day, next_bar
+        snapshots.append((sequence, deepcopy(windows)))
+        previous, day, bar = tick.bid, next_day, next_bar
     return expected, snapshots
 
 
@@ -123,7 +171,7 @@ def test_scalar_parity_for_candidates_sequence_and_window_ownership():
     assert per_tick_state.breakout_sequence.tolist() == [sequence for sequence, _ in snapshots]
     for row, (_, windows) in enumerate(snapshots):
         assert bool(per_tick_state.pullback_active.iloc[row]) == any(window.active for window in windows)
-        for window in windows:
+        for window in [w for w in windows if w.active]:
             prefix = f"pullback:{window.zone.id}:{window.direction.value}"
             assert per_tick_state[f"{prefix}:parent"].iloc[row] == (window.parent_breakout_id if window.active else "")
             assert per_tick_state[f"{prefix}:offset"].iloc[row] == (window.bar_offset if window.active else 0)
@@ -142,7 +190,7 @@ def test_repeated_breakouts_preserve_active_parent_and_reopen_after_expiry():
     result, per_tick_state = run(frame, zones)
     assert result.breakout_signals.tolist() == expected
     opened = [window.parent_breakout_id for values in result.pullback_windows_opened for window in values]
-    assert opened == ["BO1", "BO7"]
+    assert opened == ["BO#01", "BO#06", "BO#11"]
     for row, (_, windows) in enumerate(snapshots):
         expected_parent = next((w.parent_breakout_id for w in windows if w.active), "")
         assert per_tick_state[f"pullback:z:{XauDirection.BUY.value}:parent"].iloc[row] == expected_parent
@@ -211,7 +259,7 @@ def test_empty_no_zones_and_symbol_isolation():
     other = ticks(frame.index.get_level_values("precise_time"), [100, 100, 104, 100], symbol="OTHER")
     combined = pd.concat([frame, other])
     result, _ = run(combined, zones)
-    assert [c.candidate_id for values in result.breakout_signals for c in values] == ["BO1", "BO1"]
+    assert [c.candidate_id for values in result.breakout_signals for c in values] == ["BO#01", "BO#01"]
 
 
 def test_gap_uses_observed_new_bar_time_and_advances_window_once():

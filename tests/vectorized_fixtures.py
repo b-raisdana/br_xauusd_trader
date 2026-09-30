@@ -23,6 +23,23 @@ def candles_from_ticks(tick_frame):
     return df
 
 
+def with_native_bootstrap(candles):
+    import pandas as pd
+
+    parts = [candles]
+    for _, stream in candles.groupby(level=["broker", "symbol"], sort=False):
+        first = stream.sort_index(level="bar_time").iloc[:1].reset_index()
+        price = float(first.open.iloc[0])
+        for offset in (3, 2, 1):
+            prior = first.copy()
+            prior["bar_time"] -= pd.Timedelta(minutes=15 * offset)
+            prior["date"] = prior.bar_time.dt.normalize()
+            for column in ("open", "high", "low", "close"):
+                prior[column] = price
+            parts.append(prior.set_index(candles.index.names))
+    return pd.concat(parts).sort_index()
+
+
 def prepared_ticks(factory):
     from functools import wraps
 
@@ -59,13 +76,14 @@ def calculate_manifest(strategy, ticks, candles):
     from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickState
     from infrastructure.result_processing.io import ResultFilesManifest
 
+    candles = with_native_bootstrap(candles)
     with TemporaryDirectory() as folder:
         manifest = ResultFilesManifest(root=Path(folder))
         try:
             for day, daily in ticks.groupby("broker_day", sort=False):
                 manifest.save_daily_ticks(day, daily)
                 manifest.save_daily_candles(
-                    day, candles.loc[candles.index.get_level_values("bar_time").normalize() == day]
+                    day, candles.loc[candles.index.get_level_values("bar_time") <= daily.bar_time.max()]
                 )
             strategy.process_tick_data(manifest)
             states = [manifest.read_daily_ticks_temp_state(day) for day in manifest.successful_days("per_tick_state")]

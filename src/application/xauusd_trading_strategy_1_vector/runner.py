@@ -36,7 +36,7 @@ def run_vectorized_strategy(
         try:
             for day, ticks in tick_df.groupby("broker_day", sort=False):
                 times = candle_df.index.get_level_values("bar_time")
-                candles = candle_df.loc[times.normalize() == day]
+                candles = candle_df.loc[times <= ticks.bar_time.max()]
                 manifest.save_daily_ticks(day, ticks)
                 manifest.save_daily_candles(day, candles)
             strategy = VectorizedXauUsdStrategy(ZoneCache(zones_df), execution)

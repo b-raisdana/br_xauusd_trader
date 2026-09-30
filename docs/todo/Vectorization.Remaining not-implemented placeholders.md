@@ -1,5 +1,6 @@
 # MT5/Python parity follow-up
 
+Current status (2026-09-30): the ordered source port, explicit CLI replay configuration and full-day acquisition are implemented. The historical checklist below describes the pre-port audit; use [active parity work](vectorized-state.md) and [the current divergence report](../Divergence%20Report%20-%20MT5%20vs%20Python%20vs%20Documentation.md) for remaining acceptance gaps.
 Reviewed 2026-09-29 against [the replacement EA](../../mt5/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5) and current Python. The filename is retained for existing links; the former blanket placeholder list is obsolete. [Detailed differences](../Divergence%20Report%20-%20MT5%20vs%20Python%20vs%20Documentation.md) and [field inventory](../State-Variables.Glossary.csv) define the current evidence.
 
 ## Completed source capabilities

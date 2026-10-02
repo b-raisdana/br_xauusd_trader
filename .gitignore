@@ -34,6 +34,8 @@ artifacts/*
 output/*
 !output/.gitkeep
 tmp/
+*.log
+*.tmp
 
 # Large/local market data
 data/
@@ -46,7 +48,9 @@ data/vendor/
 *.hdf5
 
 # MT5 local/generated
-*.ex5
+# *.ex5
+
+
 *.log
 
 tester/cache/

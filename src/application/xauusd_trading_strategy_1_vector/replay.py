@@ -49,6 +49,7 @@ class ExecutionReplay:
         self.stream_id: str = stream_id
         self.state: XauMarketCoordinator = XauMarketCoordinator()
         self.orders: dict[str, ReplayOrder] = {}
+        self.requests: list[ReplayOrder] = []
         self.sequence: int = 0
         self.balance: float = config.initial_balance
         self.net_realized: float = 0.0
@@ -313,7 +314,7 @@ class ExecutionReplay:
         self.session_active_window_key = window_key
         self.session_active_from, self.session_active_to = start, end
         if inputs.session_safety_telemetry:
-            for order in self.orders.values():
+            for order in self._session_positions():
                 if (
                     order.status == XauExecutionStatus.FILLED
                     and order.fill_time is not None
@@ -335,16 +336,26 @@ class ExecutionReplay:
                 self.session_cutoff_key = key
                 for window in self.state.pullbacks:
                     self._end_cycle(window, time, "SESSION_OR_RESTART")
-                for order in self.orders.values():
-                    if order.status == XauExecutionStatus.SUBMITTED:
-                        self._cancel(order, time, "SESSION_OR_RESTART")
-            for order in reversed(list(self.orders.values())):
+                for order in self._session_pending():
+                    self._cancel(order, time, "SESSION_OR_RESTART")
+            for order in self._session_positions():
                 if order.status == XauExecutionStatus.FILLED and (
-                    inputs.session_mode == "all" or order.candidate.family == XauSignalFamily.PULLBACK
+                    inputs.session_mode == "all"
+                    or (
+                        order.native_trade_type == "P"
+                        if order.native_trade_type is not None
+                        else order.candidate.family == XauSignalFamily.PULLBACK
+                    )
                 ):
                     order.session_close_requested = True
                     order.session_close_reason = reason
                     self._close(order, time, bid, ask, "SESSION_OR_RESTART")
+
+    def _session_positions(self) -> list[ReplayOrder]:
+        return [o for o in reversed(list(self.orders.values())) if o.status == XauExecutionStatus.FILLED]
+
+    def _session_pending(self) -> list[ReplayOrder]:
+        return [o for o in self.orders.values() if o.status == XauExecutionStatus.SUBMITTED]
 
     def _restart(self, time: datetime, bid: float, ask: float) -> bool:
         if not self.restart_locked:
@@ -446,7 +457,7 @@ class ExecutionReplay:
         if not self.config.inputs.profit_protection:
             return
         for order in self.orders.values():
-            if order.status != XauExecutionStatus.FILLED or order.r0 <= 0:
+            if order.status != XauExecutionStatus.FILLED or order.r0 <= 0 or not self._position_available(order):
                 continue
             buy = order.direction == XauDirection.BUY
             entry = order.candidate.entry_price
@@ -460,9 +471,7 @@ class ExecutionReplay:
             if desired is None and order.r_stage >= 2:
                 desired = entry + (0.5 * order.r0 if buy else -0.5 * order.r0)
             if desired is None and order.r_stage >= 1:
-                unit_exit = order.fill_price + (1 if buy else -1)
-                cash = abs(self.economics.profit(order.direction, order.volume, order.fill_price, unit_exit))
-                offset = max(order.costs, 0.0) / cash if cash > 0 else 0.0
+                offset = self._cost_offset(order)
                 desired = order.fill_price + (offset if buy else -offset)
             if desired is None:
                 continue
@@ -473,12 +482,23 @@ class ExecutionReplay:
             quote = bid if buy else ask
             distance = quote - desired if buy else desired - quote
             accepted = distance > 0 and distance >= self.economics.minimum_stop_distance
-            accepted = accepted and self.economics.accepts("MODIFY", order.request_id, time)
+            accepted = accepted and self._accept_modification(order, time)
             order.sl_retry_logged = not accepted
             if accepted:
                 order.stop_loss = desired
                 order.desired_sl = 0.0
             self._event(order, "MODIFY" if accepted else "MODIFY_REJECT", time)
+
+    def _cost_offset(self, order: ReplayOrder) -> float:
+        unit_exit = order.fill_price + (1 if order.direction == XauDirection.BUY else -1)
+        cash = abs(self.economics.profit(order.direction, self.config.inputs.volume, order.fill_price, unit_exit))
+        return max(order.costs, 0.0) / cash if cash > 0 else 0.0
+
+    def _position_available(self, order: ReplayOrder) -> bool:
+        return True
+
+    def _accept_modification(self, order: ReplayOrder, time: datetime) -> bool:
+        return self.economics.accepts("MODIFY", order.request_id, time)
 
     def _stop_improves(self, buy: bool, current: float, proposed: float) -> bool:
         if proposed <= 0:
@@ -561,7 +581,7 @@ class ExecutionReplay:
                 return False
         elif not pullback_allowed(zones, zone, buy, inputs):
             return False
-        if self._risk(bid, ask)[2] >= inputs.max_positions:
+        if self._live_positions_count(bid, ask) >= inputs.max_positions:
             self.rejections.append((candidate.candidate_id, int(XauEntryRejection.CONCURRENCY)))
             return False
         requested = normalize_price(candidate.entry_price, inputs.digits) if is_pb else (ask if buy else bid)
@@ -600,8 +620,12 @@ class ExecutionReplay:
                 self._end_cycle(window, time, "INVALID_PROTECTION")
             return False
         stop, target, r0, target_id = protected
-        cash_risk = max(0.0, -self.economics.profit(candidate.direction, inputs.volume, requested, stop))
         used = self._risk_used(bid, ask)
+        cash_risk = (
+            0.0
+            if inputs.risk_mode == "off"
+            else self._new_cash_risk(candidate.direction, inputs.volume, requested, stop)
+        )
         if inputs.risk_mode != "off" and (self._budget() - used < -0.01 or cash_risk > self._budget() - used + 0.01):
             if window is not None:
                 window.risk_waiting_logged = True
@@ -632,15 +656,9 @@ class ExecutionReplay:
             r0=r0,
             reversal_ordinal=zone.reversal_fill_count + 1 if family == XauSignalFamily.REVERSAL else 0,
         )
-        accepted = (
-            self._protection_valid(order.direction, stop, target, requested, requested)
-            if is_pb
-            else (self._protection_valid(order.direction, stop, target, bid, ask))
-        )
-        margin = self.economics.margin(inputs.volume, requested)
-        accepted = accepted and margin <= self._risk(bid, ask)[3]
-        accepted = accepted and self.economics.accepts("SUBMIT", order.request_id, time)
+        accepted = self._send(order, time, bid, ask, is_pb)
         self.orders[order.request_id] = order
+        self.requests.append(order)
         self.actions.append(
             {
                 "request_id": order.request_id,
@@ -677,6 +695,26 @@ class ExecutionReplay:
             if window is not None:
                 window.waiting_logged = window.risk_waiting_logged = False
         return True
+
+    def _send(self, order: ReplayOrder, time: datetime, bid: float, ask: float, is_pb: bool) -> bool:
+        requested = order.candidate.entry_price
+        accepted = self._protection_valid(
+            order.direction,
+            order.stop_loss,
+            order.take_profit,
+            requested if is_pb else bid,
+            requested if is_pb else ask,
+        )
+        margin = self.economics.margin(order.volume, requested)
+        return (
+            accepted and margin <= self._risk(bid, ask)[3] and self.economics.accepts("SUBMIT", order.request_id, time)
+        )
+
+    def _live_positions_count(self, bid: float, ask: float) -> int:
+        return self._risk(bid, ask)[2]
+
+    def _new_cash_risk(self, direction: XauDirection, volume: float, entry: float, sl: float) -> float:
+        return max(0.0, -self.economics.profit(direction, volume, entry, sl))
 
     def _budget(self) -> float:
         inputs = self.config.inputs

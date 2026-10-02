@@ -13,6 +13,8 @@ def timestamp(value: datetime | None) -> int:
 
 
 def trade_type(order: ReplayOrder) -> str:
+    if order.native_trade_type is not None:
+        return order.native_trade_type
     return {XauSignalFamily.BREAKOUT: "B", XauSignalFamily.REVERSAL: "R", XauSignalFamily.PULLBACK: "P"}[
         order.candidate.family
     ]
@@ -20,10 +22,9 @@ def trade_type(order: ReplayOrder) -> str:
 
 def request_trace(order: ReplayOrder) -> dict[str, Any]:
     candidate = order.candidate
-    side = "B" if order.direction == XauDirection.BUY else "S"
     return {
         "active": order.request_active,
-        "comment": f"{trade_type(order)}|{order.broker_day.replace('-', '')}|{candidate.zone_id}|{side}",
+        "comment": order.comment,
         "requested_price": candidate.entry_price,
         "sl": order.initial_sl,
         "tp": order.take_profit,
@@ -37,8 +38,8 @@ def request_trace(order: ReplayOrder) -> dict[str, Any]:
 def position_trace(order: ReplayOrder) -> dict[str, Any]:
     return {
         "active": order.status == XauExecutionStatus.FILLED,
-        "position_id": order.position_id,
-        "position_ticket": order.position_id,
+        "position_id": order.native_position_id if order.native_position_id is not None else order.position_id,
+        "position_ticket": order.native_position_ticket if order.native_position_id is not None else order.position_id,
         "day_key": order.broker_day.replace("-", "."),
         "zone_id": order.candidate.zone_id,
         "trade_type": trade_type(order),
@@ -94,7 +95,11 @@ def shared_trace(state: XauMarketCoordinator, execution: ExecutionReplay | None)
                 "breakout_bar_time": timestamp(w.breakout_bar_time),
                 "valid_bar_no": w.bar_offset,
                 "penetration_latched": w.penetration_latched,
-                "order_ticket": w.order_ticket or 0,
+                "order_ticket": (
+                    execution.orders[w.order_ticket].native_order_ticket or w.order_ticket
+                    if execution and w.order_ticket in execution.orders
+                    else w.order_ticket or 0
+                ),
                 "waiting_logged": w.waiting_logged,
                 "risk_waiting_logged": w.risk_waiting_logged,
                 "parent_breakout_id": w.parent_breakout_id,
@@ -119,7 +124,7 @@ def shared_trace(state: XauMarketCoordinator, execution: ExecutionReplay | None)
                 "g_session_active_window_key": execution.session_active_window_key,
                 "g_session_active_from": timestamp(execution.session_active_from),
                 "g_session_active_to": timestamp(execution.session_active_to),
-                "g_requests": [request_trace(o) for o in execution.orders.values()],
+                "g_requests": [request_trace(o) for o in execution.requests],
                 "g_positions": [position_trace(o) for o in execution.orders.values() if o.fill_time is not None],
             }
         )

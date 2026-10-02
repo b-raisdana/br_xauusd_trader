@@ -7,7 +7,7 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from domain.xau_usd.enums import XauDirection, XauExecutionStatus
+from domain.xau_usd.enums import XauDirection, XauExecutionStatus, XauSignalFamily
 from domain.xau_usd.models import XauPreZoneTriggerState, XauPullbackTpState, XauSignalCandidate
 
 from .robust import RobustInputs
@@ -124,6 +124,22 @@ class ReplayOrder:
     session_close_requested: bool = False
     session_close_reason: str = ""
     last_carry_audit_key: str = ""
+    native_order_ticket: int = 0
+    native_position_id: int | None = None
+    native_position_ticket: int = 0
+    native_trade_type: str | None = None
+
+    @property
+    def comment(self) -> str:
+        kind = (
+            self.native_trade_type
+            if self.native_trade_type is not None
+            else {XauSignalFamily.REVERSAL: "R", XauSignalFamily.BREAKOUT: "B", XauSignalFamily.PULLBACK: "P"}[
+                self.candidate.family
+            ]
+        )
+        side = "B" if self.direction == XauDirection.BUY else "S"
+        return f"{kind}|{self.broker_day.replace('-', '')}|{self.candidate.zone_id}|{side}"
 
     @property
     def direction(self) -> XauDirection:

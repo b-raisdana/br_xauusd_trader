@@ -5,7 +5,7 @@ numba
 vectorbt[full,rust]
 
 br-logging-and-profiling>=0.9.1
-br-py-duckdb-cache>=0.1.0
+br-py-duckdb-cache>=0.6.1
 
 #ctrader-open-api
 requests

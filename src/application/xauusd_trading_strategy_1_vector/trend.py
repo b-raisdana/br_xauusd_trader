@@ -24,9 +24,9 @@ from application.xauusd_trading_strategy_1_vector.domain.schema import (
     TrendInfo,
     VectorizedTick,
 )
+from br_pre_commit import pandera_validate
 from domain.xau_usd.enums import XauTrend
 from helper.importer import pt
-from helper.pandera import pandera_validate
 
 
 @profile_it
@@ -80,7 +80,7 @@ def _reduce_trend_arrays(
 
 
 @profile_it
-@pandera_validate(inplace=True)
+@pandera_validate
 def compute_references(per_tick_state: pt.DataFrame[TrendInfo]) -> pt.DataFrame[ReferenceTrendInfo]:
     """Populate reference_high and reference_low columns on the per-tick DataFrame."""
 

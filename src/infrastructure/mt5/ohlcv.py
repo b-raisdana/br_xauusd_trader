@@ -2,10 +2,10 @@ import MetaTrader5 as mt5
 import pandas as pd
 from br_py_log_n_profile import log_exception, profile_it
 
+from br_pre_commit import pandera_validate
 from domain.schemas.common.ohlcv import MultiTimeframeTicksSpreadOHLC
 from helper.date_utils import normalize_timeframes, time_range
 from helper.importer import pt
-from helper.pandera import pandera_validate
 from infrastructure.mt5.conversion import timeframe_to_mt5
 from infrastructure.mt5.symbol import verify_symbol
 

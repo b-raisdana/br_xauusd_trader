@@ -3,10 +3,10 @@ from pathlib import Path
 import pandas as pd
 from br_py_log_n_profile import log_w, profile_it
 
+from br_pre_commit import pandera_validate
 from config import app_config
 from domain.schemas.zone import Zone
 from helper.importer import pt
-from helper.pandera import pandera_validate
 
 
 @profile_it

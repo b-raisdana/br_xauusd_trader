@@ -4,11 +4,11 @@ import pandas as pd
 from br_py_log_n_profile import log_e
 from pandera import typing as pt
 
+from br_pre_commit import pandera_validate
 from config import BASE_TIMEFRAME, app_config
 from domain.schemas.common.ohlcv import OHLCV, MultiTimeframeOHLCV
 from helper.data_preparation import concat, trim_to_time_range
 from helper.date_utils import normalize_timeframes, timeframe_to_grouper_freq, timeframe_to_pandas_freq
-from helper.pandera import pandera_validate
 
 
 @pandera_validate

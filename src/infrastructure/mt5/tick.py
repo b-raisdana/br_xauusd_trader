@@ -3,10 +3,10 @@ import asyncio
 import MetaTrader5 as mt5
 from br_py_log_n_profile import log_exception, profile_it
 
+from br_pre_commit import pandera_validate
 from domain.schemas import tick
 from helper.date_utils import time_range, yesterday
 from helper.importer import pt
-from helper.pandera import pandera_validate
 from infrastructure.mt5.symbol import verify_symbol
 
 

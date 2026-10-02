@@ -19,9 +19,9 @@ from application.xauusd_trading_strategy_1_vector.domain.schema import (
     StrategyResultWithCandles,
     VectorizedTick,
 )
+from br_pre_commit import pandera_validate
 from config import app_config
 from helper.importer import pt
-from helper.pandera import pandera_validate
 from infrastructure.result_processing.parquet import read_parquet, write_parquet
 
 type ResultCategory = Literal[

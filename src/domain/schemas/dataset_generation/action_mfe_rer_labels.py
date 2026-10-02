@@ -7,9 +7,9 @@ import pandera.pandas as pa
 from br_py_log_n_profile import log_e
 from pandera import typing as pt
 
+from br_pre_commit import pandera_validate
 from domain.schemas.common.base_dataframe import MultiTimeframeTimeseries
 from domain.schemas.common.ohlcv import MultiTimeframeOHLC
-from helper.pandera import pandera_validate
 
 FUTURE_QUADRANTS_N = 8
 _REQUIRED_QUADRANT_COLUMNS = "required_quadrant_columns"

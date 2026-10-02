@@ -5,7 +5,7 @@ import pandas as pd
 import pytz
 from br_py_log_n_profile import log_exception
 
-from helper.pandera import pandera_validate
+from br_pre_commit import pandera_validate
 
 
 def time_range_to_string(

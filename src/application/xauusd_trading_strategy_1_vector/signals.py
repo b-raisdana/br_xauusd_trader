@@ -12,10 +12,10 @@ from br_py_log_n_profile import log_e, profile_it
 from numpy.typing import NDArray
 
 from application.xauusd_trading_strategy_1_vector.pullback_utils import create_pullback_window
+from br_pre_commit import pandera_validate
 from domain.xau_usd.enums import XauDirection, XauOrderType, XauSignalFamily, XauTrend
 from domain.xau_usd.models import XauSignalCandidate, XauZone
 from helper.importer import pt
-from helper.pandera import pandera_validate
 
 from .config.strategy_config import StrategyConfig
 from .domain.schema import (

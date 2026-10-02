@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 import typer
 
+from br_pre_commit import pandera_validate
 from config import app_config
-from helper.pandera import pandera_validate
 
 app = typer.Typer()
 

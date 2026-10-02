@@ -3,9 +3,9 @@ from __future__ import annotations
 from br_py_log_n_profile import profile_it
 
 from application.xauusd_trading_strategy_1_vector.domain.schema import StrategyCandles, VectorizedTick
+from br_pre_commit import pandera_validate
 from domain.schemas.zone import Zone
 from helper.importer import pt
-from helper.pandera import pandera_validate
 from infrastructure.result_processing.__main__ import (
     generate_order_management_columns,
     generate_position_tracking_columns,

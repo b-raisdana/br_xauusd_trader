@@ -4,8 +4,8 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 
+from br_pre_commit import pandera_validate
 from config import app_config
-from helper.pandera import pandera_validate
 
 from .core import time_range, time_range_to_string
 from .timeframe import all_timestamps, get_floor

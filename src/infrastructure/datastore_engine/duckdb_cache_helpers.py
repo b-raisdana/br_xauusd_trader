@@ -7,8 +7,8 @@ import pandas as pd
 import pandera.pandas as pa
 from br_py_log_n_profile import log_d, log_e, log_i
 
+from br_pre_commit import pandera_validate
 from config import BASE_TIMEFRAME
-from helper.pandera import pandera_validate
 from infrastructure.datastore_engine.duckdb_cache_registry import DatastoreRegistry
 from infrastructure.datastore_engine.iceberg_base import iceberg_fetch_from_datastore
 

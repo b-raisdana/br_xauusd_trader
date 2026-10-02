@@ -23,9 +23,9 @@ from pyiceberg.types import (
     TimestamptzType,
 )
 
+from br_pre_commit import pandera_validate
 from helper.date_utils import time_range
 from helper.importer import pa, pya
-from helper.pandera import pandera_validate
 from infrastructure.datastore_engine.duckdb_cache_registry import DatastoreRegistry
 from infrastructure.datastore_engine.paths import dataset_db_root
 

@@ -9,6 +9,7 @@ from br_py_log_n_profile import log_d, log_e, log_exception, log_w
 from pandas import DatetimeIndex, Timestamp
 from pandera import typing as pt
 
+from br_pre_commit import pandera_validate
 from config import app_config
 from domain.schemas.common.base_dataframe import (
     MultiTimeframeTimeseries_Type,
@@ -17,7 +18,6 @@ from domain.schemas.common.base_dataframe import (
     has_single_timeframe,
 )
 from helper.date_utils import get_floor, time_range, timeframe_to_grouper_freq
-from helper.pandera import pandera_validate
 
 
 @pandera_validate(allow_pandas_dataframe=True)

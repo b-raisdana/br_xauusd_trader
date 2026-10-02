@@ -9,9 +9,9 @@ import pandas as pd
 from br_py_log_n_profile import log_e
 
 from application.xauusd_trading_strategy_1_vector.domain.schema import PositionTrackingResult, PullbackFeedback
+from br_pre_commit import pandera_validate
 from domain.xau_usd.models import XauPullbackWindowState, XauSignalCandidate
 from helper.importer import pt
-from helper.pandera import pandera_validate
 from infrastructure.result_processing.io import ResultFilesManifest
 
 

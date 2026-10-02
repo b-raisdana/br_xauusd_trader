@@ -4,7 +4,7 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 
-from helper.pandera import pandera_validate
+from br_pre_commit import pandera_validate
 from infrastructure.datastore_engine.dataframe_indexing import add_timeframe_index, index_by_date
 
 """

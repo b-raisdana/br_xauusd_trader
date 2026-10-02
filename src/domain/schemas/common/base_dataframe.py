@@ -2,8 +2,8 @@ from typing import TypeVar
 
 import pandas as pd
 
+from br_pre_commit import pandera_validate
 from helper.importer import pa, pt
-from helper.pandera import pandera_validate
 
 
 class Timeseries(pa.DataFrameModel):

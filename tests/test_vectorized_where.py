@@ -31,7 +31,7 @@ def test_references_match_scalar_with_nan_infinity_and_signed_zero(count):
     expected_high = per_tick_state.apply(compute_reference_high, axis=1).to_numpy()
     expected_low = per_tick_state.apply(compute_reference_low, axis=1).to_numpy()
 
-    assert compute_references(per_tick_state) is per_tick_state
+    per_tick_state = compute_references(per_tick_state)
 
     for side, expected in (("high", expected_high), ("low", expected_low)):
         actual = per_tick_state[f"reference_{side}"].to_numpy()
@@ -41,7 +41,7 @@ def test_references_match_scalar_with_nan_infinity_and_signed_zero(count):
 
 def test_empty_reference_columns_remain_float():
     per_tick_state = pd.DataFrame(columns=["trend_count", *trend_row_columns()])
-    compute_references(per_tick_state)
+    per_tick_state = compute_references(per_tick_state)
     assert per_tick_state.reference_high.dtype == per_tick_state.reference_low.dtype == np.dtype(float)
     assert per_tick_state.empty
 
@@ -55,7 +55,7 @@ def test_engagement_without_zones_stays_false(length):
     per_tick_state["bar_time"] = pd.to_datetime(per_tick_state["bar_time"], utc=True).dt.as_unit("ns")
     per_tick_state[["buy_engaged", "sell_engaged", "multi_zone_tick_gap"]] = False
     per_tick_state = complete_tick_state(per_tick_state)
-    update_zone_engagement(per_tick_state, per_tick_state, [])
+    per_tick_state = update_zone_engagement(per_tick_state, per_tick_state, [])
     assert not per_tick_state[["multi_zone_tick_gap", "buy_engaged", "sell_engaged"]].to_numpy().any()
 
 
@@ -84,7 +84,9 @@ def test_engagement_matches_captured_cross_gap_and_bar_reset_state(bids, expecte
     per_tick_state["bar_time"] = pd.to_datetime(per_tick_state["bar_time"], utc=True).dt.as_unit("ns")
     per_tick_state[["buy_engaged", "sell_engaged", "multi_zone_tick_gap"]] = False
     per_tick_state = complete_tick_state(per_tick_state)
-    update_zone_engagement(per_tick_state, per_tick_state, [XauZone("a", 100, 102), XauZone("b", 104, 105)])
+    per_tick_state = update_zone_engagement(
+        per_tick_state, per_tick_state, [XauZone("a", 100, 102), XauZone("b", 104, 105)]
+    )
     np.testing.assert_array_equal(per_tick_state[["multi_zone_tick_gap", "buy_engaged", "sell_engaged"]], expected)
 
 

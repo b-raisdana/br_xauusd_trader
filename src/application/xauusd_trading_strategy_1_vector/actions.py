@@ -11,9 +11,9 @@ import pandas as pd
 from application.xauusd_trading_strategy_1_vector.domain.replay import ReplayConfig
 from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickState, VectorizedTick
 from application.xauusd_trading_strategy_1_vector.replay import ExecutionReplay
+from br_pre_commit import pandera_validate
 from domain.xau_usd.models import XauZone
 from helper.importer import pt
-from helper.pandera import pandera_validate
 
 
 @pandera_validate(allow_pandas_dataframe=True)

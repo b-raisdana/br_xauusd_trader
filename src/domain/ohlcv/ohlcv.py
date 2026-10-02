@@ -1,8 +1,8 @@
 import pandas as pd
 from pandera import typing as pt
 
+from br_pre_commit import pandera_validate
 from domain.schemas.common.ohlcv import OHLCV
-from helper.pandera import pandera_validate
 
 
 @pandera_validate

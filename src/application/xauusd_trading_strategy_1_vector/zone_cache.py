@@ -6,10 +6,10 @@ from datetime import datetime
 import pandas as pd
 from br_py_log_n_profile import profile_it
 
+from br_pre_commit import pandera_validate
 from domain.schemas.zone import Zone
 from domain.xau_usd.models import XauZone
 from helper.importer import pt
-from helper.pandera import pandera_validate
 
 
 class ZoneCache:

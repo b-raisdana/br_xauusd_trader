@@ -2,7 +2,7 @@ from typing import cast
 
 import pandas as pd
 
-from helper.pandera import pandera_validate
+from br_pre_commit import pandera_validate
 
 
 @pandera_validate(allow_pandas_dataframe=True)

@@ -8,11 +8,11 @@ import pandas as pd
 import pyarrow.parquet as pq
 import pytz
 from br_py_log_n_profile import log_i, log_w
-from domain.datastore_engine.parquet_normalization import flatten_index_to_columns
+from parquet_normalization import flatten_index_to_columns
 
+from br_pre_commit import pandera_validate
 from config import app_config
 from helper.date_utils import time_range, time_range_to_string
-from helper.pandera import pandera_validate
 from infrastructure.datastore_engine.paths import dataset_db_root
 
 _DATE_RANGE_STR_RE = r"\d{2}-\d{2}-\d{2}\.\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.\d{2}-\d{2}"

@@ -20,11 +20,11 @@ from application.xauusd_trading_strategy_1_vector.domain.schema import (
     VectorizedTick,
     trend_schema_columns,
 )
+from br_pre_commit import pandera_validate
 from domain.schemas.tick import Tick
 from domain.xau_usd.enums import XauTrend
 from domain.xau_usd.models import XauZone
 from helper.importer import pt
-from helper.pandera import pandera_validate
 from infrastructure.result_processing.io import ResultFilesManifest
 
 from .domain.replay import ReplayConfig
@@ -225,7 +225,7 @@ class VectorizedXauUsdStrategy:
         return per_tick_state
 
     @profile_it
-    @pandera_validate(inplace=True)
+    @pandera_validate
     def _get_ticks_bar_ids(self, ticks: pt.DataFrame[VectorizedTick]) -> tuple[NDArray[np.int64], pt.Series[bool]]:
         day_changed = ticks["broker_day"].ne(ticks["broker_day"].shift())
         bar_changed = day_changed | ticks["bar_time"].ne(ticks["bar_time"].shift())
@@ -234,7 +234,7 @@ class VectorizedXauUsdStrategy:
         return bar_ids, bar_changed
 
     @profile_it
-    @pandera_validate(inplace=True)
+    @pandera_validate
     def _process_bar_boundaries(
         self,
         ticks: pt.DataFrame[VectorizedTick],

@@ -7,9 +7,9 @@ Repository for an M15 XAUUSD price-action strategy using daily zones. MT5 strate
 - [MT5 source](mt5/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5) replaces the former MVP/include/generated set. [MT5 README](mt5/README.md) describes actual inputs and visible lifecycle.
 - **Build dependency missing:** `XauRobustLiveEnvelope.mqh`. Final platform callbacks/release guards cannot be verified from the supplied file. The live-RC filename is not deployment approval.
 - [Python package](src/application/xauusd_trading_strategy_1_vector/README.md) implements signals and optional execution replay. Its CLI supports explicit replay economics through `--execution-config`; default mode remains signals-only.
-- [Divergence report](docs/Divergence%20Report%20-%20MT5%20vs%20Python%20vs%20Documentation.md) records current flow, defaults and state differences.
+- [Divergence report](docs/todo/MT5-Python.Divergence.md) records current flow, defaults and state differences.
 - [State glossary](docs/State-Variables.Glossary.md) explains the [143-row CSV](docs/State-Variables.Glossary.csv).
-- [Parity follow-up](docs/todo/Vectorization.Remaining%20not-implemented%20placeholders.md) defines remaining acceptance work. The 2026-09-30 source port has regression coverage; native compile and exact runtime parity remain pending.
+- [Parity follow-up](docs/todo/MT5-Python.Divergence.md) defines remaining acceptance work. The 2026-09-30 source port has regression coverage; native compile and exact runtime parity remain pending.
 
 ## Working in this repository
 

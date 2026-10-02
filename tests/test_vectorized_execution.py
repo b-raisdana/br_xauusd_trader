@@ -298,3 +298,18 @@ def test_execution_input_validation_rejects_broken_data(defect):
         data.index = pd.MultiIndex.from_arrays(arrays, names=data.index.names)
     with pytest.raises(SchemaErrors):
         generate_actions(ticks, data, ZONES, config())
+
+
+def test_action_compatibility_replay_rejects_misaligned_state():
+    ticks = frame([103, 104])
+    data = VectorizedXauUsdStrategy(Zones())._initialize_per_tick_temp_state(ticks).iloc[::-1]
+    with pytest.raises(ValueError, match="identical ordered indexes"):
+        generate_actions(ticks, data, ZONES, config())
+
+
+def test_action_compatibility_replay_clears_stale_native_snapshot():
+    ticks = frame([103])
+    data = VectorizedXauUsdStrategy(Zones())._initialize_per_tick_temp_state(ticks)
+    data["mt5_state"] = '{"g_daily_stop":true}'
+    result = generate_actions(ticks, data, ZONES, config())
+    assert result["mt5_state"].tolist() == ["{}"]

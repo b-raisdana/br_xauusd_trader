@@ -25,6 +25,6 @@ repos:
   - id: incremental-ratchet
     name: incremental ratchet
     language: system
-    entry: python -m ratchet
+    entry: python -m br_pre_commit.src.ratchet
     pass_filenames: false
     files: ^src/.*\.py$

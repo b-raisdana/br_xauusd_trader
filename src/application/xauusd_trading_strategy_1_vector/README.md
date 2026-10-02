@@ -1,6 +1,6 @@
 # XAUUSD strategy replay
 
-The production calculation path uses an ordered `MarketState` per broker/symbol and optional `ExecutionReplay`, retained across daily manifest partitions. Its trading defaults and visible transitions follow [the replacement MT5 source](../../../mt5/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5). Exact native parity remains unproven; see [the divergence report](../../../docs/Divergence%20Report%20-%20MT5%20vs%20Python%20vs%20Documentation.md).
+The production calculation path uses an ordered `MarketState` per broker/symbol and optional `ExecutionReplay`, retained across daily manifest partitions. Its trading defaults and visible transitions follow [the replacement MT5 source](../../../mt5/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5). Exact native parity remains unproven; see [the divergence report](../../../docs/todo/MT5-Python.Divergence.md).
 
 `process_tick_data` accepts a `ResultFilesManifest`. Provide chronological ticks and unique native M15 candles covering each observed bar plus at least three closed bootstrap bars. The runner retains prior history. Trend and previous Bid survive day changes; current-candle extrema never enter their own reference. Full final zone days are acquired, with broker-calendar conversion from configured timezone.
 

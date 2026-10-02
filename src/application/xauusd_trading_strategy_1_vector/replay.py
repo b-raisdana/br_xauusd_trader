@@ -357,7 +357,7 @@ class ExecutionReplay:
         return True
 
     def _breakout(self, candidate: XauSignalCandidate, time: datetime, bid: float, ask: float) -> bool:
-        for order in reversed(list(self.orders.values())):
+        for order in list(self.orders.values()):
             if (
                 order.status == XauExecutionStatus.FILLED
                 and order.broker_day == self.state.broker_day
@@ -513,12 +513,19 @@ class ExecutionReplay:
         count = 0
         for order in self.orders.values():
             if order.status == XauExecutionStatus.SUBMITTED:
-                pending_risk += abs(
-                    self.economics.profit(order.direction, order.volume, order.candidate.entry_price, order.stop_loss)
+                pending_risk += max(
+                    -self.economics.profit(order.direction, order.volume, order.candidate.entry_price, order.stop_loss),
+                    0.0,
                 )
             elif order.status == XauExecutionStatus.FILLED:
                 open_risk += max(
-                    -self.economics.profit(order.direction, order.volume, order.fill_price, order.stop_loss), 0.0
+                    -self.economics.profit(
+                        order.direction,
+                        order.volume,
+                        order.fill_price,
+                        order.stop_loss if order.stop_loss > 0 else order.initial_sl,
+                    ),
+                    0.0,
                 )
                 unrealized += self.economics.profit(
                     order.direction, order.volume, order.fill_price, order.mark(bid, ask)

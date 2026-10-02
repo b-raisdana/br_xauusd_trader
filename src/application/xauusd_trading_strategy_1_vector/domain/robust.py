@@ -1,9 +1,9 @@
 from collections.abc import Sequence
 from decimal import ROUND_HALF_UP, Decimal
 from sys import float_info
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from domain.xau_usd.enums import XauDirection
 from domain.xau_usd.models import XauDailyZoneSignalState, XauZone
@@ -30,24 +30,34 @@ class RobustInputs(BaseModel):
     high_reversal_max: int = Field(default=2, ge=1)
     high_reversal_sl_multiplier: float = Field(default=1.5, gt=0)
     breakout_buffer: float = Field(default=1, ge=0)
-    penetration: float = Field(default=0.2, ge=0)
+    penetration: float = Field(default=0.2, gt=0)
     window_bars: int = Field(default=5, ge=1, le=10)
     profit_protection: bool = True
     one_order_per_candle: bool = False
     session_safety_telemetry: bool = True
     session_mode: Literal["carry", "pullback", "all"] = "all"
-    preclose_minutes: float = Field(default=5, ge=0)
+    preclose_minutes: float = Field(default=5, gt=0, le=60)
     max_positions: int = Field(default=3, ge=1)
     risk_mode: Literal["off", "net", "gross"] = "gross"
-    risk_percent: float = Field(default=30, gt=0, lt=100)
+    risk_percent: float = 30
     daily_loss_override: bool = False
-    daily_loss_percent: float = Field(default=20, gt=0)
+    daily_loss_percent: float = 20
     qa_discovery: bool = False
-    qa_capital: float = Field(default=200, gt=0)
+    qa_capital: float = 200
     allow_same_day_fresh_start: bool = False
     legacy_profile: int = Field(default=4, ge=0, le=4)
     digits: int = Field(default=2, ge=0, le=8)
     broker_timezone: str = "UTC"
+
+    @model_validator(mode="after")
+    def validate_enabled_modes(self) -> Self:
+        if self.risk_mode != "off" and not 0 < self.risk_percent < 100:
+            raise ValueError("Enabled portfolio risk requires 0 < risk_percent < 100")
+        if self.daily_loss_override and not 0 < self.daily_loss_percent < 100:
+            raise ValueError("Daily loss override requires 0 < daily_loss_percent < 100")
+        if self.qa_discovery and self.qa_capital <= 0:
+            raise ValueError("QA discovery requires positive qa_capital")
+        return self
 
 
 def normalize_price(value: float, digits: int) -> float:

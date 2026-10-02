@@ -1,14 +1,14 @@
 # State variables glossary
 
-Audited 2026-09-29 against [the replacement MQ5](../mt5/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5) and the active Python signals/optional replay paths. [CSV inventory](State-Variables.Glossary.csv) contains **143 unique rows: 52 inputs, 62 fields in five structs, and 29 globals/constants/objects**. This replaces the obsolete MVP inventory; it does not assert equivalent state transitions.
+Audited 2026-10-02 against [the replacement MQ5](../mt5/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5) and the active Python signals/optional replay paths. [CSV inventory](State-Variables.Glossary.csv) contains **143 unique rows: 52 inputs, 62 fields in five structs, and 29 globals/constants/objects**. This replaces the obsolete MVP inventory; it does not assert equivalent state transitions.
 
 ## Scope
 
 - Include every visible `Inp*`, `EA_MAGIC`, `trade`, `g_*`, and field of `RawZone`, `ZoneRuntime`, `PullbackCycle`, `RequestMeta`, `PositionTrack`.
 - Exclude transient locals, platform CTrade internals and enum members. Locals can be Python counterparts without becoming inventory entries.
 - The missing `XauRobustLiveEnvelope.mqh` prevents enumeration of envelope-owned state and verification of final event wiring. No missing code is inferred from declarations.
-- Python scope: selected `the_strategy.py`, its called trend/engagement/signals/actions/cache helpers, optional `ExecutionReplay`, its called package domain helpers and shared zone/models. An unused scalar helper is not evidence of active behavior.
-- Default CLI and optional replay differ: the CLI supplies no `ReplayConfig`. Replay-only counterparts do not imply CLI execution.
+- Python scope: `the_strategy.py` production manifest path, `MarketState`, optional `ExecutionReplay`, `RobustInputs`, raw-zone loader/cache, trace projection and shared models. Legacy vector helpers are not the production parity path.
+- Default CLI is signals-only; `--execution-config` supplies `ReplayConfig` with explicit economics and EA inputs. Replay-only counterparts do not imply default CLI execution.
 
 ## CSV contract and evidence
 
@@ -31,11 +31,11 @@ Unlike the retired glossary contract, the Python columns intentionally give revi
 
 ## Findings
 
-The 2026-09-30 Python port replaces the prior daily-reset signal path with `MarketState` and updates `ExecutionReplay`. The CSV still covers all 143 MQ5 declarations exactly once. PARTIAL now includes implemented source transitions with native execution evidence outstanding; it never means proven exact parity. Read/write columns remain function review anchors rather than an exhaustive alias-sensitive index.
+The current Python port replaces the prior daily-reset signal path with `MarketState` and updates `ExecutionReplay`. The CSV covers all 143 MQ5 declarations exactly once: 21 ABSENT, 122 PARTIAL. No row claims proven full parity. PARTIAL now includes implemented source transitions with native execution evidence outstanding; it never means proven exact parity. Read/write columns remain function review anchors rather than an exhaustive alias-sensitive index.
 
-Shared state snapshots use MQ5 field names for zones, cycles, requests, positions, trend/reference and accounting. Reversal usage is an enum separate from fill count; side/bar stamps precede gates. PB fill ends the cycle; requested anchor, actual fill, immutable R0, sticky stage and SL retry state are separate. `TREND_DOWN=-1` now matches MQ5. Raw-input validation, native identity, callbacks, native session acquisition, release controls and journal/visual-only state remain explicitly outside proven equivalence.
+Shared state snapshots use MQ5 field names for zones, cycles, requests, positions, trend/reference and accounting. Reversal usage is an enum separate from fill count; side/bar stamps precede gates. PB fill ends the cycle; requested anchor, actual fill, immutable R0, sticky stage and SL retry state are separate. `TREND_DOWN=-1` now matches MQ5. CSV loading now skips invalid/disabled rows using the visible MT5 date, priority and positive-bound rules; notes remain in the input frame. Explicit session windows update active/cutoff/carry state. EA input validation now matches visible initialization boundaries, including mode-conditional risk/daily-loss/QA restrictions. Native numeric parsing/rounding, malformed CSV field counts, identity, callbacks, session acquisition, release controls and journal/visual-only state remain outside proven equivalence.
 
-See [the current divergence report](Divergence%20Report%20-%20MT5%20vs%20Python%20vs%20Documentation.md) for implementation and acceptance gaps. MQ5 SHA-256 remains `b8bbf960e443c2fa8f2acab297b63d36f5a88473add5caf78eb403536f9ac923`; no native compile or matching run is claimed.
+See [the current divergence report](todo/MT5-Python.Divergence.md) for implementation and acceptance gaps. MQ5 SHA-256 remains `b8bbf960e443c2fa8f2acab297b63d36f5a88473add5caf78eb403536f9ac923`; no native compile or matching run is claimed.
 
 ## Prior inventory disposition
 

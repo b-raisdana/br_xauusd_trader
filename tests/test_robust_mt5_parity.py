@@ -6,12 +6,66 @@ import pytest
 from pydantic import ValidationError
 from test_vectorized_execution import ZONES, candidate, config, step, window
 
-from application.xauusd_trading_strategy_1_vector.domain.replay import ReplayFileConfig
+from application.xauusd_trading_strategy_1_vector.domain.replay import ReplayFileConfig, ReplayOrder
 from application.xauusd_trading_strategy_1_vector.domain.robust import RobustInputs, protection, pullback_allowed
 from application.xauusd_trading_strategy_1_vector.market import MarketState
 from application.xauusd_trading_strategy_1_vector.replay import ExecutionReplay
-from domain.xau_usd.enums import XauDirection, XauExecutionStatus
+from domain.xau_usd.enums import XauDirection, XauExecutionStatus, XauSignalFamily
 from domain.xau_usd.models import XauDailyZoneSignalState, XauZone
+
+
+@pytest.mark.parametrize("reject_first", [False, True])
+def test_breakout_closes_reversals_in_native_creation_order(monkeypatch, reject_first):
+    replay = ExecutionReplay(config(), "close-order")
+    time = pd.Timestamp("2026-09-24", tz="UTC")
+    replay.state.broker_day = "2026-09-24"
+    for name in ("first", "second"):
+        replay.orders[name] = ReplayOrder(
+            name,
+            candidate(XauDirection.SELL, XauSignalFamily.REVERSAL, name=name),
+            0.01,
+            105,
+            92,
+            "below",
+            time,
+            status=XauExecutionStatus.FILLED,
+            broker_day="2026-09-24",
+        )
+    closed = []
+
+    def close(order, *args):
+        closed.append(order.request_id)
+        return not reject_first
+
+    monkeypatch.setattr(replay, "_close", close)
+    replay._breakout(candidate(), time, 103, 103.1)
+    assert closed == (["first"] if reject_first else ["first", "second"])
+
+
+@pytest.mark.parametrize("direction,stop", [(XauDirection.BUY, 104), (XauDirection.SELL, 102)])
+def test_pending_profitable_stop_reserves_zero_native_cash_risk(direction, stop):
+    replay = ExecutionReplay(config(), "pending-risk")
+    time = pd.Timestamp("2026-09-24", tz="UTC")
+    replay.orders["pending"] = ReplayOrder("pending", candidate(direction), 0.01, stop, 110, "target", time)
+    assert replay._risk(103, 103.1)[1] == 0
+
+
+def test_missing_live_stop_uses_tracked_initial_stop_for_cash_risk():
+    replay = ExecutionReplay(config(), "missing-stop")
+    time = pd.Timestamp("2026-09-24", tz="UTC")
+    replay.orders["filled"] = ReplayOrder(
+        "filled",
+        candidate(),
+        0.01,
+        0,
+        110,
+        "target",
+        time,
+        status=XauExecutionStatus.FILLED,
+        fill_price=103,
+        initial_sl=97,
+    )
+    assert replay._risk(103, 103.1)[0] == 6
 
 
 @pytest.mark.parametrize("high,used,allowed", [(False, 1, True), (False, 2, False), (True, 9, True), (True, 10, False)])

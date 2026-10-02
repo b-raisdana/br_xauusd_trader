@@ -24,9 +24,14 @@ def generate_actions(
     config: ReplayConfig,
     replay: ExecutionReplay | None = None,
 ) -> pt.DataFrame[PerTickState]:
-    """Replay one chronological broker/symbol partition using explicit economics."""
-    # result = per_tick_state.copy()
-    # times = result.index.get_level_values("precise_time")
+    """Compatibility replay of supplied candidates, without native candle/signal parity.
+
+    Use VectorizedXauUsdStrategy.process_tick_data for the canonical market flow.
+    """
+    if not ticks.index.equals(per_tick_state.index):
+        raise ValueError("Execution ticks and state must have identical ordered indexes")
+    if replay is not None and replay.config != config:
+        raise ValueError("Execution replay and supplied configuration must match")
     times = per_tick_state.index.get_level_values("precise_time")
     result = per_tick_state
 
@@ -57,4 +62,5 @@ def generate_actions(
     payload = pd.DataFrame.from_records(records, index=result.index)
     for column in payload:
         result[column] = payload[column].to_numpy()
+    result["mt5_state"] = "{}"
     return result

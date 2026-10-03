@@ -21,7 +21,7 @@ from .zone_cache import ZoneCache
 
 
 @profile_it
-@pandera_validate
+@pandera_validate(dump_output=True)
 def run_vectorized_strategy(
     tick_df: pt.DataFrame[VectorizedTick],
     candle_df: pt.DataFrame[StrategyCandles],
@@ -34,10 +34,10 @@ def run_vectorized_strategy(
     with core_vectors.use(), strategy_config.use():
         manifest = ResultFilesManifest()
         try:
-            for day, ticks in tick_df.groupby("broker_day", sort=False):
+            for day, day_ticks in tick_df.groupby("broker_day", sort=False):
                 times = candle_df.index.get_level_values("bar_time")
-                candles = candle_df.loc[times <= ticks.bar_time.max()]
-                manifest.save_daily_ticks(day, ticks)
+                candles = candle_df.loc[times <= day_ticks.bar_time.max()]
+                manifest.save_daily_ticks(day, day_ticks)
                 manifest.save_daily_candles(day, candles)
             strategy = VectorizedXauUsdStrategy(ZoneCache(zones_df), execution)
             manifest = strategy.process_tick_data(manifest)

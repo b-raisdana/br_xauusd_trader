@@ -66,7 +66,7 @@ class VectorizedXauUsdStrategy:
         self.inputs = execution.inputs if execution else (inputs or RobustInputs())
 
     @profile_it
-    @pandera_validate
+    @pandera_validate(dump_output=True)
     def process_tick_data(self, manifest: ResultFilesManifest) -> ResultFilesManifest:
         """Read daily market artifacts and persist validated calculation states."""
         markets: dict[tuple[str, str], MarketState] = {}
@@ -75,17 +75,21 @@ class VectorizedXauUsdStrategy:
             candles = manifest.read_daily_candles(day)
             states: list[pt.DataFrame[PerTickState]] = []
             candle_states: list[pt.DataFrame[PerCandleState]] = []
-            for stream, instrument_ticks in ticks.groupby(level=["broker", "symbol"], sort=False):
+
+            broker_symbol: tuple[str, str]
+            for broker_symbol, instrument_ticks in ticks.groupby(level=["broker", "symbol"], sort=False):
                 if not instrument_ticks.index.get_level_values("precise_time").is_monotonic_increasing:
                     raise ValueError("Ticks must be chronological within each broker/symbol")
-                stream_candles = candles.loc[
-                    (candles.index.get_level_values("broker") == stream[0])
-                    & (candles.index.get_level_values("symbol") == stream[1])
+                broker_symbol_candles = candles.loc[
+                    (candles.index.get_level_values("broker") == broker_symbol[0])
+                    & (candles.index.get_level_values("symbol") == broker_symbol[1])
                 ]
-                if stream not in markets:
-                    replay = ExecutionReplay(self.execution, repr(stream)) if self.execution else None
-                    markets[stream] = MarketState(self.inputs, replay)
-                state, candle_state = self._process_native_stream(instrument_ticks, stream_candles, markets[stream])
+                if broker_symbol not in markets:
+                    replay = ExecutionReplay(self.execution, repr(broker_symbol)) if self.execution else None
+                    markets[broker_symbol] = MarketState(self.inputs, replay)
+                state, candle_state = self.process_native_stream(
+                    instrument_ticks, broker_symbol_candles, markets[broker_symbol]
+                )
                 states.append(state)
                 candle_states.append(candle_state)
             if states:
@@ -94,8 +98,8 @@ class VectorizedXauUsdStrategy:
         manifest.wait_for_writes()
         return manifest
 
-    @pandera_validate
-    def _process_native_stream(
+    @pandera_validate(dump_output=True)
+    def process_native_stream(
         self,
         ticks: pt.DataFrame[VectorizedTick],
         candles: pt.DataFrame[StrategyCandles],

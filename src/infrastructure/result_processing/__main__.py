@@ -36,7 +36,6 @@ def merge_results_with_candles(manifest: ResultFilesManifest) -> ResultFilesMani
     return manifest
 
 
-@profile_it
 def generate_order_management_columns(manifest: ResultFilesManifest) -> ResultFilesManifest:
     for day in manifest.successful_days("results_with_columns"):
         output = _project_snapshots(

@@ -115,13 +115,10 @@ class VectorizedXauUsdStrategy:
         if (locations < 3).any():
             raise ValueError("MT5 startup requires three native closed M15 candles")
         ohlc = candles[["open", "high", "low", "close"]].astype(np.float64)
-        # Closed-history slots exclude the current candle: slot k reads the candle 3-k bars back.
-        # closed_high = ohlc["high"].shift(1)
-        # closed_low = ohlc["low"].shift(1)
-        # Single conversion serves the bounded closed-history windows and the observed bar opens.
-        values = ohlc.to_numpy(copy=False)
-        bar_opens = values[:, 0].take(locations).tolist()
+        bar_opens = ohlc["open"].iloc[locations].tolist()
         state = self._initialize_per_tick_temp_state(ticks)
+        # Single conversion serves the bounded closed-history windows consumed by MarketState.step.
+        values = ohlc.to_numpy(copy=False)
         histories = {i: values[max(0, i - 102) : i] for i in set(locations)}
         rows = []
         zones = self._zone_cache.get_zones_for_day(ticks.broker_day.iloc[0])
@@ -147,6 +144,7 @@ class VectorizedXauUsdStrategy:
         points = trend_point_count()
         per_candle = candles.iloc[observed].copy()
         per_candle["trend_count"] = points
+        # Closed-history slots exclude the current candle: slot k reads the candle points-k bars back.
         closed_extrema = pd.DataFrame(
             {
                 f"trend_{side}_{slot}": candles[side].shift(points - slot)

@@ -23,14 +23,14 @@ def inputs(symbol="XAUUSD", offset=0.0):
     )
     prices = np.array([99.0, 100.0, 103.0, 104.0, 105.0, 106.0, 107.0, 108.0]) + offset
     ticks = pd.DataFrame(
-        dict(
-            bid=prices,
-            ask=prices + 0.2,
-            last=prices,
-            volume=np.zeros(8, dtype=np.uint64),
-            flags=np.zeros(8, dtype=np.uint32),
-            volume_real=np.zeros(8),
-        ),
+        {
+            "bid": prices,
+            "ask": prices + 0.2,
+            "last": prices,
+            "volume": np.zeros(8, dtype=np.uint64),
+            "flags": np.zeros(8, dtype=np.uint32),
+            "volume_real": np.zeros(8),
+        },
         index=index.reorder_levels(["symbol", "broker", "date", "precise_time"]),
     )
     ticks = VectorizedXauUsdStrategy.add_bar_time_n_broker_day(ticks)
@@ -45,7 +45,11 @@ def test_separated_ticks_run_without_mutation_or_market_columns_in_state(replay)
     economics = LinearReplayEconomics(
         100.0, 100.0, 0.0, 0.0, 0.0, {"2026-09-18": pd.Timestamp("2026-09-18 23:59", tz="UTC")}
     )
-    strategy = VectorizedXauUsdStrategy(Zones(), ReplayConfig(economics) if replay else None)
+    if replay:
+        with pytest.raises(ValueError, match="signals-only"):
+            VectorizedXauUsdStrategy(Zones(), ReplayConfig(economics))
+        return
+    strategy = VectorizedXauUsdStrategy(Zones())
     result, _ = calculate_manifest(strategy, ticks, candles)
     assert len(result) == len(ticks)
     assert not {"bid", "ask", "bar_time", "broker_day"}.intersection(result)
@@ -72,7 +76,7 @@ def test_missing_tick_price_is_rejected():
 
 
 def test_runner_projects_valid_results_for_multiple_symbols():
-    from application.xauusd_trading_strategy_1_vector.domain.schema import PositionTrackingResult
+    from application.xauusd_trading_strategy_1_vector.domain.columnar import SignalTickState
     from application.xauusd_trading_strategy_1_vector.runner import run_vectorized_strategy
 
     a, ca = inputs()
@@ -83,10 +87,10 @@ def test_runner_projects_valid_results_for_multiple_symbols():
         index=pd.MultiIndex.from_arrays([["15min"], dates], names=["timeframe", "date"]),
     )
     manifest = run_vectorized_strategy(pd.concat([a, b]), pd.concat([ca, cb]), zones)
-    result = manifest.read_positions(pd.Timestamp("2026-09-18", tz="UTC"))
-    PositionTrackingResult.validate(result)
+    result = manifest.read_daily_signal_state(pd.Timestamp("2026-09-18", tz="UTC"))
+    SignalTickState.validate(result)
     second = result.xs("SECOND", level="symbol")
-    assert second.candle_high.dropna().min() >= 199.0
+    assert second.bar_open.min() >= 199.0
 
 
 def test_main_runs_with_fetch_shaped_inputs_and_writes_parquet(monkeypatch, tmp_path):
@@ -125,4 +129,7 @@ def test_main_runs_with_fetch_shaped_inputs_and_writes_parquet(monkeypatch, tmp_
     saved = pd.read_parquet(output)
     assert len(saved) == len(ticks)
     assert saved.bid.tolist() == ticks.bid.tolist()
-    assert {"orders", "positions", "breakout_signals"} <= set(saved)
+    assert {"stream_tick", "breakout_sequence", "pullback_active"} <= set(saved)
+    assert not {"orders", "positions", "breakout_signals"}.intersection(saved)
+    assert pd.read_parquet(output.with_name("results_signals.parquet")).family.isin([0, 1, 2]).all()
+    assert output.with_name("results_windows.parquet").exists()

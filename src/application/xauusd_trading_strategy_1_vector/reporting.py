@@ -32,7 +32,23 @@ def save_results_to_file(
     manifest: ResultFilesManifest,
     output_file: str,
 ) -> None:
-    """Export validated daily position artifacts to one parquet file."""
+    """Export primitive native tables, or separate legacy position artifacts."""
+    days = manifest.successful_days("signal_state")
+    if days:
+        path = Path(output_file)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        result = pd.concat(
+            [pd.concat([manifest.read_daily_ticks(day), manifest.read_daily_signal_state(day)], axis=1) for day in days]
+        )
+        result.reset_index().to_parquet(path, index=False)
+        pd.concat([manifest.read_daily_signals(day) for day in days]).reset_index().to_parquet(
+            path.with_name(f"{path.stem}_signals.parquet"), index=False
+        )
+        pd.concat([manifest.read_daily_windows(day) for day in days]).reset_index().to_parquet(
+            path.with_name(f"{path.stem}_windows.parquet"), index=False
+        )
+        print(f"Results saved to {output_file} (Parquet format)")
+        return
     result = pd.concat([manifest.read_positions(day) for day in manifest.successful_days("positions")])
     result_reset = result.reset_index()
     for column in result_reset.select_dtypes(include="object", exclude="str"):
@@ -50,6 +66,15 @@ def save_results_to_file(
 
 
 def print_strategy_summary(manifest: ResultFilesManifest) -> None:
+    days = manifest.successful_days("signal_state")
+    for day in days:
+        state = manifest.read_daily_signal_state(day)
+        signals = manifest.read_daily_signals(day)
+        print(f"Total ticks processed: {len(state)}")
+        for family, name in enumerate(("Breakout", "Reversal", "Pullback")):
+            print(f"{name} signals: {signals.family.eq(family).sum()}")
+    if days:
+        return
     for day in manifest.successful_days("positions"):
         _print_strategy_summary(manifest.read_positions(day))
 

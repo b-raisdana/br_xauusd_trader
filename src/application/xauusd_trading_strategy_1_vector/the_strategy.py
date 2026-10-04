@@ -27,11 +27,11 @@ from domain.xau_usd.models import XauZone
 from helper.importer import pt
 from infrastructure.result_processing.io import ResultFilesManifest
 
+from .columnar import process_columns
+from .domain.columnar import ColumnarMarket, ColumnarResult
 from .domain.replay import ReplayConfig
 from .domain.robust import RobustInputs
 from .engagement import update_zone_engagement
-from .market import MarketState
-from .replay import ExecutionReplay
 from .signals import generate_breakout_signals, generate_pullback_signals, generate_reversal_signals
 from .trend import compute_bar_time, update_trend
 from .zone_cache import ZoneCache
@@ -56,24 +56,26 @@ def _assert_state_columns(per_tick_state: pd.DataFrame) -> pd.DataFrame:
 
 
 class VectorizedXauUsdStrategy:
-    """Ordered MT5-source state transitions over persisted market artifacts."""
+    """Signals-only native columns over persisted market artifacts."""
 
     def __init__(
         self, zone_cache: ZoneCache, execution: ReplayConfig | None = None, inputs: RobustInputs | None = None
     ) -> None:
+        if execution is not None:
+            raise ValueError("Native strategy supports signals-only mode; use ExecutionReplay separately")
         self._zone_cache = zone_cache
         self.execution = execution
-        self.inputs = execution.inputs if execution else (inputs or RobustInputs())
+        self.inputs = inputs or RobustInputs()
 
     @profile_it
     @pandera_validate(dump_output=True)
     def process_tick_data(self, manifest: ResultFilesManifest) -> ResultFilesManifest:
         """Read daily market artifacts and persist validated calculation states."""
-        markets: dict[tuple[str, str], MarketState] = {}
+        markets: dict[tuple[str, str], ColumnarMarket] = {}
         for day in manifest.successful_days("ticks"):
             ticks = manifest.read_daily_ticks(day)
             candles = manifest.read_daily_candles(day)
-            states: list[pt.DataFrame[PerTickState]] = []
+            results: list[ColumnarResult] = []
             candle_states: list[pt.DataFrame[PerCandleState]] = []
 
             broker_symbol: tuple[str, str]
@@ -85,15 +87,16 @@ class VectorizedXauUsdStrategy:
                     & (candles.index.get_level_values("symbol") == broker_symbol[1])
                 ]
                 if broker_symbol not in markets:
-                    replay = ExecutionReplay(self.execution, repr(broker_symbol)) if self.execution else None
-                    markets[broker_symbol] = MarketState(self.inputs, replay)
-                state, candle_state = self.process_native_stream(
-                    instrument_ticks, broker_symbol_candles, markets[broker_symbol]
+                    markets[broker_symbol] = ColumnarMarket(self.inputs)
+                result = self.process_native_stream(instrument_ticks, broker_symbol_candles, markets[broker_symbol])
+                results.append(result)
+                candle_states.append(result.candles)
+            if results:
+                manifest.save_daily_signal_state(
+                    day, pd.concat([result.ticks for result in results]).sort_index(kind="stable")
                 )
-                states.append(state)
-                candle_states.append(candle_state)
-            if states:
-                manifest.save_daily_ticks_temp_state(day, pd.concat(states).sort_index(kind="stable"))
+                manifest.save_daily_signals(day, pd.concat([result.signals for result in results]))
+                manifest.save_daily_windows(day, pd.concat([result.windows for result in results]))
                 manifest.save_daily_candles_temp_state(day, pd.concat(candle_states).sort_index(kind="stable"))
         manifest.wait_for_writes()
         return manifest
@@ -103,58 +106,10 @@ class VectorizedXauUsdStrategy:
         self,
         ticks: pt.DataFrame[VectorizedTick],
         candles: pt.DataFrame[StrategyCandles],
-        market: MarketState,
-    ) -> tuple[pt.DataFrame[PerTickState], pt.DataFrame[PerCandleState]]:
-        candles = candles.loc[candles.index.get_level_values("timeframe") == "15min"].sort_index(level="bar_time")
-        times = candles.index.get_level_values("bar_time")
-        if times.duplicated().any():
-            raise ValueError("M15 candles must be unique per broker/symbol/bar_time")
-        locations = times.get_indexer(ticks.bar_time)
-        if (locations < 0).any():
-            raise ValueError("M15 candles must cover every observed tick bar")
-        if (locations < 3).any():
-            raise ValueError("MT5 startup requires three native closed M15 candles")
-        ohlc = candles[["open", "high", "low", "close"]].astype(np.float64)
-        bar_opens = ohlc["open"].iloc[locations].tolist()
-        state = self._initialize_per_tick_temp_state(ticks)
-        # Single conversion serves the bounded closed-history windows consumed by MarketState.step.
-        values = ohlc.to_numpy(copy=False)
-        histories = {i: values[max(0, i - 102) : i] for i in set(locations)}
-        rows = []
-        zones = self._zone_cache.get_zones_for_day(ticks.broker_day.iloc[0])
-        for row, (time, tick) in enumerate(
-            zip(ticks.index.get_level_values("precise_time"), ticks.itertuples(), strict=True)
-        ):
-            location = locations[row]
-            rows.append(
-                market.step(
-                    time,
-                    str(tick.broker_day.date()),
-                    tick.bar_time,
-                    bar_opens[row],
-                    tick.bid,
-                    tick.ask,
-                    histories[location],
-                    zones,
-                )
-            )
-        payload = pd.DataFrame(rows, index=ticks.index)
-        state.loc[:, payload.columns] = payload
-        observed = pd.unique(locations)
-        points = trend_point_count()
-        per_candle = candles.iloc[observed].copy()
-        per_candle["trend_count"] = points
-        # Closed-history slots exclude the current candle: slot k reads the candle points-k bars back.
-        closed_extrema = pd.DataFrame(
-            {
-                f"trend_{side}_{slot}": candles[side].shift(points - slot)
-                for slot in range(points)
-                for side in TREND_SIDES
-            },
-            index=candles.index,
-        ).iloc[observed]
-        per_candle[list(closed_extrema.columns)] = closed_extrema
-        return PerTickState.validate(state, lazy=True), PerCandleState.validate(per_candle, lazy=True)
+        market: ColumnarMarket,
+    ) -> ColumnarResult:
+        zones = self._zone_cache.get_zones_for_day(ticks.broker_day.iloc[0]) if not ticks.empty else []
+        return process_columns(ticks, candles, market, zones)
 
     @staticmethod
     @profile_it
@@ -186,7 +141,7 @@ class VectorizedXauUsdStrategy:
             # Trend state columns
             "trend": XauTrend.NONE.value,
             "trend_count": 0,
-            **{column: 0.0 for column in trend_row_columns()},
+            **dict.fromkeys(trend_row_columns(), 0.0),
             # Bar state columns
             "bar_open": 0.0,
             "bar_active": False,

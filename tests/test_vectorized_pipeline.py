@@ -129,11 +129,6 @@ def test_summary_counts_candidates_not_non_null_containers(capsys, tmp_path):
     from test_vectorized_tick_separation import Zones, inputs
 
     from application.xauusd_trading_strategy_1_vector.the_strategy import VectorizedXauUsdStrategy
-    from infrastructure.result_processing.__main__ import (
-        generate_order_management_columns,
-        generate_position_tracking_columns,
-        merge_results_with_candles,
-    )
     from infrastructure.result_processing.io import ResultFilesManifest
 
     ticks, candles = inputs()
@@ -142,10 +137,7 @@ def test_summary_counts_candidates_not_non_null_containers(capsys, tmp_path):
     try:
         manifest.save_daily_ticks(day, ticks).save_daily_candles(day, candles)
         VectorizedXauUsdStrategy(Zones()).process_tick_data(manifest)
-        merge_results_with_candles(manifest)
-        generate_order_management_columns(manifest)
-        generate_position_tracking_columns(manifest)
-        expected = manifest.read_positions(day).breakout_signals.map(len).sum()
+        expected = manifest.read_daily_signals(day).family.eq(0).sum()
         print_strategy_summary(manifest)
         assert f"Breakout signals: {expected}" in capsys.readouterr().out
     finally:

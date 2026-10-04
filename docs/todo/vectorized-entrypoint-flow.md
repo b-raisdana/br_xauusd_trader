@@ -1,18 +1,9 @@
-# Vector entry point flow
+# Vectorized entrypoint flow
 
-Updated 2026-10-01. CLI -> zone/tick/native-M15 acquisition -> broker day/bar keys -> daily ResultFilesManifest -> MarketState/optional ExecutionReplay -> previous-candle context -> order/position projections -> export/summary -> optional vectorbt report. Shared acceptance work lives in [MT5-Python.Divergence.md](MT5-Python.Divergence.md).
+The active contract is pandas-native signals-only processing. [Native columnar migration](vectorized-operation-improment.plan.md) records the implementation, output tables, tests and separate execution-replay scope.
 
-## Implemented
-
-- [x] Tick acquisition forwards symbol, covers complete zone days and rejects empty input; export accepts CSV/Parquet.
-- [x] Prior native M15 history is retained; startup requires three closed candles, and each tick bar requires a unique covering native candle.
-- [x] Raw CSV/zip zones use MT5 disabled/date/priority/bound rules before typed validation.
-- [x] CLI `--execution-config` or programmatic ReplayConfig enables explicit-economics replay. Default mode remains signals-only; `--backtest` requires execution configuration.
-- [x] Per-stream market/execution state persists across daily artifacts. Previous M15 output context uses a many-to-one join; tick/state indexes agree. Export consumes manifest artifacts.
-
-## Remaining work
-
-- [ ] Remove prohibited Python tick/candle iteration throughout the reachable flow, including history scans and row callbacks; follow the [audited vectorization plan](vectorized-operation-improment.plan.md) for exact locations, replacements and acceptance invariants.
-- [ ] Debug is accepted/passed but unused by runner. Implement and test a meaningful behavior or remove the unsupported option.
-- [ ] Reporting must use complete events/position collections before claiming a full ledger: scalar projection chooses one position, and vectorbt has independent cash/cost/direction assumptions.
-- [ ] Complete native execution, timestamp/identity normalization and paired acceptance fixtures under the consolidated tracker; the missing envelope still prevents complete native callback verification.
+- **DONE:** CLI -> `run_vectorized_strategy` -> manifest source artifacts -> per-stream `ColumnarMarket` -> `process_native_stream`/`process_columns` -> primitive tick state plus signal/window event tables and observed candle state.
+- **DONE:** Daily source files and broker/symbol groups are orchestration units; calculations operate on complete Series without Python tick/candle iteration. Terminal state survives daily partitions and duplicate timestamps retain `stream_tick` identity.
+- **DONE:** Typed manifest categories are `ticks`, `candles`, `signal_state`, `signals`, `windows` and `per_candle_states`. Export joins original ticks with primitive state and writes separate signal/window Parquet files. Summary counts event rows.
+- **DONE:** Execution configurations and backtests are rejected before data acquisition. Scalar/recorded replay and legacy order/position projections are separate APIs and do not run from the native entrypoint.
+- **TODO, separate scope:** Migrate execution economics/lifecycle feedback and native callback replay before reconnecting them to the columnar pipeline. Native acceptance requires matching recordings and source identity; passing Python tests does not prove native parity or authorize live trading.

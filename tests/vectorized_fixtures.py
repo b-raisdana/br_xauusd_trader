@@ -67,13 +67,13 @@ def prepared_ticks(factory):
     return wrapped
 
 
-def calculate_manifest(strategy, ticks, candles):
+def calculate_manifest(strategy, ticks, candles, *, legacy_objects=False):
     from pathlib import Path
     from tempfile import TemporaryDirectory
 
     import pandas as pd
 
-    from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickState
+    from application.xauusd_trading_strategy_1_vector.domain.columnar import ColumnarMarket, SignalTickState
     from infrastructure.result_processing.io import ResultFilesManifest
 
     candles = with_native_bootstrap(candles)
@@ -86,17 +86,19 @@ def calculate_manifest(strategy, ticks, candles):
                     day, candles.loc[candles.index.get_level_values("bar_time") <= daily.bar_time.max()]
                 )
             strategy.process_tick_data(manifest)
-            states = [manifest.read_daily_ticks_temp_state(day) for day in manifest.successful_days("per_tick_state")]
+            states = [manifest.read_daily_signal_state(day) for day in manifest.successful_days("signal_state")]
             candle_states = [
                 manifest.read_daily_candles_temp_state(day) for day in manifest.successful_days("per_candle_states")
             ]
             state = (
                 pd.concat(states).sort_index(kind="stable")
                 if states
-                else strategy._initialize_per_tick_temp_state(ticks)
+                else strategy.process_native_stream(ticks, candles, ColumnarMarket(strategy.inputs)).ticks
             )
             candle_state = pd.concat(candle_states) if candle_states else candles.iloc[:0]
-            PerTickState.validate(state, lazy=True)
+            SignalTickState.validate(state, lazy=True)
+            if legacy_objects:
+                _restore_test_objects(state, manifest)
             return state, candle_state
         finally:
             manifest.close()
@@ -141,3 +143,56 @@ def complete_tick_state(partial):
     for column in partial:
         combined[column] = partial[column].array
     return combined
+
+
+def _restore_test_objects(state, manifest):
+    """Test-only adapter retaining existing scalar candidate assertions."""
+    import pandas as pd
+
+    from domain.xau_usd.enums import XauDirection, XauOrderType, XauSignalFamily
+    from domain.xau_usd.models import XauPullbackWindowState, XauSignalCandidate, XauZone
+
+    payload = {}
+    for day in manifest.successful_days("signals"):
+        for row in manifest.read_daily_signals(day).reset_index().itertuples(index=False):
+            key = (row.broker, row.symbol, row.stream_tick)
+            family = ("breakout", "reversal", "pullback")[row.family]
+            payload.setdefault((key, family + "_signals"), []).append(
+                XauSignalCandidate(
+                    candidate_id=row.candidate_id,
+                    parent_breakout_id=row.parent_breakout_id,
+                    bar_id=row.bar_id,
+                    zone_id=row.zone_id,
+                    family=XauSignalFamily(row.family),
+                    direction=XauDirection(row.direction),
+                    order_type=XauOrderType(row.order_type),
+                    signal_time=row.signal_time,
+                    entry_price=row.entry_price,
+                )
+            )
+        for row in manifest.read_daily_windows(day).reset_index().itertuples(index=False):
+            key = (row.broker, row.symbol, row.stream_tick)
+            payload.setdefault((key, "pullback_windows_opened"), []).append(
+                XauPullbackWindowState(
+                    parent_breakout_id=row.parent_breakout_id,
+                    zone=XauZone(row.zone_id, row.zone_low, row.zone_high, row.priority),
+                    direction=XauDirection(row.direction),
+                    bar_offset=row.bar_offset,
+                    active=row.active,
+                    penetration_latched=row.penetration_latched,
+                    breakout_bar_time=row.breakout_bar_time,
+                    broker_day=row.broker_day,
+                )
+            )
+    keys = list(
+        zip(
+            state.index.get_level_values("broker"),
+            state.index.get_level_values("symbol"),
+            state.stream_tick,
+            strict=True,
+        )
+    )
+    for column in ("breakout_signals", "reversal_signals", "pullback_signals", "pullback_windows_opened"):
+        state[column] = pd.Series(
+            [tuple(payload.get((key, column), ())) for key in keys], index=state.index, dtype=object
+        )

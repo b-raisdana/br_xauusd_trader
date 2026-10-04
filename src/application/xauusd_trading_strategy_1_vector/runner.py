@@ -6,11 +6,6 @@ from application.xauusd_trading_strategy_1_vector.domain.schema import StrategyC
 from br_pre_commit import pandera_validate
 from domain.schemas.zone import Zone
 from helper.importer import pt
-from infrastructure.result_processing.__main__ import (
-    generate_order_management_columns,
-    generate_position_tracking_columns,
-    merge_results_with_candles,
-)
 from infrastructure.result_processing.io import ResultFilesManifest
 
 from .config.core_vectors import core_vectors
@@ -30,6 +25,8 @@ def run_vectorized_strategy(
     execution: ReplayConfig | None = None,
 ) -> ResultFilesManifest:
     """Persist source frames once, then hand off only the manifest between stages."""
+    if execution is not None:
+        raise ValueError("Native strategy supports signals-only mode; use ExecutionReplay separately")
     with core_vectors.use(), strategy_config.use():
         manifest = ResultFilesManifest()
         try:
@@ -40,9 +37,6 @@ def run_vectorized_strategy(
                 manifest.save_daily_candles(day, candles)
             strategy = VectorizedXauUsdStrategy(ZoneCache(zones_df), execution)
             manifest = strategy.process_tick_data(manifest)
-            manifest = merge_results_with_candles(manifest)
-            manifest = generate_order_management_columns(manifest)
-            manifest = generate_position_tracking_columns(manifest)
             manifest.wait_for_writes()
             return manifest
         finally:

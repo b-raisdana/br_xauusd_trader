@@ -17,7 +17,6 @@
   "mypy:unused-ignore": 8,
   "mypy:valid-type": 3,
   "mypy:var-annotated": 1,
-  "ruff:C420": 1,
   "ruff:I001": 1,
   "ruff:SIM102": 1,
   "ruff:SIM108": 1,

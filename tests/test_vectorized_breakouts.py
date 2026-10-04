@@ -33,7 +33,7 @@ def ticks(times, bids, symbol="XAUUSD"):
 
 def run(frame, zones):
     strategy = VectorizedXauUsdStrategy(Zones(zones))
-    result, _ = calculate_manifest(strategy, frame, candles_from_ticks(frame))
+    result, _ = calculate_manifest(strategy, frame, candles_from_ticks(frame), legacy_objects=True)
     return result, result
 
 

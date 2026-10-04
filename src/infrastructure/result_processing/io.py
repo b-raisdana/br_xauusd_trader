@@ -10,6 +10,7 @@ from typing import Literal, Self
 import pandas as pd
 from pydantic import BaseModel, Field, PrivateAttr
 
+from application.xauusd_trading_strategy_1_vector.domain.columnar import SignalTable, SignalTickState, WindowTable
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
     OrderManagementResult,
     PerCandleState,
@@ -25,8 +26,24 @@ from helper.importer import pt
 from infrastructure.result_processing.parquet import read_parquet, write_parquet
 
 type ResultCategory = Literal[
-    "candles", "per_candle_states", "ticks", "per_tick_state", "orders", "results_with_columns", "positions"
+    "candles",
+    "per_candle_states",
+    "ticks",
+    "per_tick_state",
+    "orders",
+    "results_with_columns",
+    "positions",
+    "signal_state",
+    "signals",
+    "windows",
 ]
+
+
+def _write_columnar(df: pd.DataFrame, name: str, folder: Path) -> Path:
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / name
+    df.to_parquet(path, engine="pyarrow", index=True)
+    return path
 
 
 class ResultFilesManifest(BaseModel):
@@ -40,6 +57,9 @@ class ResultFilesManifest(BaseModel):
     orders: dict[datetime, tuple[Path, bool]] = Field(default_factory=dict)
     results_with_columns: dict[datetime, tuple[Path, bool]] = Field(default_factory=dict)
     positions: dict[datetime, tuple[Path, bool]] = Field(default_factory=dict)
+    signal_state: dict[datetime, tuple[Path, bool]] = Field(default_factory=dict)
+    signals: dict[datetime, tuple[Path, bool]] = Field(default_factory=dict)
+    windows: dict[datetime, tuple[Path, bool]] = Field(default_factory=dict)
     _executor: ThreadPoolExecutor = PrivateAttr(default_factory=lambda: ThreadPoolExecutor(max_workers=4))
     _pending: dict[tuple[ResultCategory, datetime], Future[Path]] = PrivateAttr(default_factory=dict)
 
@@ -58,12 +78,20 @@ class ResultFilesManifest(BaseModel):
             "orders": self.orders,
             "results_with_columns": self.results_with_columns,
             "positions": self.positions,
+            "signal_state": self.signal_state,
+            "signals": self.signals,
+            "windows": self.windows,
         }[category]
 
     def _submit(self, category: ResultCategory, day: datetime, df: pd.DataFrame, name: str) -> None:
         self._finish(category, day)
         path = self._folder() / name
         self._store(category)[day] = (path, False)
+        if category in {"signal_state", "signals", "windows"}:
+            self._pending[category, day] = self._executor.submit(
+                _write_columnar, df.copy(deep=False), name, self._folder()
+            )
+            return
         snapshot = df.copy(deep=True)
         for column in snapshot.select_dtypes(include="object", exclude="str"):
             snapshot[column] = snapshot[column].map(deepcopy)
@@ -104,7 +132,34 @@ class ResultFilesManifest(BaseModel):
         path = self.get_path(category, day)
         if path is None or not self._store(category)[day][1]:
             raise FileNotFoundError(f"No completed {category} artifact for {day}")
-        return read_parquet(path)
+        return pd.read_parquet(path) if category in {"signal_state", "signals", "windows"} else read_parquet(path)
+
+    @pandera_validate
+    def save_daily_signal_state(self, day: datetime, df: pt.DataFrame[SignalTickState]) -> Self:
+        self._submit("signal_state", day, df, f"{day:%Y%m%d}_signal_state.parquet")
+        return self
+
+    @pandera_validate
+    def read_daily_signal_state(self, day: datetime) -> pt.DataFrame[SignalTickState]:
+        return SignalTickState.validate(self._read("signal_state", day), lazy=True)
+
+    @pandera_validate
+    def save_daily_signals(self, day: datetime, df: pt.DataFrame[SignalTable]) -> Self:
+        self._submit("signals", day, df, f"{day:%Y%m%d}_signals.parquet")
+        return self
+
+    @pandera_validate
+    def read_daily_signals(self, day: datetime) -> pt.DataFrame[SignalTable]:
+        return SignalTable.validate(self._read("signals", day), lazy=True)
+
+    @pandera_validate
+    def save_daily_windows(self, day: datetime, df: pt.DataFrame[WindowTable]) -> Self:
+        self._submit("windows", day, df, f"{day:%Y%m%d}_windows.parquet")
+        return self
+
+    @pandera_validate
+    def read_daily_windows(self, day: datetime) -> pt.DataFrame[WindowTable]:
+        return WindowTable.validate(self._read("windows", day), lazy=True)
 
     @pandera_validate
     def save_daily_ticks_temp_state(self, day: datetime, df: pt.DataFrame[PerTickState]) -> Self:

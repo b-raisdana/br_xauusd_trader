@@ -7,9 +7,8 @@ from pandera.errors import SchemaErrors
 from vectorized_fixtures import calculate_manifest, candles_from_ticks, prepared_ticks, with_native_bootstrap
 
 from application.xauusd_trading_strategy_1_vector.config.trend_points import trend_columns, trend_row_columns
+from application.xauusd_trading_strategy_1_vector.domain.columnar import SignalTickState
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
-    PerTickState,
-    PositionTrackingResult,
     ReferenceTrendInfo,
 )
 from application.xauusd_trading_strategy_1_vector.engagement import update_zone_engagement
@@ -20,7 +19,7 @@ from br_pre_commit import pandera_validate
 from helper.importer import pt
 
 
-def test_runner_preserves_position_tracking_dtypes():
+def test_runner_preserves_columnar_signal_state_dtypes():
     ticks = market_frame()
     zones = pd.DataFrame(
         {"lower": [2000.0], "upper": [2001.0], "priority": ["high"], "enabled": [True]},
@@ -30,16 +29,15 @@ def test_runner_preserves_position_tracking_dtypes():
         ),
     )
     result = run_vectorized_strategy(ticks, with_native_bootstrap(candles_from_ticks(ticks)), zones)
-    result = result.read_positions(ticks.broker_day.iloc[0])
-    PositionTrackingResult.validate(result, lazy=True)
-    for alias, schema in PositionTrackingResult.to_schema().columns.items():
+    result = result.read_daily_signal_state(ticks.broker_day.iloc[0])
+    SignalTickState.validate(result, lazy=True)
+    for alias, schema in SignalTickState.to_schema().columns.items():
         columns = [column for column in result.columns if re.fullmatch(alias, column)] if schema.regex else [alias]
         assert columns
         if str(schema.dtype) in {"Int64", "float64"}:
             for column in columns:
                 assert str(result[column].dtype) == str(schema.dtype)
-    assert result.order_type.isna().all()
-    assert result.position_size.isna().all()
+    assert not {"orders", "positions", "action", "mt5_state"}.intersection(result)
 
 
 class EmptyZones:
@@ -88,11 +86,11 @@ def test_strategy_output_rejects_broken_contract(defect):
     ticks = market_frame()
     result, _ = calculate_manifest(VectorizedXauUsdStrategy(EmptyZones()), ticks, candles_from_ticks(ticks))
     if defect == "missing_column":
-        result = result.drop(columns="breakout_signals")
+        result = result.drop(columns="breakout_sequence")
     else:
         result.index = result.index.set_levels(result.index.levels[2].as_unit("us"), level="precise_time")
     with pytest.raises(SchemaErrors):
-        PerTickState.validate(result, lazy=True)
+        SignalTickState.validate(result, lazy=True)
 
 
 @pytest.mark.parametrize("operation", ["references", "engagement"])

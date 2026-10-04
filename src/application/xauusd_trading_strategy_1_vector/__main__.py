@@ -24,7 +24,7 @@ from infrastructure.result_processing.__main__ import (
     merge_results_with_candles,
 )
 
-from .domain.replay import ReplayConfig, ReplayFileConfig
+from .domain.replay import ReplayConfig
 from .reporting import (
     print_strategy_summary,
     save_results_to_file,
@@ -50,13 +50,13 @@ def cli(
     symbol: str = typer.Option(app_config.default_symbol, help="The symbol to use"),
     zones: Path = typer.Option(Path("ranges.zip"), help="Path to zones CSV file"),
     output: str = typer.Option("strategy_results.parquet", help="Path to output file"),
-    backtest: bool = typer.Option(False, "--backtest", help="Run vectorbt backtest report after strategy execution"),
-    execution_config: Path | None = typer.Option(None, help="JSON replay economics and EA inputs"),
+    backtest: bool = typer.Option(False, "--backtest", help="Unsupported in signals-only native mode"),
+    execution_config: Path | None = typer.Option(None, help="Unsupported in native mode; use the replay API"),
 ) -> None:
-    execution = (
-        ReplayFileConfig.model_validate_json(execution_config.read_text()).replay_config() if execution_config else None
-    )
-    asyncio.run(main(symbol=symbol, zones=zones, output=output, backtest=backtest, execution=execution))
+    if execution_config is not None or backtest:
+        log_e("Native strategy supports signals-only mode; execution replay/backtesting is separate")
+        raise ValueError("Native strategy supports signals-only mode; execution replay/backtesting is separate")
+    asyncio.run(main(symbol=symbol, zones=zones, output=output))
 
 
 @profile_it
@@ -67,12 +67,13 @@ async def main(
     backtest: bool = False,
     execution: ReplayConfig | None = None,
 ) -> None:
-    if backtest and execution is None:
-        raise ValueError("Backtest requires explicit execution economics")
+    if execution is not None or backtest:
+        log_e("Native strategy supports signals-only mode; execution replay/backtesting is separate")
+        raise ValueError("Native strategy supports signals-only mode; execution replay/backtesting is separate")
     output_format = Path(output).suffix.lstrip(".").lower()
-    if output_format not in {"csv", "parquet"}:
-        log_e("Output must have a .csv or .parquet extension")
-        raise ValueError("Output must have a .csv or .parquet extension")
+    if output_format != "parquet":
+        log_e("Columnar output requires a .parquet extension")
+        raise ValueError("Columnar output requires a .parquet extension")
     print("Loading data ...")
 
     zones_df = await load_zones_from_file(zones)
@@ -125,17 +126,6 @@ async def main(
     )
 
     print_strategy_summary(manifest)
-
-    if backtest:
-        from .backtest import print_backtest_report, run_vectorbt_backtest, save_backtest_report, save_backtest_trades
-
-        print("\n--- Running vectorbt backtest ---")
-        print_backtest_report(manifest)
-        portfolio = run_vectorbt_backtest(manifest)
-        backtest_output = Path(output).with_suffix(".backtest_stats.parquet")
-        save_backtest_report(portfolio, str(backtest_output))
-        trades_output = Path(output).with_suffix(".backtest_trades.parquet")
-        save_backtest_trades(portfolio, str(trades_output))
 
     print(f"\nExecution completed successfully. Results saved to {output}")
 

@@ -48,13 +48,13 @@ def test_manifest_categories_are_distinct_and_reads_wait_for_writes(tmp_path):
         assert manifest.save_daily_ticks(day, ticks) is manifest
         manifest.save_daily_candles(day, candles)
         assert VectorizedXauUsdStrategy(Zones()).process_tick_data(manifest) is manifest
-        categories = ["ticks", "candles", "per_tick_state", "per_candle_states"]
+        categories = ["ticks", "candles", "signal_state", "per_candle_states", "signals", "windows"]
         paths = [manifest.get_path(category, day) for category in categories]
-        assert len(set(paths)) == 4
+        assert len(set(paths)) == 6
         assert all(path.exists() for path in paths)
         pd.testing.assert_frame_equal(manifest.read_daily_ticks(day), ticks)
         pd.testing.assert_frame_equal(manifest.read_daily_candles(day), candles)
-        assert len(manifest.read_daily_ticks_temp_state(day)) == len(ticks)
+        assert len(manifest.read_daily_signal_state(day)) == len(ticks)
         assert len(manifest.read_daily_candles_temp_state(day)) == ticks.bar_time.nunique()
     finally:
         manifest.close()
@@ -128,9 +128,12 @@ def test_schema_columns_have_one_declaration():
     columns = []
     for cls in (node for node in tree.body if isinstance(node, ast.ClassDef)):
         for field in cls.body:
-            if isinstance(field, ast.AnnAssign) and isinstance(field.annotation, ast.Subscript):
-                if ast.unparse(field.annotation.value) == "pt.Series":
-                    columns.append(field.target.id)
+            if (
+                isinstance(field, ast.AnnAssign)
+                and isinstance(field.annotation, ast.Subscript)
+                and ast.unparse(field.annotation.value) == "pt.Series"
+            ):
+                columns.append(field.target.id)
     assert len(columns) == len(set(columns))
 
 

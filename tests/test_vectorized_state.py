@@ -5,6 +5,7 @@ from pandera.errors import SchemaErrors
 from vectorized_fixtures import calculate_manifest, candles_from_ticks, prepared_ticks, with_native_bootstrap
 
 from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
+from application.xauusd_trading_strategy_1_vector.config.trend_points import trend_row_columns
 from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickState
 from application.xauusd_trading_strategy_1_vector.engagement import update_zone_engagement
 from domain.xau_usd.models import XauZone
@@ -12,6 +13,7 @@ from infrastructure.result_processing.__main__ import (
     generate_order_management_columns,
     generate_position_tracking_columns,
 )
+from infrastructure.result_processing.io import ResultFilesManifest
 
 
 class EmptyZones:
@@ -305,3 +307,69 @@ def test_per_candle_state_preserves_all_days_and_resets_between_batches():
     state, per_candle_state = calculate_manifest(strategy, frame.iloc[:0], candles_from_ticks(frame.iloc[:0]))
     assert state.empty
     assert per_candle_state.empty
+
+
+def test_observed_candle_projection_pins_slot_order_index_and_dtypes():
+    frame = ticks(
+        ["2026-09-17 23:30", "2026-09-17 23:31", "2026-09-17 23:45", "2026-09-18 00:00"],
+        [100, 104, 102, 103],
+    )
+    strategy = VectorizedXauUsdStrategy(EmptyZones())
+    _, per_candle_state = calculate_manifest(strategy, frame, candles_from_ticks(frame))
+
+    assert list(per_candle_state.columns) == [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+        "trend_count",
+        "trend_high_0",
+        "trend_low_0",
+        "trend_high_1",
+        "trend_low_1",
+        "trend_high_2",
+        "trend_low_2",
+    ]
+    assert per_candle_state.index.equals(with_native_bootstrap(candles_from_ticks(frame)).index[[3, 4, 5]])
+    assert str(per_candle_state.trend_count.dtype) == "int64"
+    assert all(str(per_candle_state[column].dtype) == "float64" for column in trend_row_columns())
+    np.testing.assert_array_equal(per_candle_state.trend_count, [3, 3, 3])
+    np.testing.assert_array_equal(per_candle_state.trend_high_0, [100.0, 100.0, 100.0])
+    np.testing.assert_array_equal(per_candle_state.trend_low_0, [100.0, 100.0, 100.0])
+    np.testing.assert_array_equal(per_candle_state.trend_high_1, [100.0, 100.0, 104.0])
+    np.testing.assert_array_equal(per_candle_state.trend_low_1, [100.0, 100.0, 100.0])
+    np.testing.assert_array_equal(per_candle_state.trend_high_2, [100.0, 104.0, 102.0])
+    np.testing.assert_array_equal(per_candle_state.trend_low_2, [100.0, 100.0, 102.0])
+
+
+def test_observed_candle_slots_exclude_the_current_candle():
+    frame = ticks(
+        ["2026-09-17 23:30", "2026-09-17 23:31", "2026-09-17 23:45", "2026-09-18 00:00"],
+        [100, 104, 102, 103],
+    )
+    strategy = VectorizedXauUsdStrategy(EmptyZones())
+    candles = candles_from_ticks(frame)
+    _, expected = calculate_manifest(strategy, frame, candles)
+
+    mutated = candles.copy()
+    newest = mutated.index.get_level_values("bar_time").argmax()
+    mutated.iloc[newest, mutated.columns.get_indexer(["high", "low"])] = [99999.0, 0.0]
+    _, actual = calculate_manifest(strategy, frame, mutated)
+
+    projection = ["trend_count", *trend_row_columns()]
+    pd.testing.assert_frame_equal(actual[projection], expected[projection])
+
+
+def test_observed_candle_projection_requires_three_prior_closed_candles(tmp_path):
+    frame = ticks(["2026-09-18 00:00", "2026-09-18 00:15", "2026-09-18 00:30"], [100, 101, 102])
+    candles = candles_from_ticks(frame)
+    manifest = ResultFilesManifest(root=tmp_path)
+    try:
+        for day, daily in frame.groupby("broker_day", sort=False):
+            manifest.save_daily_ticks(day, daily)
+            manifest.save_daily_candles(day, candles)
+        with pytest.raises(ValueError, match="startup requires three native closed M15 candles"):
+            VectorizedXauUsdStrategy(EmptyZones()).process_tick_data(manifest)
+    finally:
+        manifest.close()

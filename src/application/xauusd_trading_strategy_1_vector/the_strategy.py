@@ -136,14 +136,20 @@ class VectorizedXauUsdStrategy:
                 )
             )
         payload = pd.DataFrame(rows, index=ticks.index)
-        for column in payload:
-            state[column] = payload[column]
-        observed = list(dict.fromkeys(locations))
+        state.loc[:, payload.columns] = payload
+        observed = pd.unique(locations)
+        points = trend_point_count()
         per_candle = candles.iloc[observed].copy()
-        per_candle["trend_count"] = 3
-        for slot in range(3):
-            per_candle[f"trend_high_{slot}"] = [values[i - 3 + slot][1] for i in observed]
-            per_candle[f"trend_low_{slot}"] = [values[i - 3 + slot][2] for i in observed]
+        per_candle["trend_count"] = points
+        closed_extrema = pd.DataFrame(
+            {
+                f"trend_{side}_{slot}": candles[side].shift(points - slot)
+                for slot in range(points)
+                for side in TREND_SIDES
+            },
+            index=candles.index,
+        ).iloc[observed]
+        per_candle[list(closed_extrema.columns)] = closed_extrema
         return PerTickState.validate(state, lazy=True), PerCandleState.validate(per_candle, lazy=True)
 
     @staticmethod

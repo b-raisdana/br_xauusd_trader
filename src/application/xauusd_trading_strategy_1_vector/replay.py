@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime, timedelta
 from math import isfinite
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -38,6 +39,9 @@ from domain.xau_usd.models import (
 
 from .domain.robust import normalize_price, protection, pullback_allowed, reversal_allowed, reversal_limit
 
+if TYPE_CHECKING:
+    from .market import ClosedHistory
+
 
 class ExecutionReplay:
     """Causal execution state for one broker/symbol; no terminal I/O."""
@@ -67,7 +71,7 @@ class ExecutionReplay:
         self.restart_locked = False
         self.session_preclose = False
         self.daily_would_trigger_logged = False
-        self.closed_bars: list[tuple[float, float, float, float]] = []
+        self.closed_bars: ClosedHistory = []
         self.events: list[ReplayEvent] = []
         self.feedback: list[PullbackFeedback] = []
         self.actions: list[ReplayAction] = []

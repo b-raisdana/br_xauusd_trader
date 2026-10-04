@@ -3,6 +3,9 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any
 
+import numpy as np
+from numpy.typing import NDArray
+
 from domain.xau_usd.enums import XauDirection, XauOrderType, XauSignalFamily, XauTrend
 from domain.xau_usd.models import (
     XauDailyZoneSignalState,
@@ -16,6 +19,8 @@ from .domain.robust import RobustInputs, pullback_allowed
 from .replay import ExecutionReplay
 from .trace import shared_trace, timestamp
 
+type ClosedHistory = NDArray[np.float64] | list[tuple[float, float, float, float]]
+
 
 class MarketState:
     """Ordered visible ApprovedStrategyOnTick transitions for a single stream."""
@@ -27,7 +32,7 @@ class MarketState:
         self.bar: datetime | None = None
         self.previous_bid = 0.0
         self.trend = XauTrend.NONE
-        self.history: list[tuple[float, float, float, float]] = []
+        self.history: ClosedHistory = []
 
     def _change_day(self, day: str, zones: list[XauZone], time: datetime) -> None:
         if self.execution:
@@ -168,7 +173,7 @@ class MarketState:
         bar_open: float,
         bid: float,
         ask: float,
-        history: list[tuple[float, float, float, float]],
+        history: ClosedHistory,
         zones: list[XauZone],
     ) -> dict[str, Any]:
         if len(history) < 3:
@@ -182,7 +187,7 @@ class MarketState:
         if self.bar != bar:
             if self.bar is not None:
                 self._age(time)
-                breakouts = self._breakouts(time, history[-1][3], bid, ask)
+                breakouts = self._breakouts(time, float(history[-1][3]), bid, ask)
             if day != self.state.broker_day:
                 self._change_day(day, zones, time)
             if self.bar is None:

@@ -286,6 +286,53 @@ def test_supplied_candle_ranges_are_used_only_after_close():
         calculate_manifest(strategy, frame, candles.iloc[:1])
 
 
+def test_per_candle_closed_slots_map_native_candles_in_order_at_full_precision():
+    frame = ticks(
+        ["2026-09-18 00:00", "2026-09-18 00:15", "2026-09-18 00:30", "2026-09-18 00:45", "2026-09-18 01:00"],
+        [2417.2847561234, 2419.1234567891, 2416.9876543219, 2421.5555555555, 2418.3333333333],
+    )
+    candles = candles_from_ticks(frame)
+    native = with_native_bootstrap(candles)
+    strategy = VectorizedXauUsdStrategy(EmptyZones())
+    state, per_candle_state = calculate_manifest(strategy, frame, candles)
+
+    assert state.trend_count.eq(3).all()
+    assert per_candle_state.index.equals(native.iloc[3:].index)
+    highs, lows = native["high"].to_numpy(), native["low"].to_numpy()
+    window = len(highs) - 3
+    for slot in range(3):
+        np.testing.assert_array_equal(per_candle_state[f"trend_high_{slot}"], highs[slot : window + slot])
+        np.testing.assert_array_equal(per_candle_state[f"trend_low_{slot}"], lows[slot : window + slot])
+    assert per_candle_state["trend_high_2"].iloc[-1] == per_candle_state["high"].iloc[-2]
+
+
+def test_per_candle_closed_slots_exclude_the_current_candle_only():
+    frame = ticks(["2026-09-18 00:00", "2026-09-18 00:15", "2026-09-18 00:30"], [100.0, 101.0, 102.0])
+    candles = candles_from_ticks(frame)
+    strategy = VectorizedXauUsdStrategy(EmptyZones())
+    slots = [f"trend_{bound}_{slot}" for bound in ("high", "low") for slot in range(3)]
+    _, baseline = calculate_manifest(strategy, frame, candles)
+
+    newest = candles.iloc[2].copy()
+    newest[["high", "low", "close"]] = [99999.0, 0.0, 99999.0]
+    changed_current = candles.copy()
+    changed_current.iloc[2] = newest
+    _, after_current = calculate_manifest(strategy, frame, changed_current)
+    pd.testing.assert_frame_equal(after_current[slots], baseline[slots])
+
+    prior = candles.iloc[1].copy()
+    prior[["high", "low"]] = [12345.6789, -1.0]
+    changed_prior = candles.copy()
+    changed_prior.iloc[1] = prior
+    _, after_prior = calculate_manifest(strategy, frame, changed_prior)
+    # Slots are newest first: only the newest observed candle sees the closed 00:15 candle.
+    assert after_prior["trend_high_2"].iloc[-1] == 12345.6789
+    assert after_prior["trend_low_2"].iloc[-1] == -1.0
+    assert after_prior["trend_high_1"].tolist() == baseline["trend_high_1"].tolist()
+    assert after_prior["trend_high_0"].tolist() == baseline["trend_high_0"].tolist()
+    assert after_prior["trend_low_0"].tolist() == baseline["trend_low_0"].tolist()
+
+
 def test_per_candle_state_preserves_all_days_and_resets_between_batches():
     frame = ticks(
         ["2026-09-17 23:30", "2026-09-17 23:31", "2026-09-17 23:45", "2026-09-18 00:00"],

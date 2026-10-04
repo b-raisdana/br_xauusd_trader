@@ -114,7 +114,13 @@ class VectorizedXauUsdStrategy:
             raise ValueError("M15 candles must cover every observed tick bar")
         if (locations < 3).any():
             raise ValueError("MT5 startup requires three native closed M15 candles")
-        values = list(candles[["open", "high", "low", "close"]].itertuples(index=False, name=None))
+        ohlc = candles[["open", "high", "low", "close"]].astype(np.float64)
+        # Closed-history slots exclude the current candle: slot k reads the candle 3-k bars back.
+        closed_high = ohlc["high"].shift(1)
+        closed_low = ohlc["low"].shift(1)
+        # Single conversion serves the bounded closed-history windows and the observed bar opens.
+        values = ohlc.to_numpy(copy=False)
+        bar_opens = values[:, 0].take(locations).tolist()
         state = self._initialize_per_tick_temp_state(ticks)
         histories = {i: values[max(0, i - 102) : i] for i in set(locations)}
         rows = []
@@ -128,7 +134,7 @@ class VectorizedXauUsdStrategy:
                     time,
                     str(tick.broker_day.date()),
                     tick.bar_time,
-                    values[location][0],
+                    bar_opens[row],
                     tick.bid,
                     tick.ask,
                     histories[location],
@@ -139,11 +145,12 @@ class VectorizedXauUsdStrategy:
         for column in payload:
             state[column] = payload[column]
         observed = list(dict.fromkeys(locations))
+        observed_rows = np.asarray(observed)
         per_candle = candles.iloc[observed].copy()
         per_candle["trend_count"] = 3
         for slot in range(3):
-            per_candle[f"trend_high_{slot}"] = [values[i - 3 + slot][1] for i in observed]
-            per_candle[f"trend_low_{slot}"] = [values[i - 3 + slot][2] for i in observed]
+            per_candle[f"trend_high_{slot}"] = closed_high.shift(2 - slot).to_numpy()[observed_rows]
+            per_candle[f"trend_low_{slot}"] = closed_low.shift(2 - slot).to_numpy()[observed_rows]
         return PerTickState.validate(state, lazy=True), PerCandleState.validate(per_candle, lazy=True)
 
     @staticmethod

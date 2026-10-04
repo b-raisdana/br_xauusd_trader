@@ -116,8 +116,8 @@ class VectorizedXauUsdStrategy:
             raise ValueError("MT5 startup requires three native closed M15 candles")
         ohlc = candles[["open", "high", "low", "close"]].astype(np.float64)
         # Closed-history slots exclude the current candle: slot k reads the candle 3-k bars back.
-        closed_high = ohlc["high"].shift(1)
-        closed_low = ohlc["low"].shift(1)
+        # closed_high = ohlc["high"].shift(1)
+        # closed_low = ohlc["low"].shift(1)
         # Single conversion serves the bounded closed-history windows and the observed bar opens.
         values = ohlc.to_numpy(copy=False)
         bar_opens = values[:, 0].take(locations).tolist()
@@ -142,15 +142,20 @@ class VectorizedXauUsdStrategy:
                 )
             )
         payload = pd.DataFrame(rows, index=ticks.index)
-        for column in payload:
-            state[column] = payload[column]
-        observed = list(dict.fromkeys(locations))
-        observed_rows = np.asarray(observed)
+        state.loc[:, payload.columns] = payload
+        observed = pd.unique(locations)
+        points = trend_point_count()
         per_candle = candles.iloc[observed].copy()
-        per_candle["trend_count"] = 3
-        for slot in range(3):
-            per_candle[f"trend_high_{slot}"] = closed_high.shift(2 - slot).to_numpy()[observed_rows]
-            per_candle[f"trend_low_{slot}"] = closed_low.shift(2 - slot).to_numpy()[observed_rows]
+        per_candle["trend_count"] = points
+        closed_extrema = pd.DataFrame(
+            {
+                f"trend_{side}_{slot}": candles[side].shift(points - slot)
+                for slot in range(points)
+                for side in TREND_SIDES
+            },
+            index=candles.index,
+        ).iloc[observed]
+        per_candle[list(closed_extrema.columns)] = closed_extrema
         return PerTickState.validate(state, lazy=True), PerCandleState.validate(per_candle, lazy=True)
 
     @staticmethod

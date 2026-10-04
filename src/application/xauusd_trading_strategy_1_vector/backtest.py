@@ -52,11 +52,11 @@ def _extract_signals(
         & position_status.eq(XauExecutionStatus.FILLED)
         & (previous_position_id.isna() | position_id.ne(previous_position_id).fillna(False)).astype(bool)
     )
-    entries = pd.Series(is_new_position.to_numpy(dtype=bool, na_value=False), index=close.index)
+    entries = is_new_position.fillna(False).astype(bool)
 
     # Exits happen when a position is closed
     is_exit = position_status.eq(XauExecutionStatus.CLOSED)
-    exits = pd.Series(is_exit.to_numpy(dtype=bool, na_value=False), index=close.index)
+    exits = is_exit.fillna(False).astype(bool)
 
     return close, entries, exits
 

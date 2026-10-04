@@ -84,13 +84,13 @@ async def generate_backtest_report(
     report = pd.DataFrame(
         {
             "Datetime": close.index,
-            "Open": open_.values,
-            "High": high.values,
-            "Low": low.values,
-            "Close": close.values,
-            "Entry": entries.values,
-            "Exit": exits.values,
-            "OnTick_Handled": handled_flags.values,
+            "Open": open_,
+            "High": high,
+            "Low": low,
+            "Close": close,
+            "Entry": entries,
+            "Exit": exits,
+            "OnTick_Handled": handled_flags,
             "Portfolio_Value": port.value(),
             "Returns": port.returns(),
         }

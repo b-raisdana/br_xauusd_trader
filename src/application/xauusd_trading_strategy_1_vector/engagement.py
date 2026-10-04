@@ -65,19 +65,25 @@ def update_zone_engagement(
     )
     multi_zone_gap = crosses.to_numpy() > 1
     per_tick_state["multi_zone_tick_gap"] = multi_zone_gap
-    buy = np.zeros(len(per_tick_state), dtype=bool)
-    sell = np.zeros(len(per_tick_state), dtype=bool)
+    buy = pd.Series(False, index=per_tick_state.index)
+    sell = pd.Series(False, index=per_tick_state.index)
     for zone in zones:
         inside_zone = (current_bid >= zone.low) & (current_bid <= zone.high)
         opened_inside = bar_changed & inside_zone
         buy_cross = (previous_bid < zone.low) & (current_bid >= zone.low)
         sell_cross = (previous_bid > zone.high) & (current_bid <= zone.high)
-        zone_buy = pd.Series(np.where(multi_zone_gap, inside_zone, opened_inside | buy_cross))
-        zone_sell = pd.Series(np.where(multi_zone_gap, inside_zone, opened_inside | sell_cross))
-        per_tick_state[f"buy_engaged:{zone.id}"] = zone_buy.groupby(bar_ids, sort=False).cummax().to_numpy()
-        per_tick_state[f"sell_engaged:{zone.id}"] = zone_sell.groupby(bar_ids, sort=False).cummax().to_numpy()
-        buy |= per_tick_state[f"buy_engaged:{zone.id}"].to_numpy()
-        sell |= per_tick_state[f"sell_engaged:{zone.id}"].to_numpy()
-    per_tick_state["buy_engaged"] = pd.Series(buy, index=per_tick_state.index).groupby(bar_ids, sort=False).cummax()
-    per_tick_state["sell_engaged"] = pd.Series(sell, index=per_tick_state.index).groupby(bar_ids, sort=False).cummax()
+        zone_buy = pd.Series(
+            np.where(multi_zone_gap, inside_zone, opened_inside | buy_cross), index=per_tick_state.index
+        )
+        zone_sell = pd.Series(
+            np.where(multi_zone_gap, inside_zone, opened_inside | sell_cross), index=per_tick_state.index
+        )
+        engaged_buy = zone_buy.groupby(bar_ids, sort=False).cummax()
+        engaged_sell = zone_sell.groupby(bar_ids, sort=False).cummax()
+        per_tick_state[f"buy_engaged:{zone.id}"] = engaged_buy
+        per_tick_state[f"sell_engaged:{zone.id}"] = engaged_sell
+        buy |= engaged_buy
+        sell |= engaged_sell
+    per_tick_state["buy_engaged"] = buy.groupby(bar_ids, sort=False).cummax()
+    per_tick_state["sell_engaged"] = sell.groupby(bar_ids, sort=False).cummax()
     return per_tick_state

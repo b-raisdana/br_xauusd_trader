@@ -64,7 +64,7 @@ def _process_zone_reversals(
     zone: XauZone,
     signals: NDArray[np.object_],
     seen_keys: set[str],
-    bar_id: NDArray[np.str_],
+    bar_id: list[str],
     tick_times: pd.DatetimeIndex | None,
     current_bid: pt.Series[float],
     current_trend: pt.Series[int],
@@ -317,7 +317,7 @@ def generate_reversal_signals(
     current_bid = ticks["bid"]
     current_trend = per_tick_state["trend"]
     multi_zone_gap = per_tick_state["multi_zone_tick_gap"]
-    bar_id = ticks["bar_time"].astype(str).to_numpy()
+    bar_id = ticks["bar_time"].astype(str).tolist()
 
     seen_keys: set[str] = set()
     tick_times = (

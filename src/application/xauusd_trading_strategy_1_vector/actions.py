@@ -61,6 +61,6 @@ def generate_actions(
         )
     payload = pd.DataFrame.from_records(records, index=result.index)
     for column in payload:
-        result[column] = payload[column].to_numpy()
+        result[column] = payload[column]
     result["mt5_state"] = "{}"
     return result

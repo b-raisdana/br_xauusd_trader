@@ -1,52 +1,76 @@
 ---
 name: pre-commit-check
-description: Use after finishing any code modification in this repo, before the final response, to run the repository pre-commit checks and confirm the edits did not break formatting, linting, incremental ratchet checks, fast pytest gates, or mirrored skill-file synchronization.
+description: Use after finishing any code modification in this repo, before the final response, to run the repository gates and confirm the edits did not break formatting, linting, documentation links, or test tiers.
 ---
 
 # Pre-Commit Check
 
 ## End-of-Edit Gate
 
-After modifying code, run the repo's pre-commit gate before final handoff unless the user explicitly asks not to run checks. Prefer checking only changed files first because it matches what a real commit will run and avoids unrelated legacy failures:
+Run the wrapper, not raw tools. Bare `ruff`, `mypy`, `pytest` and `xenon` are
+not on `PATH` in the documented environment:
 
-```bash
-# Runs in the active Python environment on PATH (no WSL wrapper needed).
-# Make sure the project env that has pre-commit/ruff/pytest is active first.
-pre-commit run
+```powershell
+python scripts/dev.py lint                 # read-only
+python scripts/dev.py test <paths>         # focused, serial
+python scripts/dev.py check --tier L2      # offline suite + lint
+python scripts/dev.py docs                 # local links and anchors
 ```
 
-Use `pre-commit run --all-files` only when the change is broad, touches shared configuration, or the user asks for a full check.
+`pre-commit run` covers **staged files only**. It does not prove unstaged edits
+were checked. `--all-files` is broader and mutating. Use it only for broad
+changes or shared configuration.
 
 ## Performance budgets
 
-- Unit tests (pre-commit): `pytest -m unit` must finish in under 500 ms total. Tests that cannot meet this budget belong in `integration/`.
-- Integration tests (pre-push): `pytest -m integration` must finish in under 5 s total. Tests that cannot meet this budget belong in `e2e/` or `perf/`.
+No pytest pre-commit hook exists, so there is no commit-time test budget. The
+measured costs on the documented machine (Windows, Python 3.14) are: single node
+id 3 s, one module ~42 s, offline suite ~52 s with `-n auto` versus ~135 s
+serial. `@pandera_validate` dominates. These are baselines to re-measure, not
+enforced budgets.
 
 ## Failure Handling
 
-If hooks auto-modify files, inspect the diff, keep intended fixes, and rerun `pre-commit run` until it passes or only unrelated pre-existing failures remain.
+If a hook auto-modifies files, inspect the diff, keep intended fixes, and rerun.
 
-If a hook fails:
+If a gate fails:
 
 - Fix failures caused by the current edits.
-- Do not clean up unrelated legacy violations unless they block proving the current change and the smallest practical fix is clear.
-- For pytest failures, use the `pytest` skill before debugging or rerunning tests.
-- For Python files under `app/`, remember the `optimization-review` skill still applies after functional edits; do that review before the final pre-commit gate when both skills trigger.
+- Do not clean up unrelated pre-existing failures unless they block proving the
+  current change and the smallest practical fix is clear.
+- For test failures, use the `pytest` skill before debugging or rerunning.
+- For Python files under `src/`, the `performance-review` skill still applies
+  after functional edits.
 
 ### The incremental mypy/ruff/xenon/loc ratchet
 
-`scripts/git-hooks/incremental-precommit/ratchet_check.py` (README.md in that folder) blocks only
-when a vector's **project-wide** count regresses past `baseline*.json` AND **staged app Python
-files** report a nonzero count for that vector — never for pre-existing debt alone. When it blocks:
+The `incremental-ratchet` hook runs `python -m br_pre_commit.src.ratchet` from
+the pinned `br_pre_commit/` submodule over `src/**/*.py`.
 
-- Added files (`git status` shows `A`) have no pre-existing version — every violation on them is
-  attributable to the current change and must be fixed, not waved off as legacy debt.
-- Modified files (`git status` shows `M`) only need violations your edit actually introduced fixed;
-  if unclear, diff the error count against `git show HEAD:<path>` run through the same tool.
-- A blocked/nonzero `pre-commit run` means the commit did not happen. Never report the task done or
-  move on while it's blocked without telling the user explicitly — fix it, or get their sign-off to
-  proceed anyway.
+**Environment precondition:** the submodule invokes `ruff`, `mypy` and `xenon`
+as **bare executables**. In an environment where only `python -m <tool>` works,
+the hook fails with `FileNotFoundError`. Use
+`python scripts/dev.py check --tier ratchet`, which reports that precondition
+explicitly instead of failing obscurely.
+
+**Mutation warning:** running the ratchet **prunes**
+`.br-pre-commit/ratchet/baseline_*.json`. Do not invoke it casually, and restore
+any pruned baseline from Git with
+`git restore .br-pre-commit/ratchet/` before committing.
+
+It blocks only when a vector's **project-wide** count regresses past
+`baseline*.json` **and** staged `src/` Python files report a nonzero count for
+that vector, never for pre-existing debt alone. When it blocks:
+
+- Added files (`A`) have no pre-existing version; every violation on them is
+  attributable to this change and must be fixed.
+- Modified files (`M`) only need violations this edit introduced; diff the error
+  count against `git show HEAD:<path>` through the same tool if unclear.
+
+A blocked gate means the commit did not happen. Never report the task done
+while it is blocked without saying so explicitly.
 
 ## Reporting
 
-In the final response, state whether `pre-commit run` passed. If it did not pass, include the failing hook names and whether the failures appear related to the current edits.
+State whether the gate passed. If not, name the failing hook or tier and say
+whether the failure looks related to the current edits.

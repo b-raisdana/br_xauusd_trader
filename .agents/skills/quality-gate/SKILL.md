@@ -5,17 +5,43 @@ description: Use before declaring implementation complete, committing a mileston
 
 # Quality Gate
 
-Run the checks appropriate to the project:
-1. syntax/build/compile;
-2. formatter/lint;
-3. unit tests;
-4. affected regression/integration tests;
-5. strategy-specific correctness checks;
-6. secret check;
-7. platform-specific smoke test when available.
+Run gates through `python scripts/dev.py check --tier <level>`. The wrapper
+preserves nonzero exits and refuses empty test selections; running the tools by
+hand skips both protections.
 
-During rapid MVP execution, run affected targeted checks after each implementation batch and reserve this complete gate for a major milestone, final MVP candidate, or safety-critical change. Do not rerun unchanged expensive checks merely to create a Git checkpoint.
+## Progression
 
-Fix failures caused by the work.
-Do not disable checks to get a green result.
-Update `TEST_STATUS.md` with evidence.
+| When | Gate |
+|---|---|
+| Before edits; small changes | `check --tier L0` |
+| Each fix loop | `dev.py test <path-or-nodeid>` |
+| Coherent batch | `check --tier L2` |
+| Boundary changes | `check --tier L3` |
+| Milestone / release candidate | `check --tier L4` |
+
+Reserve L4 for a major milestone, a final MVP candidate, or a safety-critical
+change. Do not rerun an unchanged expensive gate merely to create a Git
+checkpoint; reuse the persisted evidence instead.
+
+## Additional pre-commit checks
+
+- Secret scan of the diff, including new config examples. `.kilo/kilo.json` and
+  `.env` hold literal local credentials and must stay untracked; committed
+  examples carry placeholders only.
+- Documentation links resolve: `python scripts/dev.py docs`.
+- `git diff` reviewed for unrelated formatting or cleanup.
+- Submodule identity and evidence included in the review when the pointer moved.
+- Fixture bytes and hashes preserved.
+
+## Live gate
+
+A passing backtest is not permission for real-money deployment. Enabling
+real-money trading is always a Project Leader decision and is never implied by a
+green gate. Before any demo or live discussion, load the `release-live-gate`
+skill.
+
+## Rules
+
+Fix failures caused by the work. Do not disable a check to obtain a green
+result, and do not weaken a schema or assertion to make a change pass. Record
+evidence with commands, environment, selected counts and skips.

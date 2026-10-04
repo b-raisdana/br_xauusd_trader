@@ -1,26 +1,57 @@
 name: Python CI
 
+# Offline acceptance only. MT5 compile/tester evidence is Windows-native and is
+# never produced here; a green run is not native parity.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
 
 jobs:
-  test:
+  offline:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The pandera/ratchet decorators are provided by this pinned submodule
+          # and are required at import time.
+          submodules: recursive
+
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
+
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
-          if [ -s requirements.txt ]; then pip install -r requirements.txt; fi
-      - name: Ruff
-        run: |
-          ruff check .
-          ruff format --check .
-      - name: Type check
-        run: mypy src scripts tests
-      - name: Tests
-        run: pytest
+          # Core + dev profiles only. MetaTrader5 is Windows-only and is declared
+          # with a sys_platform marker, so it is never pulled in on Linux.
+          python -m pip install -e ".[dev]"
+
+      - name: Preflight (L0)
+        run: python scripts/dev.py inspect
+
+      - name: Lint
+        run: python scripts/dev.py lint
+
+      - name: Offline suite (L2)
+        run: python scripts/dev.py test --tier offline --parallel auto
+
+      - name: Integration and parity (L3)
+        run: python scripts/dev.py test --tier integration
+        run: python scripts/dev.py test --tier parity
+
+      - name: Documentation links
+        run: python scripts/dev.py docs
+
+      - name: Wheel builds and imports outside the checkout
+        run: python scripts/dev.py build --smoke
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-dist
+          path: dist/
+          if-no-files-found: ignore

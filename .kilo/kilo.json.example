@@ -1,0 +1,21 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "mcp": {
+    "metaeditor": {
+      "type": "remote",
+      "url": "http://127.0.0.1:22345/mcp",
+      "headers": {
+        "Authorization": "Bearer <local-token>"
+      },
+      "enabled": true
+    },
+    "terminal": {
+      "type": "remote",
+      "url": "http://127.0.0.1:22346/mcp",
+      "headers": {
+        "Authorization": "Bearer <local-token>"
+      },
+      "enabled": true
+    }
+  }
+}

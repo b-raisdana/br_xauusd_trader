@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import cast
 
 import pandas as pd
-import pytz
 from br_py_log_n_profile import log_d, log_e, log_exception, log_w
 from pandas import DatetimeIndex, Timestamp
 from pandera import typing as pt
@@ -312,7 +311,7 @@ def times_in_time_range(
         in_timeframe_start_date = in_timeframe_start_date + pd.to_timedelta(timeframe)
     if start < end:
         return pd.date_range(start=in_timeframe_start_date, end=end, freq=timeframe_to_grouper_freq(timeframe))  # type: ignore[arg-type]
-    return pd.DatetimeIndex([], tz=pytz.utc)
+    return pd.DatetimeIndex([], tz=timezone.utc)
 
 
 def _fill_na_columns(df: pd.DataFrame, na_columns: pd.Series, source: pd.DataFrame) -> None:  # type: ignore[explicit-any]

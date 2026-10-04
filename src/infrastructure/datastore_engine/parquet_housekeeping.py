@@ -1,12 +1,12 @@
 import itertools
 import json
 import re
+from datetime import timezone
 from pathlib import Path
 from zipfile import BadZipFile
 
 import pandas as pd
 import pyarrow.parquet as pq
-import pytz
 from br_py_log_n_profile import log_i, log_w
 from parquet_normalization import flatten_index_to_columns
 
@@ -27,8 +27,8 @@ def _window_time_range_strs(time_range_str: str, window_freq: str) -> list[str]:
     periods = pd.period_range(start=start, end=end, freq=window_freq)
     return [
         time_range_to_string(
-            start=period.start_time.tz_localize(pytz.UTC),
-            end=period.end_time.floor("min").tz_localize(pytz.UTC),
+            start=period.start_time.tz_localize(timezone.utc),
+            end=period.end_time.floor("min").tz_localize(timezone.utc),
         )
         for period in periods
     ]

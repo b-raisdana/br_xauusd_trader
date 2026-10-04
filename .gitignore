@@ -1,12 +1,9 @@
-
 # Secrets
-.env
 .env
 *.env
 !.env.example
 *.pem
 *.key
-
 
 # Python
 .venv/
@@ -19,6 +16,18 @@ __pycache__/
 .uv-cache/
 .coverage
 htmlcov/
+*.egg-info/
+build/
+dist/
+
+# Agent runtime noise. The heavy directories are ignored individually so that
+# sanitized project config stays trackable. kilo.json itself holds a literal
+# bearer token and MUST stay untracked; copy kilo.json.example and fill it in.
+.kilo/kilo.json
+.kilo/node_modules/
+.kilo/worktrees/
+.claude/.mcp.json
+.codex/.mcp.json
 
 # IDE / OS
 .vscode/
@@ -26,47 +35,26 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Logs / reports / generated
+# Logs, reports and generated artifacts
 logs/
 reports/
 artifacts/*
 !artifacts/.gitkeep
-output/*
-!output/.gitkeep
+output/
 tmp/
 *.log
 *.tmp
+/src/output.txt
 
-# Large/local market data
+# Large / local market data
 data/
-data/raw/
-data/cache/
-data/vendor/
 *.parquet
 *.feather
 *.h5
 *.hdf5
 
-# MT5 local/generated
-# *.ex5
-
-
-*.log
-
-tester/cache/
-tester/logs/
-
-# Build
-build/
-dist/
-*.egg-info/
-.kilo/*
-!.kilo/skills/
-!.kilo/skills/**
-
-
-!/docs/todo/vectorized-performance-optimization.reference.log
-
+# MT5 local/generated. The supplied EA, its envelope and the tracked input CSVs
+# under MQL5/Experts and MQL5/Files stay versioned on purpose.
 /mt5/metatester64.exe
 /mt5/Sounds/
 /mt5/Bases/
@@ -85,4 +73,3 @@ dist/
 /mt5/terminal64.exe
 /mt5/Profiles/
 /mt5/uninstall.exe
-

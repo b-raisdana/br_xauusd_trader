@@ -3,6 +3,8 @@ ci:
 repos:
 - repo: local
   hooks:
+  # L0/L1: fast read-only feedback on staged files only. `pre-commit run` checks
+  # staged changes; it does not prove unstaged edits were checked.
   - id: ruff
     name: ruff-check
     entry: python -m ruff check --fix
@@ -17,14 +19,21 @@ repos:
     types:
     - python
     exclude: ^(legacy_reference|archive_not_used_trash)/
-  - id: pytest-fast
-    name: pytest
-    entry: python -m pytest
-    language: system
-    pass_filenames: false
+  # Incremental mypy/ruff/xenon/LOC ratchet over src/.
+  #
+  # NOTE: the pinned br_pre_commit submodule invokes ruff, mypy and xenon as bare
+  # executables. In environments where only `python -m <tool>` is available this
+  # hook fails with FileNotFoundError. `python scripts/dev.py check --tier
+  # ratchet` reports that precondition explicitly instead of failing obscurely.
   - id: incremental-ratchet
     name: incremental ratchet
     language: system
     entry: python -m br_pre_commit.src.ratchet
     pass_filenames: false
     files: ^src/.*\.py$
+
+# There is deliberately no pytest hook. The full unit tier takes ~135s serially on
+# the documented machine (dominated by pandera validation), and pytest exits 5 when
+# a selection collects nothing, so it is not a commit-time gate. Use
+# `python scripts/dev.py test <paths>` for the focused loop and
+# `python scripts/dev.py check --tier L1` / CI for the enforced tiers.

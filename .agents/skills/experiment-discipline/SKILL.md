@@ -22,7 +22,14 @@ After run:
 - record positive and negative results;
 - report effect size, trade/sample count and relevant uncertainty;
 - perform sensitivity/robustness checks proportional to decision impact;
-- update `EXPERIMENTS.md`;
-- persist complete final metrics, config/data/code provenance, failures and interpretation limits in docs/FINAL_TEST_EVIDENCE.json and docs/FINAL_TEST_REPORT.md;
-- generate later summaries from stored evidence without rerunning the experiment;
+- persist complete final metrics, config/data/code provenance, failures and
+  interpretation limits as a structured artifact, then reference that artifact
+  from `docs/CURRENT_STATE.md` rather than restating it in prose;
+- generate later summaries from the stored evidence without rerunning the
+  experiment;
 - only the Leader promotes behavior to confirmed Rules.
+
+`docs/EXPERIMENTS.md`, `docs/FINAL_TEST_REPORT.md` and
+`docs/FINAL_TEST_EVIDENCE.json` do not exist in this checkout. Create an
+artifact only when there is experiment evidence to store; do not report a
+missing file as a blocker.

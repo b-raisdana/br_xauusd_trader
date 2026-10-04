@@ -5,7 +5,7 @@ Audited 2026-10-04 against the current working tree, including existing uncommit
 ## Required policy
 
 - **DONE:** Skills require pandas DataFrames first, NumPy ndarrays second, and prohibit Python per-tick/per-candle iteration, including previous/closed-candle history scans. Stateful dependencies do not authorize a Python loop.
-- **DONE:** The exact fourteen-level operation priority is recorded in [project-decisions](../../.codex/skills/project-decisions/SKILL.md#vectorized-pandasnumpy), linked from optimization-review and the `.agents` decision skill. Numba is a compiled ndarray fallback only when pandas/NumPy cannot efficiently express the calculation. Python iteration is last resort only over non-market-row orchestration units.
+- **DONE:** The exact fourteen-level operation priority is recorded in the canonical decision skill at [.agents/skills/project-decisions/references/vectorized-pandas-numpy.md](../../.agents/skills/project-decisions/references/vectorized-pandas-numpy.md), linked from the `project-decisions`, `performance-review` and `verification` skills. Numba is a compiled ndarray fallback only when pandas/NumPy cannot efficiently express the calculation. Python iteration is last resort only over non-market-row orchestration units.
 - `itertuples`, `iterrows`, comprehensions, generators, row-wise `apply`, Python callbacks in `map`, `np.vectorize`, and helper-hidden loops remain violations when they process ticks/candles. A DataFrame wrapper around scalar transitions does not satisfy this policy.
 - Loops over daily files, instruments or fixed schema fields are distinct from market-row iteration; their calculations must remain batched. Preserve causal inputs, callback ordering, all state fields and strict output schemas.
 

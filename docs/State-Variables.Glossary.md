@@ -1,6 +1,6 @@
 # State variables glossary
 
-Audited 2026-10-02 against [the replacement MQ5](../mt5/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5) and the active Python signals/optional replay paths. [CSV inventory](State-Variables.Glossary.csv) contains **143 unique rows: 52 inputs, 62 fields in five structs, and 29 globals/constants/objects**. This replaces the obsolete MVP inventory; it does not assert equivalent state transitions.
+Audited 2026-10-02 against [the replacement MQ5](../mt5/MQL5/Experts/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5) and the active Python signals/optional replay paths. [CSV inventory](State-Variables.Glossary.csv) contains **143 unique rows: 52 inputs, 62 fields in five structs, and 29 globals/constants/objects**. This replaces the obsolete MVP inventory; it does not assert equivalent state transitions.
 
 ## Scope
 

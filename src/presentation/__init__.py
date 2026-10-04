@@ -1,1 +1,1 @@
-"""Presentation layer: CLI entry point for manually testing the cTrader client."""
+"""Presentation layer: CLI entry points and offline report generation."""

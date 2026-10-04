@@ -45,7 +45,7 @@ Rules:
 ## Function signature pattern
 
 ```python
-from helper.pandera import pandera_validate
+from br_pre_commit import pandera_validate
 from pandera import typing as pt
 
 
@@ -57,13 +57,13 @@ def compute_something(ohlc: pt.DataFrame[MyInput]) -> pt.DataFrame[MyResult]:
 Rules:
 - **Always** use `pt.DataFrame[<Schema>]` for DataFrame parameters and return types in application/domain code. `pt` (`pandera.typing`) is used both for schema fields (`pt.Series[...]`, `pt.Index[...]`) and for these signatures — it is the *only* acceptable DataFrame annotation. The old `ptd` alias (`helper.importer.ptd`) has been removed from the codebase; don't reintroduce it.
 - Never use bare `pd.DataFrame` in a type annotation, **except**: generic helper/infrastructure functions with no stable expected shape (e.g. `cast_and_validate`, `index_by_date`) may use bare `pd.DataFrame` and skip the decorator below — this is the exception, not the default. Create a schema if the function's shape is actually stable.
-- Every function with a `pt.DataFrame[Schema]`-annotated parameter or return **must** carry `@pandera_transform` (from `app/helper/pandera.py`) — it runs `pandera.check_types(lazy=True)` under the hood, validating every annotated input on call and the return value on return. An annotation without the decorator is silently unenforced.
+- Every function with a `pt.DataFrame[Schema]`-annotated parameter or return **must** carry `@pandera_validate` (from `br_pre_commit`) — it runs `pandera.check_types(lazy=True)` under the hood, validating every annotated input on call and the return value on return. An annotation without the decorator is silently unenforced.
 - `@pandera_transform` also warns (at import time, not a hard failure) whenever a bare `pd.DataFrame` shows up in a decorated function's signature — treat that as a signal to switch to `pt.DataFrame[Schema]`. Pass `allow_pandas_dataframe=True` to silence the warning for a function where no schema legitimately applies.
 - The index-precision cast is **not** automatic — still call `.astype("datetime64[ns, UTC]")` explicitly before returning if the output schema requires ns-UTC precision.
 - Rolling `@pandera_transform` onto an existing function that doesn't have it yet is a separate, incremental migration (tracked in `docs/todo_pandera_runtime_validation.md`) — don't add it as a side effect of unrelated edits unless asked.
 
 ```python
-from helper.pandera import pandera_validate
+from br_pre_commit import pandera_validate
 from pandera import typing as pt
 
 
@@ -140,18 +140,18 @@ Rules:
 - A function that returns a plain scalar, ndarray, or dict — pandera is for tabular (DataFrame) shapes only.
 - A throwaway analysis script or notebook cell — schemas are for production pipeline code.
 - A function already wrapped by `cast_and_validate()` from `helper/schema_casting.py` — that helper already validates against a schema after type-coercion; adding a second inline `validate()` call is redundant. (Exception: the function's own *output* should still be validated if it's a new intermediate shape that no existing schema covers.)
-- Anything under `app/archive_not_used_trash/` — dead code kept for reference only, still on the old pre-`pandera_validate` style (manual `pt.DataFrame[Model]` annotations, no decorator). Don't "fix" its annotations to match current convention; it's out of scope for pandera work unless a file is explicitly being revived out of the archive.
+- Anything under `archive_not_used_trash/` — dead code kept for reference only, still on the old pre-`pandera_validate` style (manual `pt.DataFrame[Model]` annotations, no decorator). Don't "fix" its annotations to match current convention; it's out of scope for pandera work unless a file is explicitly being revived out of the archive.
 
 ## Import style
 
 ```python
 import pandera
 from pandera import typing as pt
-from helper.pandera import pandera_validate
+from br_pre_commit import pandera_validate
 ```
 
 - `pt` = `pandera.typing`. Use it for schema fields (`pt.Series[...]`, `pt.Index[...]`) **and** for function signatures (`pt.DataFrame[MySchema]`).
-- `pandera_validate` = the runtime-validation decorator (`app/helper/pandera.py`); apply it to every function with a `pt.DataFrame[Schema]`-annotated parameter or return.
+- `pandera_validate` = the runtime-validation decorator, provided by the pinned `br_pre_commit` submodule; apply it to every function with a `pt.DataFrame[Schema]`-annotated parameter or return.
 - DataFrame construction / `isinstance` checks use plain `pd.DataFrame` — e.g. `pd.DataFrame({"col": [1.0, 2.0]})`, `isinstance(value, pd.DataFrame)`. There is no project alias for this anymore; `helper.importer.ptd` was removed.
 
 Do **not** use the deprecated top-level re-exports (`pandera.DataFrameModel`, `pandera.typing.Series`) in new code — they emit a `FutureWarning` on pandera 0.32+ and will be removed. Use `pandera.DataFrameModel` and `pandera.typing as pt` (from `pandera.pandas` in a future version; for now the top-level `pandera` module still re-exports them but the warning says to switch to `pandera.pandas`).

@@ -1,10 +1,9 @@
 from collections.abc import Sequence
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Literal
 
 import pandas as pd
-import pytz
 from pydantic import Field, computed_field
 from pydantic_settings import SettingsConfigDict
 
@@ -165,7 +164,7 @@ class Config(BaseConfig):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def ohlcv_oldest_fetch_datetime(self) -> datetime:
-        return datetime.strptime(self.ohlcv_oldest_fetch_date, "%y-%m-%d.%H-%M").replace(tzinfo=pytz.UTC)
+        return datetime.strptime(self.ohlcv_oldest_fetch_date, "%y-%m-%d.%H-%M").replace(tzinfo=timezone.utc)
 
 
 app_config = Config()

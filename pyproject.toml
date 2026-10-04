@@ -1,58 +1,100 @@
 [project]
 name = "xauusd-mvp"
 version = "2.0.0"
-description = "XAUUSD trading system MVP: strategy engine + cTrader Open API client"
+description = "XAUUSD trading system MVP: vectorized strategy engine, offline replay and MT5 parity harness"
 requires-python = ">=3.12"
+
+# Core runtime profile. Must stay importable on Linux and Windows without MetaTrader5.
+# Bounds are aligned with the measured working environment (see docs/development.md).
 dependencies = [
-    "br-logging-and-profiling>=0.5.2",
-    "pandas==3.0.5",
-    "numpy>=1.26.4,<2.2",
-    "scipy==1.17.1",
-    "pydantic==2.13.4",
-    "pydantic-settings~=2.15.0",
-    "pyarrow==25.0.1",
-    "typer==0.27.1",
-    "duckdb",
-    "optree>=0.14.0",
-    "deepdiff==9.1.0",
-    "python-dotenv~=1.2.3",
-    "pandera==0.32.1",
-    "requests",
-    "ctrader-open-api",
-    "twisted",
+    "br-logging-and-profiling>=0.8",
+    "pandas>=3.0.5,<4",
+    "numpy>=2.0,<3",
+    "scipy>=1.17,<2",
+    "pydantic>=2.13,<3",
+    "pydantic-settings>=2.15,<3",
+    "pyarrow>=25,<26",
+    "typer>=0.15,<1",
+    "duckdb>=1.5",
+    "optree>=0.14",
+    "pytz>=2026.3",
+    "python-dotenv>=1.2,<2",
+    "pandera>=0.32,<1",
+    "plotly>=6",
 ]
 
 [project.optional-dependencies]
+# Everything required to run the full offline suite and static checks.
 dev = [
     "pre-commit>=4.0",
-    "ruff",
-    "mypy",
-    "pytest>=8.0",
-    "pytest-asyncio",
-    "pandas_ta",   
-    "numba",       
+    "ruff>=0.14",
+    "mypy>=2.3",
+    "radon>=6.0",
+    "hatchling>=1.27",
+    "pytest>=8.2",
+    "pytest-asyncio>=1.4",
+    "pytest-xdist>=3.6",
+    "numba>=0.67",
+    "vectorbt>=1.1",
 ]
-
-[project.scripts]
-ctrader-cli = "presentation.ctrader.ctrader_cli:app"
+# Windows-only broker automation. Never installed on Linux CI.
+native = [
+    "MetaTrader5>=5.0.6180; sys_platform == 'win32'",
+]
+# Optional research/reporting extras; not required by any gate.
+report = [
+    "pandas-ta>=0.3",
+    "optuna>=4.9",
+    "prophet>=1.4",
+    "pyiceberg>=0.11",
+    "jupyterlab>=4",
+    "ipykernel>=6",
+    "ipywidgets>=8",
+    "nbformat>=5.11",
+]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/xauusd", "src/infrastructure", "src/helper", "src/presentation", "src/domain", "src/application", "src/config"]
+packages = [
+    "src/application",
+    "src/config",
+    "src/domain",
+    "src/helper",
+    "src/infrastructure",
+    "src/presentation",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-markers = ["unit: fast isolated unit tests"]
-addopts = "-q -n auto"
+addopts = "-q --strict-markers --strict-config"
+markers = [
+    "unit: deterministic in-process test, no broker, filesystem or subprocess prerequisite",
+    "integration: filesystem, subprocess, packaging or optional-tooling boundary",
+    "parity: comparison/equivalence evidence (recorded replay or synthetic reference vectors)",
+    "native: requires MetaTrader5, a native recording or a broker/tester dependency",
+    "perf: timing or memory measurement; excluded from default selection",
+]
 
 [tool.ruff]
 target-version = "py312"
 line-length = 120
-exclude = ["legacy_reference", "archive_not_used_trash"]
+# legacy_reference/archive_not_used_trash are frozen reference; the rest is generated
+# or VCS metadata that must never be linted.
+extend-exclude = [
+    "legacy_reference",
+    "archive_not_used_trash",
+    ".git",
+    ".kilo/node_modules",
+    ".kilo/worktrees",
+    "node_modules",
+    ".venv",
+    "build",
+    "dist",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B"]
@@ -69,13 +111,10 @@ check_untyped_defs = true
 
 [[tool.mypy.overrides]]
 module = [
-    "ctrader_open_api.*",
     "google.protobuf.*",
     "google.protobuf.descriptor",
     "MetaTrader5",
-    "requests.*",
-    "twisted.*",
-    "twisted.internet.*",
+    "numba.*",
+    "vectorbt.*",
 ]
 ignore_missing_imports = true
-

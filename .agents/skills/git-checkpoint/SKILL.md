@@ -11,5 +11,6 @@ description: Use when a coherent verified unit of work is ready to save or sync.
 4. Stage only coherent intended changes.
 5. Commit with a concise conventional message.
 6. Push normally when remote exists and network is authorized.
-7. Update `CURRENT_STATE.md` with the verified commit if required.
+7. Update `docs/CURRENT_STATE.md` if the verified commit changes the active
+   state, the measured baseline or the READY task list.
 8. Do not force-push, rewrite important history, delete important remote refs, or change repository visibility without Leader approval.

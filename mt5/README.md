@@ -1,12 +1,14 @@
 # XAUUSD robust MT5 strategy
 
-Current source: [XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5](XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5), property version `2.20`. It replaces the former MVP EA, project `include/` modules and generated vectors/zones. `archive.zip` is historical material.
+Current source: [XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5](MQL5/Experts/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5), property version `2.20`. It replaces the former MVP EA, project `include/` modules and generated vectors/zones. `archive.zip` is historical material.
 
 Last checked against the source on 2026-10-01.
 
 ## Build boundary
 
-The source includes platform `<Trade/Trade.mqh>` and **`XauRobustLiveEnvelope.mqh`, missing from the working tree and archive.zip**. Only `ApprovedStrategyOnInit`, `ApprovedStrategyOnTick`, `ApprovedStrategyOnTradeTransaction` and `ApprovedStrategyOnDeinit` are defined here. Final platform event handlers and release functions belong to the missing dependency. A reproducible compile and complete release-guard audit require that matching file; no successful build or runtime validation is claimed.
+The source includes platform `<Trade/Trade.mqh>` and **`XauRobustLiveEnvelope.mqh`, tracked alongside it at [`MQL5/Experts/XauRobustLiveEnvelope.mqh`](MQL5/Experts/XauRobustLiveEnvelope.mqh)**. Only `ApprovedStrategyOnInit`, `ApprovedStrategyOnTick`, `ApprovedStrategyOnTradeTransaction` and `ApprovedStrategyOnDeinit` are defined in the EA; the remaining platform event handlers and release functions belong to the envelope.
+
+Source presence is not compile evidence. A reproducible compile and a complete release-guard audit require MetaEditor, the matching envelope, the settings and the input ranges used together; no build or runtime validation was performed here, so neither compile success nor native parity is claimed.
 
 ## Input and output
 
@@ -14,7 +16,7 @@ The source includes platform `<Trade/Trade.mqh>` and **`XauRobustLiveEnvelope.mq
 - Tester I/O uses `FILE_COMMON`; chart I/O uses terminal-local `MQL5/Files`. `#property tester_file "ranges.csv"` declares the resource. There is no generated daily-zone dependency.
 - Output defaults: `XAUUSD_ROBUST_FINAL_journal.csv` and `XAUUSD_ROBUST_FINAL_summary.csv`; tester initialization deletes these logs.
 - Initialization validates M15, hedging-account and volume compatibility, and requires current plus three closed native M15 bars.
-- Release declarations default to disabled, login 0 and real-money confirmation false. Enforcement cannot be verified without the envelope; the filename does not establish live approval.
+- Release declarations default to disabled, login 0 and real-money confirmation false. Their enforcement lives in the envelope and was not audited; the filename does not establish live approval.
 
 ## Actual defaults
 
@@ -57,6 +59,6 @@ Assignments take precedence over adjacent comments describing earlier selected s
 
 Python production uses `MarketState` with optional `ExecutionReplay`, configured through `--execution-config` or `ReplayConfig`. The visible source port includes continuous native-bar history, quota/risk/protection transitions, raw-zone row filtering, explicit containing-session windows and shared-state snapshots. Default Python mode is signals-only; candidate output is not evidence of native fills.
 
-Remaining differences and acceptance work live in [MT5-Python.Divergence.md](../docs/todo/MT5-Python.Divergence.md). [Glossary CSV](../docs/State-Variables.Glossary.csv) and [glossary notes](../docs/State-Variables.Glossary.md) cover 143 visible declarations. Native execution outcomes, callback order, identity, numeric edge cases, broker schedule acquisition and the missing envelope still prevent an exact-parity claim. Python tests and the former MVP tests do not prove equivalent native results.
+Remaining differences and acceptance work live in [MT5-Python.Divergence.md](../docs/todo/MT5-Python.Divergence.md). [Glossary CSV](../docs/State-Variables.Glossary.csv) and [glossary notes](../docs/State-Variables.Glossary.md) cover 143 visible declarations. Native execution outcomes, callback order, identity, numeric edge cases and broker schedule acquisition still prevent an exact-parity claim, and no envelope audit or tester run has been performed. Python tests and the former MVP tests do not prove equivalent native results.
 
 The current source hash is `b8bbf960e443c2fa8f2acab297b63d36f5a88473add5caf78eb403536f9ac923` (SHA-256). Compile and runtime evidence must identify this file, its matching envelope, settings and inputs together.

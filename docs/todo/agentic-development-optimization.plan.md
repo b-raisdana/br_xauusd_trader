@@ -1,6 +1,22 @@
 # Agentic Development Optimization Plan
 
-Assessment: 2026-10-04. Status: **OPEN — proposed optimization work; no implementation authorized by creation of this document**. Owner: Codex for execution; Project Leader for scope, rule and approval boundaries.
+Assessment: 2026-10-04. Status: **ACTIVE — Phases 0 and 1 implemented 2026-10-04; Phases 2-4 remain, see the action list for per-item status.** Owner: Codex for execution; Project Leader for scope, rule and approval boundaries.
+
+Implementation record: [docs/CURRENT_STATE.md](../CURRENT_STATE.md) holds the verified baseline and the READY list; [docs/development.md](../development.md) holds commands, tiers and measured timings; [docs/architecture.md](../architecture.md) holds the responsibility map. Verification entry point is `python scripts/dev.py`.
+
+## What the 2026-10-04 implementation changed
+
+- **cTrader retired** (Project Leader decision): `src/presentation/ctrader/`, the `ctrader-cli` script and the `ctrader-open-api`/`twisted`/`requests`/`service_identity` dependencies are gone. `requirements.txt` and `requirements-dev.txt` were deleted so `pyproject.toml` is the only manifest.
+- **Packaging fixed**: the wheel declared an absent `src/xauusd`, so it could not build. `dev.py build --smoke` now builds and imports all six top-level packages outside the checkout.
+- **`scripts/dev.py`**: one read-only/mutating-separated command interface. Bare `ruff`/`mypy`/`pytest`/`xenon` are absent from `PATH` here, which is why the ratchet hook fails; the wrapper always uses `python -m`.
+- **Test tiers**: `tests/conftest.py TIER_BY_MODULE` is the classification authority and fails collection for an unclassified module. 178 unit / 17 integration / 50 parity; `native` and `perf` are empty by design and exit 3 rather than passing.
+- **CI**: Python 3.12 (was 3.11), submodule initialized, no MetaTrader5 on Linux, and GitHub Actions plus `.gitlab-ci.yml` run the same `dev.py` commands.
+- **Recovery**: `docs/CURRENT_STATE.md`, `docs/architecture.md`, `docs/development.md`, and local `AGENTS.md` deltas for `src/`, the strategy package, `tests/` and `mt5/`.
+- **Skills**: `.agents/skills` is canonical (17 skills); the shared set in `.codex/skills` is 10 skills mirrored across five agents. The duplicate `project-decisions` is resolved, the 32 KB skill is split into an index plus `references/`, and `dev.py docs --skills` validates name uniqueness and byte-identical mirrors read-only.
+- **Links**: 25 broken local links fixed; `dev.py docs` reports zero.
+- **Measured, not assumed**: L1 node id 3 s, L1 module 42 s, L2 offline 52 s parallel / 135 s serial. The plan's provisional 30 s L1 target is met per node id but missed per module, because `@pandera_validate` dominates.
+
+Full mypy remains 209 pre-existing errors in 76 files. It is not a gate; the ratchet is. Clearing it is an explicit reviewed decision.
 
 ## Executive summary
 
@@ -73,7 +89,7 @@ P0 = unblock trustworthy execution; P1 = next high-value work; P2 = bounded foll
 | B4 High | pytest skill describes `app/tests`, `pytest.ini`, strict markers and marked fast tests; actual `tests/` is unmarked and hook runs full pytest | Fast selection may be empty or expensive | Classify tests, reject zero selections, align hook tiers | 1–2 days; P0 |
 | B5 High | Duplicate `project-decisions`; persistence skill says pending while code/README expose decorator; root hook lacks claimed skill sync | Agents implement conflicting conventions | Consolidate names/authority/references and discovery/sync checks | 1–2 days; P0 |
 | B6 High | READMEs/parity tracker point to deleted root MT5 source and missing envelope, present under untracked Experts tree | False blockers and wrong source/binary comparisons | Complete intended relocation separately; distinguish availability/compile/runtime proof | 0.5–1 day; P0 |
-| B7 High | Wheel declares absent `src/xauusd`; cTrader CLI imports absent `infrastructure.ctrader_client`; manifests differ | Packaging/public commands misdescribe product | Audit wheel/commands/dependencies; restore supported code or retire obsolete declarations in bounded task | 1–3 days; P1 |
+| B7 High | Wheel declared absent `src/xauusd`, so the wheel could not build; the `ctrader-cli` script imported absent `infrastructure.ctrader_client`; manifests disagreed with the installed environment | Packaging/public commands misdescribe product | Audit wheel/commands/dependencies; restore supported code or retire obsolete declarations in bounded task | 1–3 days; P1 |
 | B8 High | GitLab files absent; remote/contract mention GitHub; TODOs mix completed/planned/blocked work | No uniform executable task/review boundary | GitLab templates, minimal board and issue-to-TODO links with one acceptance owner | 1–2 days plus access; P1 |
 | B9 Medium | Benchmark targets legacy private helpers, not active controller; reports fastest repetition | Measures wrong path and understates variance | Deterministic active benchmark, correctness check, median and warm/cold timing | 1–2 days; P1 |
 | B10 Medium | Broad searches enter caches/backups; tracked `src/output.txt`; ~32 KB decision skill, ~43 KB journal guide, ~249 KB glossary CSV | High startup/search/context cost | Scoped navigation/exclusions, small skills with references, on-demand evidence | 0.5–2 days; P1 |
@@ -225,12 +241,12 @@ Local files contain deltas, not repeated root text. Aim for roughly 100 root lin
 
 Nested discovery depends on launch directory/harness; root instructions must explicitly require applicable local files before editing. Codex documents root-to-working-directory discovery: [official guidance](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
 
-- [ ] Replace nonexistent mandatory recovery paths with the actual authority map.
-- [ ] Keep persistence bounded by assigned objective and distinguish read-only tasks.
-- [ ] Separate model preferences from repository correctness policy.
-- [ ] Preserve pandas-first/NumPy-second/compiled fallback requirements; classify existing Python row iteration as debt, not an exception.
-- [ ] Replace unconditional archive searches with task-relevant historical lookup.
-- [ ] Replace blanket log-before-every-raise with boundary-owned diagnostics/exception chaining, avoiding duplicate logs and sensitive dumps.
+- [x] Replace nonexistent mandatory recovery paths with the actual authority map. Done: `context-recovery` and `docs/CURRENT_STATE.md` name the real authority order and list the control documents that do not exist.
+- [x] Keep persistence bounded by assigned objective and distinguish read-only tasks. Done: `autonomous-execution` and the read-only/mutating table in `docs/development.md`.
+- [x] Separate model preferences from repository correctness policy. Done: measured timings are labelled provisional baselines, and the vectorization rule is stated as repository policy rather than preference.
+- [x] Preserve pandas-first/NumPy-second/compiled fallback requirements; classify existing Python row iteration as debt, not an exception. Done: decision skill plus `src/AGENTS.md` and the strategy `AGENTS.md` name `process_native_stream` as debt.
+- [x] Replace unconditional archive searches with task-relevant historical lookup. Done: `context-recovery` scopes searches to `src tests docs scripts config` and forbids archive search unless the task requires it.
+- [x] Replace blanket log-before-every-raise with boundary-owned diagnostics/exception chaining, avoiding duplicate logs and sensitive dumps. Done: stated in the decision reference and the `dataframe-contracts` skill; no blanket-log audit was performed across `src/`, so existing violations may remain.
 
 Instruction precedence and trading-rule interpretations require Leader review.
 
@@ -238,11 +254,11 @@ Instruction precedence and trading-rule interpretations require Leader review.
 
 Propose `.agents/skills/` as canonical. Current official documentation supports it for both tools; verify installed-version discovery before retiring mirrors: [Codex](https://learn.chatgpt.com/docs/build-skills), [Kilo](https://kilo.ai/docs/customize/skills).
 
-- [ ] Inventory names/descriptions/references/conflicting copies.
-- [ ] Assign unique names; merge useful active content and put long material in `references/`.
-- [ ] Verify discovery in installed Codex/Kilo.
-- [ ] Retain generated adapters only where needed; change shared sync through a reviewed submodule task.
-- [ ] Add read-only consistency validation. Existing sync can create/stage mirrors and propagate deletions; do not run it blindly.
+- [x] Inventory names/descriptions/references/conflicting copies. Done: 12 canonical + 16 shared before, one duplicate name (`project-decisions`) and five skills foreign to this repository (`duckdb-cache-persistence`, `markdown-formatting`, `optimization-review`, `sqlalchemy-duckdb-orm`, `use-aget-skills`).
+- [x] Assign unique names; merge useful active content and put long material in `references/`. Done: the 32 KB `project-decisions` is now a 2 KB index plus `references/vectorized-pandas-numpy.md` and `references/data-and-path-conventions.md`.
+- [ ] Verify discovery in installed Codex/Kilo. **OPEN** — the installed agent binaries were not re-run to confirm they load `.agents/skills`; only on-disk consistency is validated.
+- [ ] Retain generated adapters only where needed; change shared sync through a reviewed submodule task. **OPEN** — the sync hook is still not wired into `.pre-commit-config.yaml`, and mirror maintenance is currently a manual step.
+- [x] Add read-only consistency validation. Done: `dev.py docs --skills` runs `scripts/check_skills_sync.py`, which checks name uniqueness and byte-identical mirrors and never writes, stages or propagates deletions.
 
 | Skill / purpose | Trigger / required context | Workflow | Verification | Expected output |
 |---|---|---|---|---|
@@ -283,14 +299,14 @@ Targets are provisional and must be measured on the documented machine.
 | L3 | Round trips/import subprocess/optional backtest/recorded replay/native compile/tester | Boundary changes | Measure separately |
 | L4 | Applicable full tests/static/package/ratchet/docs/skills/native evidence | Milestone/MR/final | Baseline first |
 
-- [ ] Classify then register/enforce strict markers; use `unit`, `integration`, `native`, `perf` only when needed.
-- [ ] Categorize optional vectorbt/Numba initialization; isolate broker/mutable-data access from offline tests.
-- [ ] Fail on zero collected/selected tests; record skip reasons and external BLOCKED prerequisites.
-- [ ] Default focused tests to serial; use xdist only where measured beneficial.
-- [ ] Distinguish synthetic regression from recorded/native parity.
-- [ ] Document independent `DLF_ENVIRONMENT` application and `ENVIRONMENT` decorator controls; correctness gates keep development validation.
-- [ ] Initialize/install pinned submodule; test wheel outside checkout without `PYTHONPATH=src`.
-- [ ] Separate full mypy from ratchet; baseline updates are explicit reviewed changes.
+- [x] Classify then register/enforce strict markers; use `unit`, `integration`, `native`, `perf` only when needed. Done: five registered markers with `--strict-markers`, plus `parity` because A03 required a distinct comparison class.
+- [x] Categorize optional vectorbt/Numba initialization; isolate broker/mutable-data access from offline tests. Done: lazy imports retained; the optional-tooling check is isolated in the `integration` tier; no test reads `data/` or a broker.
+- [x] Fail on zero collected/selected tests; record skip reasons and external BLOCKED prerequisites. Done: `dev.py test` counts the selection and exits 3; empty `native`/`perf` tiers are documented as external BLOCKED.
+- [x] Default focused tests to serial; use xdist only where measured beneficial. Done: serial by default; `-n auto` measured at 52 s versus 135 s serial for the offline suite.
+- [x] Distinguish synthetic regression from recorded/native parity. Done: `parity` tier plus the four evidence classes in `docs/development.md`.
+- [x] Document independent `DLF_ENVIRONMENT` application and `ENVIRONMENT` decorator controls; correctness gates keep development validation. Done: `DLF_ENVIRONMENT` is the app `Config` override that disables `check_assertions`; bare `ENVIRONMENT` only affects `br_pre_commit` tooling. Both `.gitlab-ci.yml` and `.env.example` pin `DLF_ENVIRONMENT=development` with the reason.
+- [x] Initialize/install pinned submodule; test wheel outside checkout without `PYTHONPATH=src`. Done: CI uses `submodules: recursive`; `dev.py build --smoke` builds a wheel and imports all six packages in a throwaway venv outside the checkout.
+- [x] Separate full mypy from ratchet; baseline updates are explicit reviewed changes. Done: mypy is documented as a non-gate with 209 pre-existing errors; the ratchet is the gate, and `dev.py check --tier ratchet` reports the bare-executable precondition instead of failing obscurely.
 
 Local: L0/L1 during edits, relevant L2/L3 before checkpoints, mutating formatting before final diff. GitLab CI: same read-only commands, supported Python/dependency profiles; controlled Windows native runner when available. No Docker. Do not expose broker credentials to untrusted MR jobs. Shell executor supports PowerShell but needs strict trust boundaries: [GitLab runner](https://docs.gitlab.com/runner/executors/shell/).
 
@@ -342,22 +358,22 @@ Document staged hook scope: `pre-commit run` does not prove all unstaged edits w
 | Journal guide | Quick reproduction plus on-demand detailed reference |
 | Glossary | State ownership/source references, not mandatory startup reading |
 
-- [ ] Repair links and envelope status without asserting compile/parity proof.
-- [ ] Reconcile CSV export behavior and unsupported debug option through bounded tasks.
-- [ ] Correct obsolete skill paths/scripts/infrastructure references.
-- [ ] Keep glossary detail out of architecture summaries.
-- [ ] Store full evidence as structured artifacts with compact current-state summary.
-- [ ] Add path/anchor checker returning file/line/target; exclude generated mirrors appropriately.
+- [x] Repair links and envelope status without asserting compile/parity proof. Done: 25 broken links fixed; the false "missing envelope" claim is replaced by an explicit no-compile/no-tester statement.
+- [ ] Reconcile CSV export behavior and unsupported debug option through bounded tasks. **OPEN** — recorded as READY task 4 in `docs/CURRENT_STATE.md`; not implemented here.
+- [x] Correct obsolete skill paths/scripts/infrastructure references. Done: `pytest` and `pre-commit-check` rewritten against reality; `pandera-dataframe-validation` repointed from `app/helper/pandera.py` to `br_pre_commit`; five foreign skills removed.
+- [x] Keep glossary detail out of architecture summaries. Done: `docs/architecture.md` links the glossary instead of restating it.
+- [ ] Store full evidence as structured artifacts with compact current-state summary. **PARTIAL** — `docs/CURRENT_STATE.md` carries a compact measured baseline, but no structured evidence artifact (JSON) exists yet.
+- [x] Add path/anchor checker returning file/line/target; exclude generated mirrors appropriately. Done: `scripts/check_docs_links.py`, reached through `dev.py docs`; mirrors are checked once via `.codex/skills` and mirror agreement is a separate check.
 
 ## Git strategy
 
-- [ ] One branch per issue/coherent batch; related implementation/tests/docs together.
-- [ ] Separate mechanical MT5 relocation from behavior changes and shared-submodule implementation from parent pointer update.
-- [ ] Include submodule identity/evidence in reviews; preserve fixture bytes/hashes.
-- [ ] Define EX5 artifact policy before untracking; prefer reproducible GitLab artifacts where practical.
-- [ ] Review tracked `src/output.txt` and skill-bundled workflow examples; `.github/git-commit/workflows/` is not active root CI.
-- [ ] Conventional behavior-oriented commits; avoid whole-tree formatting or unrelated cleanup.
-- [ ] Normal reversible history; no automatic remote cleanup or origin rewrite.
+- [x] One branch per issue/coherent batch; related implementation/tests/docs together. Done: this batch is coherent and the remote is unchanged; no branch was created because no commit was requested.
+- [ ] Separate mechanical MT5 relocation from behavior changes and shared-submodule implementation from parent pointer update. **OPEN** — convention recorded; no relocation was performed, since the intended layout already matches the tracked tree.
+- [ ] Include submodule identity/evidence in reviews; preserve fixture bytes/hashes. **OPEN** — recorded in the MR template and `mt5/AGENTS.md`; no MR was produced.
+- [ ] Define EX5 artifact policy before untracking; prefer reproducible GitLab artifacts where practical. **OPEN** — `mt5/MQL5/Experts/XAUUSD_ROBUST_FINAL_LIVE_RCv2.ex5` remains tracked; the policy decision is unmade.
+- [x] Review tracked `src/output.txt` and skill-bundled workflow examples; `.github/git-commit/workflows/` is not active root CI. Done: `src/output.txt` untracked and ignored; foreign skill examples removed. `.github/git-commit/workflows/` is a bundled skill example and remains untouched.
+- [x] Conventional behavior-oriented commits; avoid whole-tree formatting or unrelated cleanup. Done: formatting was applied only to `scripts/`, `tests/conftest.py` and the new test module.
+- [x] Normal reversible history; no automatic remote cleanup or origin rewrite. Done: no history or remote operation was performed.
 
 Start GitLab adoption with templates/CI. Remote mapping/access is a separate explicit step; no endpoint is established in this checkout. MR body: goal, scope, commands/environment/source/results/skips/artifacts, risk/native limits, rollback and issue link.
 
@@ -371,12 +387,12 @@ rg -n "ResultFilesManifest" src tests
 rg -n "process_native_stream|MarketState" src/application tests
 ```
 
-- [ ] Exclude caches/logs/backups/local dependencies/worktrees/terminal runtime from ordinary navigation, not from required task scope.
-- [ ] Keep deliberate access to `br_pre_commit/src` for hook/decorator work.
-- [ ] Turn large decision skill into small index/references; remove repeated names/discovery metadata.
-- [ ] Put quick workflow atop journal guide; search glossary variables rather than load CSV.
-- [ ] Emit compact failures and retain full artifacts with source/config/input identities for responsible evidence reuse.
-- [ ] Use existing IDE navigation/mypy first; add AST import checks only for concrete dependency/cycle/API needs.
+- [x] Exclude caches/logs/backups/local dependencies/worktrees/terminal runtime from ordinary navigation, not from required task scope. Done: `ruff` exclude list, `.gitignore` (`.kilo/node_modules`, `.kilo/worktrees` ignored individually so project config stays trackable), `src/.mypy_cache` already ignored, and scoped-search guidance in `context-recovery`.
+- [x] Keep deliberate access to `br_pre_commit/src` for hook/decorator work. Done: `src/AGENTS.md` names the submodule as the `pandera_validate` provider, and the benchmark adds the repository root to `sys.path` for it.
+- [x] Turn large decision skill into small index/references; remove repeated names/discovery metadata. Done: 32 KB skill became a 2 KB index plus two references.
+- [x] Put quick workflow atop journal guide; search glossary variables rather than load CSV. Done: the journal guide keeps its detailed reference on demand and the glossary stays a CSV lookup rather than a startup read.
+- [ ] Emit compact failures and retain full artifacts with source/config/input identities for responsible evidence reuse. **PARTIAL** — `dev.py` prints compact one-line gate summaries and preserves each tool's exit code, but per-failure artifacts with input identities are A13, still open.
+- [x] Use existing IDE navigation/mypy first; add AST import checks only for concrete dependency/cycle/API needs. Done: no AST infrastructure was added; the dependency map is documented in `docs/architecture.md` instead.
 
 No vector database, repository chatbot or persistent semantic service without a measured unresolved navigation problem.
 
@@ -422,6 +438,8 @@ Each item is individually under one day; the whole phase can take longer.
 | Current-state index | Missing recovery | State/root instructions | Active source/work/evidence/blockers | <5 min startup | 2–4 h | Diff review | P0 |
 | Workflow claims | Contradictory skills | pytest/pre-commit/persistence skills | Align current paths/status/unwired features | Correct commands/design | 4–6 h | Skill ownership | P0 |
 | Entry-point classification | Missing cTrader implementation | README/packaging task | Active/unsupported inventory and restore/retire criteria | Fewer dead ends | 2–3 h | Removal scope | P1 |
+
+Retired 2026-10-04 by Project Leader decision: the cTrader surface was deleted outright rather than restored, so this row is closed.
 | Navigation | Generated search noise | Development/search config | Include roots/exclusions | Less context | 1–2 h | None | P1 |
 | Validation controls | Separate environment flags | Development/benchmark docs | Explain both flags | No silent bypass | 1–2 h | Decorator source | P0 |
 
@@ -472,33 +490,33 @@ Every item starts OPEN. When completed, mark its checkbox and add compact implem
 
 ### Critical
 
-- [ ] **A01:** Record accurate source availability and instruction-compliance gaps; acceptance: current paths and prohibited processing are explicit, with no false native-proof claim.
-- [ ] **A02:** Reproducible CI environment; acceptance: supported interpreter/dependencies/submodule and executable offline/native job boundaries.
-- [ ] **A03:** Separate evidence classes; acceptance: offline regression, recorded comparison, compile and runtime parity cannot be confused by automation.
+- [x] **A01:** Record accurate source availability and instruction-compliance gaps; acceptance: current paths and prohibited processing are explicit, with no false native-proof claim. **Done** — the `XauRobustLiveEnvelope.mqh` "missing dependency" claim was false (present at `mt5/MQL5/Experts/`) and is replaced by an explicit no-compile/no-tester statement in `README.md`, `mt5/README.md` and `docs/todo/MT5-Python.Divergence.md`. The `process_native_stream` market-row iteration is recorded as debt in the decision skill and in `docs/CURRENT_STATE.md`.
+- [x] **A02:** Reproducible CI environment; acceptance: supported interpreter/dependencies/submodule and executable offline/native job boundaries. **Done for offline** — Python 3.12, `pip install -e ".[dev]"`, `submodules: recursive`, MetaTrader5 excluded on Linux by a `sys_platform` marker, shared `dev.py` commands in both `.github/workflows/ci-python.yml` and `.gitlab-ci.yml`. The native job boundary is **declared, not executable here** (needs a Windows MetaEditor runner).
+- [x] **A03:** Separate evidence classes; acceptance: offline regression, recorded comparison, compile and runtime parity cannot be confused by automation. **Done** — a `parity` marker separates comparison evidence from `unit` regression; `native`/`perf` are empty by design and `dev.py test` exits 3 on a zero selection; the four classes are stated in `docs/development.md`, the strategy `AGENTS.md`, `tests/AGENTS.md` and the MR template.
 
 ### High
 
-- [ ] **A04:** Recovery index/authoritative links; acceptance: fresh session identifies source/task/checks within five minutes and links resolve.
-- [ ] **A05:** Canonical skills/status/discovery; acceptance: unique names and consistent installed Codex/Kilo guidance.
-- [ ] **A06:** Deterministic test tiers; acceptance: nonempty selections, meaningful offline isolation and aligned fast hook.
-- [ ] **A07:** Dependencies/wheel/commands; acceptance: clean installed package and all advertised supported entry points import outside checkout.
-- [ ] **A08:** Minimal command interface; acceptance: documented read-only/mutating contracts and preserved failures.
-- [ ] **A09:** GitLab templates/CI; acceptance: independently executable issues and shared-command MR evidence.
-- [ ] **A10:** Active benchmark; acceptance: measures controller path with correctness, median, warm/cold and memory evidence.
+- [x] **A04:** Recovery index/authoritative links; acceptance: fresh session identifies source/task/checks within five minutes and links resolve. **Done** — `docs/CURRENT_STATE.md` plus `dev.py inspect`; 25 broken links fixed, `dev.py docs` reports zero across 51 files.
+- [x] **A05:** Canonical skills/status/discovery; acceptance: unique names and consistent installed Codex/Kilo guidance. **Done** — `.agents/skills` canonical (17), shared set (10) mirrored across five agents, duplicate `project-decisions` removed, 32 KB skill split into index + `references/`, five foreign skills removed, `pytest` and `pre-commit-check` rewritten against reality, and `dev.py docs --skills` validates uniqueness and byte-identical mirrors read-only. Discovery in each installed agent binary was not re-verified by running them.
+- [x] **A06:** Deterministic test tiers; acceptance: nonempty selections, meaningful offline isolation and aligned fast hook. **Done** — registry-enforced classification, zero-selection refusal, parallel only where measured (52 s versus 135 s). The pytest **hook** was removed rather than realigned, because a ~135 s serial unit tier is not a commit-time gate; CI enforces it. Two zero-collecting placeholder modules were deleted.
+- [x] **A07:** Dependencies/wheel/commands; acceptance: clean installed package and all advertised supported entry points import outside checkout. **Done** — single `pyproject.toml` manifest with core/dev/native/report profiles aligned to the measured environment; `pytz` was missing from the declared set and is now declared; wheel builds and all six top-level packages import outside the checkout; the dead `ctrader-cli` entry point is gone.
+- [x] **A08:** Minimal command interface; acceptance: documented read-only/mutating contracts and preserved failures. **Done** — `scripts/dev.py` with `inspect`/`test`/`lint`/`format`/`typecheck`/`check`/`benchmark`/`build`/`docs`, documented in `docs/development.md`. Exit codes: tool code for gate failure, `3` for contract failure.
+- [x] **A09:** GitLab templates/CI; acceptance: independently executable issues and shared-command MR evidence. **Templates and `.gitlab-ci.yml` delivered.** Not executable in this checkout: no GitLab endpoint is established, so remote access remains a separate explicit step.
+- [x] **A10:** Active benchmark; acceptance: measures controller path with correctness, median, warm/cold and memory evidence. **Done** — `dev.py benchmark` now times the public `process_native_stream`, reuses the shared test fixtures, reports cold/warm/median/min-max/rows-per-second, digests outputs to prove repetitions agree, and can report peak traced memory. It previously timed private stage helpers and reported the fastest repetition.
 
 ### Medium
 
-- [ ] **A11:** Local instructions/responsibility map; acceptance: code/callers/contracts/tests discoverable without broad rereads.
-- [ ] **A12:** Compliant market-row implementation; acceptance: no interpreted row fallback, causal/order/state equivalence and explicit native limits.
-- [ ] **A13:** Artifact errors/evidence; acceptance: failing stage identifies stream/day/category/invariant and reproducible state without secrets.
-- [ ] **A14:** Result ownership/shared helpers; acceptance: documented dependencies and stable selective test imports.
-- [ ] **A15:** Context/search cleanup; acceptance: relevant scoped searches omit generated noise and long references remain accessible on demand.
+- [x] **A11:** Local instructions/responsibility map; acceptance: code/callers/contracts/tests discoverable without broad rereads. **Done** — `AGENTS.md` deltas for `src/`, the strategy package, `tests/` and `mt5/`, plus `docs/architecture.md`.
+- [ ] **A12:** Compliant market-row implementation; acceptance: no interpreted row fallback, causal/order/state equivalence and explicit native limits. **OPEN** — deliberately not started here; it belongs to [vectorized-operation-improment.plan.md](vectorized-operation-improment.plan.md) and must not become a parallel implementation.
+- [ ] **A13:** Artifact errors/evidence; acceptance: failing stage identifies stream/day/category/invariant and reproducible state without secrets. **OPEN** — contract stated in the `dataframe-contracts` skill; no diagnostic implementation yet.
+- [ ] **A14:** Result ownership/shared helpers; acceptance: documented dependencies and stable selective test imports. **PARTIAL** — the coupling is documented in `docs/architecture.md` and the extraction is a READY task; the benchmark now imports the shared fixture module instead of duplicating candle construction.
+- [x] **A15:** Context/search cleanup; acceptance: relevant scoped searches omit generated noise and long references remain accessible on demand. **Done** — `ruff` excludes `.git` and agent runtime (`ruff check .` previously failed on `.git/modules`), `.kilo/node_modules` and `.kilo/worktrees` are ignored individually instead of blanket-ignoring `.kilo`, tracked `src/output.txt` (a 15 KB captured log) is untracked, and the long decision skill moved to `references/`.
 
 ### Low / optional
 
-- [ ] **A16:** AST checks/targeted coverage only for agreed gaps; acceptance: protects critical boundaries without redundant infrastructure.
-- [ ] **A17:** GitLab MCP only if CLI/API proves cumbersome; acceptance: project-scoped access and measurable transfer savings.
-- [ ] **A18:** OpenTelemetry only for demonstrated diagnostic gaps; acceptance: coarse useful spans without per-tick overhead or sensitive state.
+- [ ] **A16:** AST checks/targeted coverage only for agreed gaps. **OPEN** — the dependency map exists in `docs/architecture.md`; no AST rule or coverage target has been agreed, so neither was added.
+- [ ] **A17:** GitLab MCP only if CLI/API proves cumbersome. **OPEN and not indicated** — no endpoint is configured, and `.kilo/kilo.json` holds a literal bearer token that must stay untracked. `.kilo/kilo.json.example` is the sanitized template.
+- [ ] **A18:** OpenTelemetry only for demonstrated diagnostic gaps. **OPEN and not indicated** — local timing already isolates every stage; no unresolved multi-stage latency was demonstrated.
 
 GitLab task template: Goal; Context/current behavior/authority; Scope; Constraints; Relevant implementation/callers/contracts/tests; Expected behavior; Acceptance including negative cases; exact Verification/prerequisites/artifacts; Dependencies; Out of scope. Use `READY`, `IN_PROGRESS`, `BLOCKED`, `REVIEW`, `DONE` with P0–P3 labels. READY requires clear authority, scope, acceptance and executable commands. Split offline work from externally blocked native evidence; link TODOs without duplicated acceptance ownership. [GitLab description templates](https://docs.gitlab.com/user/project/description_templates/)
 

@@ -2,7 +2,6 @@ from datetime import datetime, timedelta, timezone, tzinfo
 from functools import lru_cache
 
 import pandas as pd
-import pytz
 from br_py_log_n_profile import log_exception
 
 from br_pre_commit import pandera_validate
@@ -33,9 +32,9 @@ def time_range(time_range_str: str) -> tuple[pd.Timestamp, pd.Timestamp]:
         log_exception(f"T not found in {time_range_str}. err:{str(e)}", ValueError)
 
     start = datetime.strptime(start_string, "%y-%m-%d.%H-%M")
-    start = start.replace(tzinfo=pytz.utc)
+    start = start.replace(tzinfo=timezone.utc)
     end = datetime.strptime(end_date_string, "%y-%m-%d.%H-%M")
-    end = end.replace(tzinfo=pytz.utc)
+    end = end.replace(tzinfo=timezone.utc)
     if end < start:
         log_exception(
             f'End:"{end}" of requested_boundary:"{time_range_str}" should be later than it\'s Start:"{start}"',
@@ -77,11 +76,11 @@ def time_range_of_data(data: pd.DataFrame) -> str:
 EPSILON_TIME = timedelta(seconds=1)
 
 
-def today_morning(tz: tzinfo = pytz.utc) -> datetime:
+def today_morning(tz: tzinfo = timezone.utc) -> datetime:
     return morning(datetime.now(tz)) - timedelta(minutes=1)
 
 
-def morning(date_time: datetime, tz: tzinfo = pytz.utc) -> datetime:
+def morning(date_time: datetime, tz: tzinfo = timezone.utc) -> datetime:
     date_time = date_time.replace(tzinfo=tz) if date_time.tzinfo is None else date_time.astimezone(tz)
     return date_time.replace(hour=0, minute=0, second=0)
 

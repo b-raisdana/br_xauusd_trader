@@ -268,6 +268,8 @@ void XauReleaseRemoveControls()
 int OnInit()
   {
    int result=ApprovedStrategyOnInit();
+   if(result!=INIT_SUCCEEDED)
+      PrintFormat("XAU EA INIT_FAILED code=%d symbol=%s timeframe=%s; see preceding XAU EA ERROR messages and %s for the cause.",result,_Symbol,EnumToString(_Period),InpJournalFile);
    if(result!=INIT_SUCCEEDED) return result;
    if(!XauReleaseIsTester())
      {

@@ -21,7 +21,7 @@ Check the modified file against each factor below. Every factor but the last thr
 
 | factor | what to look for | reference |
 | --- | --- | --- |
-| vectorization | Python-level loops over rows/samples/dates (`iterrows`, `apply(axis=1)`, manual `while`/`for` slicing) that could be array/DataFrame ops | [vectorized-pandas-numpy](../vectorized-pandas-numpy/SKILL.md) |
+| vectorization | Any Python per-tick/per-candle loop, history scan, row comprehension or Python callback in `apply`/`map`; stateful recurrence is no exception. Use pandas first, NumPy second, then a compiled Numba ndarray kernel only when needed; Python iteration is limited to non-market-row orchestration. | [project-decisions priority order](../project-decisions/SKILL.md#vectorized-pandasnumpy) |
 | redundant computation / caching | the same derived data (indicators, labels, any artifact) recomputed or re-fetched across calls with the same effective inputs | [cache-or-generate](../cache-or-generate/SKILL.md) |
 | concurrency / blocking I/O | sequential network/disk calls or independent CPU-bound work (symbols/timeframes/folds) that could run concurrently | [concurrency-and-blocking](../concurrency-and-blocking/SKILL.md) |
 | library delegation | hand-rolled algorithm/transform where a well-maintained library already does it, usually faster | [lib-first](../lib-first/SKILL.md) |

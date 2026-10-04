@@ -27,7 +27,6 @@ def run_vectorized_strategy(
     candle_df: pt.DataFrame[StrategyCandles],
     zones_df: pt.DataFrame[Zone],
     *,
-    debug: bool = False,
     execution: ReplayConfig | None = None,
 ) -> ResultFilesManifest:
     """Persist source frames once, then hand off only the manifest between stages."""

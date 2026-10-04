@@ -20,8 +20,7 @@ from br_pre_commit import pandera_validate
 from helper.importer import pt
 
 
-@pytest.mark.parametrize("debug", [False, True])
-def test_runner_preserves_position_tracking_dtypes(debug):
+def test_runner_preserves_position_tracking_dtypes():
     ticks = market_frame()
     zones = pd.DataFrame(
         {"lower": [2000.0], "upper": [2001.0], "priority": ["high"], "enabled": [True]},
@@ -30,7 +29,7 @@ def test_runner_preserves_position_tracking_dtypes(debug):
             names=["timeframe", "date"],
         ),
     )
-    result = run_vectorized_strategy(ticks, with_native_bootstrap(candles_from_ticks(ticks)), zones, debug=debug)
+    result = run_vectorized_strategy(ticks, with_native_bootstrap(candles_from_ticks(ticks)), zones)
     result = result.read_positions(ticks.broker_day.iloc[0])
     PositionTrackingResult.validate(result, lazy=True)
     for alias, schema in PositionTrackingResult.to_schema().columns.items():

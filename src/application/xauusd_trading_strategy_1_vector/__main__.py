@@ -50,14 +50,13 @@ def cli(
     symbol: str = typer.Option(app_config.default_symbol, help="The symbol to use"),
     zones: Path = typer.Option(Path("ranges.zip"), help="Path to zones CSV file"),
     output: str = typer.Option("strategy_results.parquet", help="Path to output file"),
-    debug: bool = typer.Option(False, "--debug", help="Enable debug mode"),
     backtest: bool = typer.Option(False, "--backtest", help="Run vectorbt backtest report after strategy execution"),
     execution_config: Path | None = typer.Option(None, help="JSON replay economics and EA inputs"),
 ) -> None:
     execution = (
         ReplayFileConfig.model_validate_json(execution_config.read_text()).replay_config() if execution_config else None
     )
-    asyncio.run(main(symbol=symbol, zones=zones, output=output, debug=debug, backtest=backtest, execution=execution))
+    asyncio.run(main(symbol=symbol, zones=zones, output=output, backtest=backtest, execution=execution))
 
 
 @profile_it
@@ -65,7 +64,6 @@ async def main(
     symbol: str = app_config.default_symbol,
     zones: Path = Path("ranges.zip"),
     output: str = "strategy_results.parquet",
-    debug: bool = False,
     backtest: bool = False,
     execution: ReplayConfig | None = None,
 ) -> None:
@@ -118,9 +116,7 @@ async def main(
 
     tick_df = VectorizedXauUsdStrategy.add_bar_time_n_broker_day(tick_df, timezone)
 
-    result = run_vectorized_strategy(
-        tick_df=tick_df, candle_df=candle_15min_df, zones_df=zones_df, debug=debug, execution=execution
-    )
+    result = run_vectorized_strategy(tick_df=tick_df, candle_df=candle_15min_df, zones_df=zones_df, execution=execution)
     manifest = result
 
     save_results_to_file(

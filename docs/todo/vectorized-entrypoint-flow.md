@@ -12,6 +12,7 @@ Updated 2026-10-01. CLI -> zone/tick/native-M15 acquisition -> broker day/bar ke
 
 ## Remaining work
 
+- [ ] Remove prohibited Python tick/candle iteration throughout the reachable flow, including history scans and row callbacks; follow the [audited vectorization plan](vectorized-operation-improment.plan.md) for exact locations, replacements and acceptance invariants.
 - [ ] Debug is accepted/passed but unused by runner. Implement and test a meaningful behavior or remove the unsupported option.
 - [ ] Reporting must use complete events/position collections before claiming a full ledger: scalar projection chooses one position, and vectorbt has independent cash/cost/direction assumptions.
 - [ ] Complete native execution, timestamp/identity normalization and paired acceptance fixtures under the consolidated tracker; the missing envelope still prevents complete native callback verification.

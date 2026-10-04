@@ -66,3 +66,23 @@ dist/
 
 
 !/docs/todo/vectorized-performance-optimization.reference.log
+
+/mt5/metatester64.exe
+/mt5/Sounds/
+/mt5/Bases/
+/mt5/temp/
+/mt5/Tester/
+/mt5/Config/
+/mt5/llm-agent/
+/mt5/MQL5/*
+!/mt5/MQL5/Experts/
+!/mt5/MQL5/Experts/*
+/mt5/MQL5/Experts/*/
+!/mt5/MQL5/Files/
+!/mt5/MQL5/Files/*
+/mt5/MQL5/Files/*/
+/mt5/MetaEditor64.exe
+/mt5/terminal64.exe
+/mt5/Profiles/
+/mt5/uninstall.exe
+

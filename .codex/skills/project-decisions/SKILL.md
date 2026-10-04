@@ -165,13 +165,32 @@ Reviewing a PR: ask what type the change actually needs per the table — not "d
 
 ## Vectorized pandas/numpy
 
-Trigger: writing/reviewing any pandas/numpy code (dataset gen, indicator/label computation, scaling/normalization, OHLCV processing). A loop over rows/samples is a bug magnet and 10-1000x slower than the vectorized equivalent.
+Trigger: writing/reviewing Python data processing, including strategy, replay, indicators, labels, OHLCV, persistence and reporting. Use pandas DataFrames first and NumPy ndarrays second throughout the project.
 
 Red flags to eliminate: `for i in range(len(df))`, `df.iterrows()`, `df.apply(..., axis=1)`; `while remained > 0: ... .append(...)` sample-generation loops that recompute one slice at a time (see `train_data_of_mt_n_profit` in `training_datasets.py`) — prefer precomputing all boundaries at once (`np.random.randint(size=n)`) and slicing in one vectorized pass; repeated `np.array(df[cols])` conversion inside a hot loop — convert once, slice after; growing a list of DataFrames/arrays then `pd.concat`/`np.array` at the end, when boundaries could've been precomputed; scalar-by-scalar column assignment in a loop over columns.
 
 Preferred patterns: boolean masking (`df.loc[mask, col] = value`); `np.where(cond, a, b)` / `np.select([...], [...], default=c)`; broadcasting across the whole array/DataFrame; `.groupby(...).transform(...)` / `.rolling(...).agg(...)`; batch `.loc`/`pd.IndexSlice` or `numpy.lib.stride_tricks.sliding_window_view` for windowed extraction at many offsets; `.to_numpy()` (not bare `.values`) for hot-path ndarray drops.
 
-A loop is legitimate for: truly sequential/stateful logic where step _n_ depends on step _n-1_'s _computed result_ (vectorize the per-step body, the outer loop may stay); one-time setup/config code, not hot paths.
+**Hard prohibition: no Python per-tick or per-candle iteration**, including closed/previous-candle history scans. Stateful dependencies and MT5 parity do not permit a Python outer loop. This includes `for`/`while`, `iterrows`, `itertuples`, row comprehensions, `zip`/`enumerate` over market rows, row-wise `apply`, and `map` with a Python callback over tick/candle values. `np.vectorize`, generators and moving the loop into a helper do not vectorize it.
+
+Choose the first applicable operation in this priority order; compose operations where required:
+
+1. `groupby` + `transform` / `agg`.
+2. `shift` / `diff` / `pct_change`.
+3. `rolling` / `expanding` / `ewm`.
+4. `resample`.
+5. `cumsum` / `cumprod` / `cummin` / `cummax`.
+6. `rank` / `nunique` / `value_counts`.
+7. `where` / `mask` / `clip`.
+8. `eval` / `query`.
+9. `merge` / `join` / `concat` for vectorized DataFrame combination.
+10. `sort_values` / `sort_index`.
+11. `diff` / `shift` boolean conditions + `cumsum` for regime/segment detection.
+12. NumPy ndarray operations for calculations naturally expressed at array level; convert once with `to_numpy()` and preserve index/dtypes at the DataFrame boundary.
+13. Numba only when pandas/NumPy cannot efficiently express the required computation; isolate a typed ndarray kernel, compile its sequential recurrence, and verify output/order/state equivalence. No Python object-mode or interpreted fallback for market-row processing.
+14. Python iteration as a last resort **only over non-tick/non-candle units**, such as files, daily I/O partitions, independent instruments or fixed configuration fields. Each partition's calculation remains batched. Never use this fallback to process market rows, even in replay or validation tools.
+
+For recurrence, first derive grouped segments, latches and cumulative reductions. If they cannot express the dependency efficiently, use the compiled ndarray fallback; document why the higher-priority operations fail. Preserve causal closed-candle windows, chronological callback order, cross-day state, duplicate-tick identity and stream isolation. Do not approximate state transitions or claim native parity from Python-only fixtures.
 
 Review checklist: any row/element/sample loop replaceable by a mask, `np.where`/`np.select`, groupby/rolling, or a fully-vectorized index computation? Any repeated array conversion of the same columns to hoist out of a loop? Any column-by-column loop collapsible to one vectorized expression over the selected columns? Does the vectorized version's shape/dtype match what downstream code expects (upcasting, index alignment) before replacing the loop?
 

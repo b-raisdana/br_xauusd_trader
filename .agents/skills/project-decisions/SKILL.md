@@ -8,6 +8,7 @@ description: Use when choosing architecture, dependency, persistence, configurat
 - YAGNI: current need before hypothetical scale.
 - Separate deterministic trading/domain logic from external I/O where practical.
 - Prefer mature libraries when they reduce correctness risk.
+- Python data processing uses pandas DataFrames first and NumPy ndarrays second. Python per-tick/per-candle iteration, including previous-candle scans, row comprehensions and Python callbacks, is prohibited even for stateful replay. Follow the exact operation priority and compiled Numba fallback in [project-decisions](../../../.codex/skills/project-decisions/SKILL.md#vectorized-pandasnumpy); Python iteration is a last resort only for non-market-row orchestration.
 - Avoid hidden mutable global state in strategy logic.
 - One authoritative config path per concern.
 - No hard-coded credentials or developer-specific absolute paths.

@@ -8,7 +8,12 @@ from pathlib import Path
 import pandas as pd
 from br_py_log_n_profile import log_e
 
-from application.xauusd_trading_strategy_1_vector.domain.schema import PositionTrackingResult, PullbackFeedback
+from application.xauusd_trading_strategy_1_vector.domain.columnar import NativeStrategyResult, SignalTickState
+from application.xauusd_trading_strategy_1_vector.domain.schema import (
+    PositionTrackingResult,
+    PullbackFeedback,
+    VectorizedTick,
+)
 from br_pre_commit import pandera_validate
 from domain.xau_usd.models import XauPullbackWindowState, XauSignalCandidate
 from helper.importer import pt
@@ -28,6 +33,24 @@ def _json_default(
 
 
 @pandera_validate
+def _native_market_rows(
+    ticks: pt.DataFrame[VectorizedTick], state: pt.DataFrame[SignalTickState]
+) -> pt.DataFrame[NativeStrategyResult]:
+    if ticks.index.equals(state.index):
+        return pd.concat([ticks, state], axis=1)
+    keys = list(ticks.index.names)
+    left = ticks.reset_index()
+    right = state.reset_index()
+    left["_tick_occurrence"] = ticks.groupby(level=keys, sort=False).cumcount().array
+    right["_tick_occurrence"] = state.groupby(level=keys, sort=False).cumcount().array
+    return (
+        left.merge(right, on=[*keys, "_tick_occurrence"], how="left", sort=False, validate="one_to_one")
+        .drop(columns="_tick_occurrence")
+        .set_index(keys)
+    )
+
+
+@pandera_validate
 def save_results_to_file(
     manifest: ResultFilesManifest,
     output_file: str,
@@ -38,7 +61,7 @@ def save_results_to_file(
         path = Path(output_file)
         path.parent.mkdir(parents=True, exist_ok=True)
         result = pd.concat(
-            [pd.concat([manifest.read_daily_ticks(day), manifest.read_daily_signal_state(day)], axis=1) for day in days]
+            [_native_market_rows(manifest.read_daily_ticks(day), manifest.read_daily_signal_state(day)) for day in days]
         )
         result.reset_index().to_parquet(path, index=False)
         pd.concat([manifest.read_daily_signals(day) for day in days]).reset_index().to_parquet(

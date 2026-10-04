@@ -11,7 +11,7 @@ from domain.xau_usd.models import XauDailyZoneSignalState
 from helper.importer import pt
 
 from .robust import RobustInputs
-from .schema import FrameContract, PerCandleState, ProcessedBarsTicks, ReferenceTrendInfo
+from .schema import FrameContract, PerCandleState, ProcessedBarsTicks, ReferenceTrendInfo, VectorizedTick
 
 
 class SignalTickState(TickMultiBrokerSymbolTimeseries, ReferenceTrendInfo, ProcessedBarsTicks):
@@ -27,6 +27,11 @@ class SignalTickState(TickMultiBrokerSymbolTimeseries, ReferenceTrendInfo, Proce
     pullback_active: pt.Series[bool]
     pullback_bar_offset: pt.Series[int] = Field(ge=0, le=10)
     pullback_penetration_latched: pt.Series[bool]
+
+
+class NativeStrategyResult(SignalTickState, VectorizedTick):
+    class Config(SignalTickState.Config, VectorizedTick.Config):
+        coerce = False
 
 
 class SignalTable(TickMultiBrokerSymbolTimeseries, FrameContract):

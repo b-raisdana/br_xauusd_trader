@@ -310,3 +310,38 @@ def test_async_source_snapshot_isolated_from_caller_mutation(tmp_path, monkeypat
     finally:
         release.set()
         manifest.close()
+
+
+def test_export_preserves_interleaved_streams_with_duplicate_ticks(tmp_path, monkeypatch):
+    from test_vectorized_tick_separation import inputs
+
+    from application.xauusd_trading_strategy_1_vector.reporting import save_results_to_file
+    from application.xauusd_trading_strategy_1_vector.runner import run_vectorized_strategy
+    from infrastructure.result_processing import io
+
+    a, ca = inputs()
+    b, cb = inputs("SECOND", 100.0)
+    ticks = pd.concat([a.iloc[:1], a, b.iloc[:1], b]).sort_index(
+        level="precise_time", sort_remaining=False, kind="stable"
+    )
+    day = ticks.broker_day.iloc[0]
+    zones = pd.DataFrame(
+        {"lower": [100.0], "upper": [102.0], "priority": ["high"], "enabled": [True]},
+        index=pd.MultiIndex.from_arrays([["15min"], pd.DatetimeIndex([day])], names=["timeframe", "date"]),
+    )
+    monkeypatch.setattr(io.app_config, "path_of_data", tmp_path)
+    manifest = run_vectorized_strategy(ticks, pd.concat([ca, cb]), zones)
+    output = tmp_path / "interleaved.parquet"
+    save_results_to_file(manifest, str(output))
+    actual = pd.read_parquet(output)
+    assert actual.bid.tolist() == ticks.bid.tolist()
+    assert actual.stream_tick.tolist() == ticks.groupby(level=["broker", "symbol"], sort=False).cumcount().tolist()
+
+
+def test_native_export_rejects_missing_state_rows():
+    from application.xauusd_trading_strategy_1_vector.reporting import _native_market_rows
+
+    ticks, candles = data(bars=1, ticks_per_bar=3)
+    state = process_columns(ticks, candles, ColumnarMarket(), ZONES).ticks
+    with pytest.raises(SchemaErrors):
+        _native_market_rows(ticks, state.iloc[:-1])

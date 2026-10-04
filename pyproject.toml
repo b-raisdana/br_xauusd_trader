@@ -29,8 +29,8 @@ dev = [
     "mypy",
     "pytest>=8.0",
     "pytest-asyncio",
-    "pandas_ta",   
-    "numba",       
+    "pandas_ta",
+    "numba",
 ]
 
 [project.scripts]
@@ -55,7 +55,7 @@ line-length = 120
 exclude = ["legacy_reference", "archive_not_used_trash"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B"]
+select = ["E", "F", "I", "UP", "B", "C4", "SIM", "W"]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["typer.Option", "typer.Argument"]
@@ -77,5 +77,49 @@ module = [
     "twisted.*",
     "twisted.internet.*",
 ]
+explicit_package_bases = true
+strict = true
+disallow_any_explicit = true
+no_implicit_optional = true
+warn_return_any = true
 ignore_missing_imports = true
+follow_imports = "silent"
+# archive_not_used_trash/ holds unreachable-from-presentation code kept for reference, not linted -
+# see app/archive_not_used_trash/README.md.
+exclude = "(^|/)archive_not_used_trash/"
 
+# Shared defaults for br_pre_commit. A project may override any
+# value under [tool.br_pre_commit.wrapper] / [tool.br_pre_commit.ratchet] /
+# [tool.br_pre_commit.backup]. See README.md § "Recognized hook IDs" for the list of
+# hook IDs the wrapper can classify; unrecognized IDs trigger an error under the policy below.
+[tool.br_pre_commit]
+ratchet-hook-id = "incremental-ratchet"
+
+[tool.br_pre_commit.ratchet-hook]
+name = "incremental ratchet"
+language = "system"
+entry = "python -m br_pre_commit.src.ratchet"
+pass-filenames = false
+files = "^src/.*\\.py$"
+
+[tool.br_pre_commit.wrapper]
+unknown-hook-policy = "error"
+job-timeout-seconds = 900
+protected-branches = ["main"]
+
+[tool.br_pre_commit.ratchet]
+target = "src"
+max-lines = 300
+line-growth-slack = 5
+complexity-ranks = "ABCDEF"
+xenon-max-absolute = "B"
+# Directory excluded from ratchet/ruff/mypy/xenon scans. Unreachable-from-presentation
+# reference code kept for reference, not linted - see <repo>/<exclude-dir>/README.md.
+exclude-dir = "archive_not_used_trash"
+
+[tool.br_pre_commit.backup]
+# Regex (matched against each path part) for directories whose files are excluded
+# from patch backups and instead backed up as full file copies under
+# logs/pre-commit/full_backup/. Patch filtering for tracked/untracked files is
+# handled by .gitignore; this regex only controls the full-vs-patch split.
+full_backup_exclude_dir_regex = '^(data|logs|archive_not_used_trash|\.[^/]+)$'

@@ -11,6 +11,7 @@ from pathlib import Path
 import pandas as pd
 
 from application.xauusd_trading_strategy_1_vector.domain.schema import PullbackFeedback
+from br_pre_commit import pandera_validate
 from domain.xau_usd.enums import XauDirection, XauSignalFamily
 from domain.xau_usd.models import XauPullbackWindowState, XauSignalCandidate, XauZone
 
@@ -55,16 +56,18 @@ def _decode(value):
     return {key: _decode(item) for key, item in value.items()}
 
 
+@pandera_validate(allow_pandas_dataframe=True)
 def write_parquet(df: pd.DataFrame, name: str, folder_to_save: Path) -> Path:
     folder_to_save.mkdir(parents=True, exist_ok=True)
     path = folder_to_save / (name if name.endswith(".parquet") else f"{name}.parquet")
-    encoded = df.copy(deep=True)
+    encoded = df.copy(deep=False)
     for column in encoded.select_dtypes(include="object", exclude="str"):
         encoded[column] = encoded[column].map(lambda value: _PREFIX + json.dumps(_encode(value)))
     encoded.to_parquet(path, engine="pyarrow", index=True)
     return path
 
 
+@pandera_validate(allow_pandas_dataframe=True)
 def read_parquet(path: Path) -> pd.DataFrame:
     decoded = pd.read_parquet(path, engine="pyarrow")
     for column in decoded.select_dtypes(include=["object", "str", "string"]):

@@ -92,7 +92,7 @@ class ResultFilesManifest(BaseModel):
                 _write_columnar, df.copy(deep=False), name, self._folder()
             )
             return
-        snapshot = df.copy(deep=True)
+        snapshot = df.copy(deep=False)
         for column in snapshot.select_dtypes(include="object", exclude="str"):
             snapshot[column] = snapshot[column].map(deepcopy)
         self._pending[category, day] = self._executor.submit(write_parquet, snapshot, name, self._folder())

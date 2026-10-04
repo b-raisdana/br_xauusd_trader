@@ -3,6 +3,7 @@
 import ast
 from dataclasses import asdict
 from pathlib import Path
+from threading import Event
 
 import numpy as np
 import pandas as pd
@@ -281,3 +282,31 @@ def test_columnar_persistence_uses_no_python_row_serialization(tmp_path, monkeyp
         pd.testing.assert_frame_equal(with_manifest.read_daily_windows(day), result.windows)
     finally:
         with_manifest.close()
+
+
+def test_async_source_snapshot_isolated_from_caller_mutation(tmp_path, monkeypatch):
+    from infrastructure.result_processing import io
+    from infrastructure.result_processing.io import ResultFilesManifest
+
+    ticks, candles = data(bars=1, ticks_per_bar=3)
+    original = ticks.copy(deep=True)
+    started, release = Event(), Event()
+    writer = io.write_parquet
+
+    def blocked_write(frame, name, folder):
+        started.set()
+        assert release.wait(timeout=5)
+        return writer(frame, name, folder)
+
+    monkeypatch.setattr(io, "write_parquet", blocked_write)
+    manifest = ResultFilesManifest(root=tmp_path)
+    day = ticks.broker_day.iloc[0]
+    try:
+        manifest.save_daily_ticks(day, ticks)
+        assert started.wait(timeout=5)
+        ticks.loc[:, "bid"] = 999.0
+        release.set()
+        pd.testing.assert_frame_equal(manifest.read_daily_ticks(day), original)
+    finally:
+        release.set()
+        manifest.close()

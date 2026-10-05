@@ -15,7 +15,7 @@ class Zones:
         return [XauZone("z", 100, 102)]
 
 
-def inputs(symbol="XAUUSD", offset=0.0):
+def inputs(symbol="XAUUSD!", offset=0.0):
     times = pd.date_range("2026-09-18", periods=8, freq="5min", tz="UTC").as_unit("ns")
     index = pd.MultiIndex.from_arrays(
         [["test"] * len(times), [symbol] * len(times), times.normalize(), times],

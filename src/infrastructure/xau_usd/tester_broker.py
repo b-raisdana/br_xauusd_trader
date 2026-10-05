@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from typing import Literal, Protocol, TypedDict
 
-from archive_not_used_trash.xauusd_trading_strategy_1 import XauPreparedEntry, XauTesterSubmission
-
-from domain.xau_usd.enums import XauDirection, XauEntryRejection, XauOrderType
+# from archive_not_used_trash.xauusd_trading_strategy_1 import XauPreparedEntry, XauTesterSubmission
 
 
 class EntryTradeRequest(TypedDict):
@@ -64,45 +62,45 @@ class Mt5TesterBroker:
     def __init__(self, sender: TradeRequestSender) -> None:
         self.sender = sender
 
-    def submit_prepared_entry(
-        self,
-        enabled: bool,
-        is_tester: bool,
-        magic: int,
-        symbol: str,
-        prepared: XauPreparedEntry,
-        tick_bid: float,
-        tick_ask: float,
-    ) -> XauTesterSubmission:
-        submission = XauTesterSubmission()
-        if (
-            not tester_execution_allowed(enabled, is_tester, magic, symbol)
-            or prepared.decision != XauEntryRejection.ALLOWED
-        ):
-            return submission
-
-        direction: Literal["BUY", "SELL"] = "BUY" if prepared.candidate.direction == XauDirection.BUY else "SELL"
-        request: EntryTradeRequest = {
-            "action": "DEAL" if prepared.candidate.order_type == XauOrderType.MARKET else "PENDING",
-            "symbol": symbol,
-            "magic": magic,
-            "volume": prepared.volume_lots,
-            "sl": prepared.stop_loss,
-            "tp": prepared.take_profit,
-            "direction": direction,
-        }
-        if prepared.candidate.order_type == XauOrderType.MARKET:
-            request["price"] = tick_ask if direction == "BUY" else tick_bid
-        else:
-            request["price"] = prepared.candidate.entry_price
-
-        submission.attempted = True
-        retcode, order_ticket, deal_ticket = self.sender.send(request)
-        submission.retcode = retcode
-        submission.order_ticket = order_ticket
-        submission.deal_ticket = deal_ticket
-        submission.accepted = tester_retcode_accepted(retcode)
-        return submission
+    # def submit_prepared_entry(
+    #     self,
+    #     enabled: bool,
+    #     is_tester: bool,
+    #     magic: int,
+    #     symbol: str,
+    #     prepared: XauPreparedEntry,
+    #     tick_bid: float,
+    #     tick_ask: float,
+    # ) -> XauTesterSubmission:
+    #     submission = XauTesterSubmission()
+    #     if (
+    #         not tester_execution_allowed(enabled, is_tester, magic, symbol)
+    #         or prepared.decision != XauEntryRejection.ALLOWED
+    #     ):
+    #         return submission
+    #
+    #     direction: Literal["BUY", "SELL"] = "BUY" if prepared.candidate.direction == XauDirection.BUY else "SELL"
+    #     request: EntryTradeRequest = {
+    #         "action": "DEAL" if prepared.candidate.order_type == XauOrderType.MARKET else "PENDING",
+    #         "symbol": symbol,
+    #         "magic": magic,
+    #         "volume": prepared.volume_lots,
+    #         "sl": prepared.stop_loss,
+    #         "tp": prepared.take_profit,
+    #         "direction": direction,
+    #     }
+    #     if prepared.candidate.order_type == XauOrderType.MARKET:
+    #         request["price"] = tick_ask if direction == "BUY" else tick_bid
+    #     else:
+    #         request["price"] = prepared.candidate.entry_price
+    #
+    #     submission.attempted = True
+    #     retcode, order_ticket, deal_ticket = self.sender.send(request)
+    #     submission.retcode = retcode
+    #     submission.order_ticket = order_ticket
+    #     submission.deal_ticket = deal_ticket
+    #     submission.accepted = tester_retcode_accepted(retcode)
+    #     return submission
 
     def modify_protection(
         self,
@@ -133,37 +131,37 @@ class Mt5TesterBroker:
         )
         return tester_retcode_accepted(retcode), retcode
 
-    def close_position(
-        self,
-        enabled: bool,
-        is_tester: bool,
-        magic: int,
-        symbol: str,
-        position_ticket: int,
-        volume: float,
-        position_type: Literal["BUY", "SELL"],
-        tick_bid: float,
-        tick_ask: float,
-    ) -> XauTesterSubmission:
-        submission = XauTesterSubmission()
-        if not tester_execution_allowed(enabled, is_tester, magic, symbol) or position_ticket <= 0:
-            return submission
-
-        direction = "SELL" if position_type == "BUY" else "BUY"
-        submission.attempted = True
-        retcode, order_ticket, deal_ticket = self.sender.send(
-            {
-                "action": "DEAL",
-                "symbol": symbol,
-                "magic": magic,
-                "position": position_ticket,
-                "volume": volume,
-                "direction": direction,
-                "price": tick_bid if position_type == "BUY" else tick_ask,
-            }
-        )
-        submission.retcode = retcode
-        submission.order_ticket = order_ticket
-        submission.deal_ticket = deal_ticket
-        submission.accepted = tester_retcode_accepted(retcode)
-        return submission
+    # def close_position(
+    #     self,
+    #     enabled: bool,
+    #     is_tester: bool,
+    #     magic: int,
+    #     symbol: str,
+    #     position_ticket: int,
+    #     volume: float,
+    #     position_type: Literal["BUY", "SELL"],
+    #     tick_bid: float,
+    #     tick_ask: float,
+    # ) -> XauTesterSubmission:
+    #     submission = XauTesterSubmission()
+    #     if not tester_execution_allowed(enabled, is_tester, magic, symbol) or position_ticket <= 0:
+    #         return submission
+    #
+    #     direction = "SELL" if position_type == "BUY" else "BUY"
+    #     submission.attempted = True
+    #     retcode, order_ticket, deal_ticket = self.sender.send(
+    #         {
+    #             "action": "DEAL",
+    #             "symbol": symbol,
+    #             "magic": magic,
+    #             "position": position_ticket,
+    #             "volume": volume,
+    #             "direction": direction,
+    #             "price": tick_bid if position_type == "BUY" else tick_ask,
+    #         }
+    #     )
+    #     submission.retcode = retcode
+    #     submission.order_ticket = order_ticket
+    #     submission.deal_ticket = deal_ticket
+    #     submission.accepted = tester_retcode_accepted(retcode)
+    #     return submission

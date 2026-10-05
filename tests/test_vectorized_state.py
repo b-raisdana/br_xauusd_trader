@@ -9,11 +9,13 @@ from application.xauusd_trading_strategy_1_vector.config.trend_points import tre
 from application.xauusd_trading_strategy_1_vector.domain.schema import PerTickState
 from application.xauusd_trading_strategy_1_vector.engagement import update_zone_engagement
 from domain.xau_usd.models import XauZone
-from infrastructure.result_processing.__main__ import (
-    generate_order_management_columns,
-    generate_position_tracking_columns,
-)
 from infrastructure.result_processing.io import ResultFilesManifest
+
+# DEAD CODE (2026-10-05): import used only by the commented generate_actions test below.
+# from infrastructure.result_processing.__main__ import (
+#     generate_order_management_columns,
+#     generate_position_tracking_columns,
+# )
 
 
 class EmptyZones:
@@ -138,37 +140,41 @@ def test_engagement_latches_within_bar_and_resets_at_next_open():
     assert per_tick_state.sell_engaged.tolist() == [False] * 4
 
 
-def test_snapshot_ids_are_preserved_with_duplicate_timestamps(tmp_path):
-    from test_vectorized_execution import candidate, config
-
-    from application.xauusd_trading_strategy_1_vector.actions import generate_actions
-    from infrastructure.result_processing.__main__ import merge_results_with_candles
-    from infrastructure.result_processing.io import ResultFilesManifest
-
-    frame = ticks(["2026-09-24 00:00"] * 4, [103, 103, 103, 103])
-    day = frame.broker_day.iloc[0]
-    strategy = VectorizedXauUsdStrategy(EmptyZones())
-    state = strategy._initialize_per_tick_temp_state(frame)
-    state["bar_open"] = 101.0
-    state["breakout_signals"] = pd.Series([(candidate(),), (), (), ()], index=frame.index)
-    from test_vectorized_execution import ZONES
-
-    state = generate_actions(frame, state, ZONES, config())
-    manifest = ResultFilesManifest(root=tmp_path)
-    try:
-        manifest.save_daily_ticks(day, frame)
-        manifest.save_daily_candles(day, candles_from_ticks(frame))
-        manifest.save_daily_ticks_temp_state(day, state)
-        merge_results_with_candles(manifest)
-        generate_order_management_columns(manifest)
-        generate_position_tracking_columns(manifest)
-        positions = manifest.read_positions(day)
-        assert positions.index.equals(frame.index)
-        assert positions.order_id.nunique() == 1
-        assert positions.position_id.nunique() == 1
-        assert positions.position_current_price.tolist() == [103.0] * 4
-    finally:
-        manifest.close()
+# DEAD CODE (2026-10-05): this test built its per-tick state with the commented
+# `generate_actions`, so it can no longer run. It is the only current coverage of
+# `merge_results_with_candles` duplicate-timestamp identity; re-author it against
+# the canonical path before treating that projection as verified.
+# def test_snapshot_ids_are_preserved_with_duplicate_timestamps(tmp_path):
+#     from test_vectorized_execution import candidate, config
+#
+#     from application.xauusd_trading_strategy_1_vector.actions import generate_actions
+#     from infrastructure.result_processing.__main__ import merge_results_with_candles
+#     from infrastructure.result_processing.io import ResultFilesManifest
+#
+#     frame = ticks(["2026-09-24 00:00"] * 4, [103, 103, 103, 103])
+#     day = frame.broker_day.iloc[0]
+#     strategy = VectorizedXauUsdStrategy(EmptyZones())
+#     state = strategy._initialize_per_tick_temp_state(frame)
+#     state["bar_open"] = 101.0
+#     state["breakout_signals"] = pd.Series([(candidate(),), (), (), ()], index=frame.index)
+#     from test_vectorized_execution import ZONES
+#
+#     state = generate_actions(frame, state, ZONES, config())
+#     manifest = ResultFilesManifest(root=tmp_path)
+#     try:
+#         manifest.save_daily_ticks(day, frame)
+#         manifest.save_daily_candles(day, candles_from_ticks(frame))
+#         manifest.save_daily_ticks_temp_state(day, state)
+#         merge_results_with_candles(manifest)
+#         generate_order_management_columns(manifest)
+#         generate_position_tracking_columns(manifest)
+#         positions = manifest.read_positions(day)
+#         assert positions.index.equals(frame.index)
+#         assert positions.order_id.nunique() == 1
+#         assert positions.position_id.nunique() == 1
+#         assert positions.position_current_price.tolist() == [103.0] * 4
+#     finally:
+#         manifest.close()
 
 
 def test_daily_zone_dataframe_selection_and_strategy_adapter():

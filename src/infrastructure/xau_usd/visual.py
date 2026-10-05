@@ -3,8 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Protocol
 
-from archive_not_used_trash.xauusd_trading_strategy_1 import XauVisualMarker
-
+# from archive_not_used_trash.xauusd_trading_strategy_1 import XauVisualMarker
 from domain.xau_usd.models import XauZone
 
 
@@ -20,14 +19,14 @@ def zone_color(priority: int) -> str:
     return "gold" if priority == 1 else "dodger_blue"
 
 
-def marker_tooltip(marker: XauVisualMarker, digits: int) -> str:
-    if marker.broker_time is None:
-        return ""
-    time_text = marker.broker_time.strftime("%Y.%m.%d %H:%M:%S")
-    return (
-        f"Time={time_text} | Zone={marker.zone_id} | Entry={marker.entry:.{digits}f} | "
-        f"SL={marker.stop_loss:.{digits}f} | TP={marker.take_profit:.{digits}f} | Event={marker.event_id}"
-    )
+# def marker_tooltip(marker: XauVisualMarker, digits: int) -> str:
+#     if marker.broker_time is None:
+#         return ""
+#     time_text = marker.broker_time.strftime("%Y.%m.%d %H:%M:%S")
+#     return (
+#         f"Time={time_text} | Zone={marker.zone_id} | Entry={marker.entry:.{digits}f} | "
+#         f"SL={marker.stop_loss:.{digits}f} | TP={marker.take_profit:.{digits}f} | Event={marker.event_id}"
+#     )
 
 
 def draw_xau_zone(
@@ -55,37 +54,37 @@ def draw_xau_zone(
     )
 
 
-def draw_xau_audit_marker(
-    backend: ChartObjectBackend,
-    chart_id: int,
-    marker: XauVisualMarker,
-    digits: int,
-) -> bool:
-    if (
-        marker.broker_time is None
-        or marker.entry <= 0.0
-        or not marker.event_id
-        or not marker.zone_id
-        or not marker.label
-    ):
-        return False
-
-    name = f"XAU_EVENT_{marker.event_id}"
-    if backend.find(chart_id, name) < 0 and not backend.create(
-        chart_id,
-        name,
-        "TEXT",
-        marker.broker_time,
-        marker.entry,
-    ):
-        return False
-
-    return (
-        backend.set_string(chart_id, name, "TEXT", marker.label)
-        and backend.set_string(chart_id, name, "TOOLTIP", marker_tooltip(marker, digits))
-        and backend.set_integer(chart_id, name, "COLOR", zone_color(marker.zone_priority))
-        and backend.set_integer(chart_id, name, "ANCHOR", 0)
-        and backend.set_integer(chart_id, name, "SELECTABLE", False)
-        and backend.set_integer(chart_id, name, "HIDDEN", True)
-        and backend.move(chart_id, name, 0, marker.broker_time, marker.entry)
-    )
+# def draw_xau_audit_marker(
+#     backend: ChartObjectBackend,
+#     chart_id: int,
+#     marker: XauVisualMarker,
+#     digits: int,
+# ) -> bool:
+#     if (
+#         marker.broker_time is None
+#         or marker.entry <= 0.0
+#         or not marker.event_id
+#         or not marker.zone_id
+#         or not marker.label
+#     ):
+#         return False
+#
+#     name = f"XAU_EVENT_{marker.event_id}"
+#     if backend.find(chart_id, name) < 0 and not backend.create(
+#         chart_id,
+#         name,
+#         "TEXT",
+#         marker.broker_time,
+#         marker.entry,
+#     ):
+#         return False
+#
+#     return (
+#         backend.set_string(chart_id, name, "TEXT", marker.label)
+#         and backend.set_string(chart_id, name, "TOOLTIP", marker_tooltip(marker, digits))
+#         and backend.set_integer(chart_id, name, "COLOR", zone_color(marker.zone_priority))
+#         and backend.set_integer(chart_id, name, "ANCHOR", 0)
+#         and backend.set_integer(chart_id, name, "SELECTABLE", False)
+#         and backend.set_integer(chart_id, name, "HIDDEN", True)
+#         and backend.move(chart_id, name, 0, marker.broker_time, marker.entry)
+#     )

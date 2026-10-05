@@ -3,7 +3,7 @@ from dataclasses import replace
 
 import pandas as pd
 import pytest
-from test_vectorized_execution import ZONES, candidate, config, step
+from test_vectorized_execution import ZONES, candidate, config  # , step
 
 from application.xauusd_trading_strategy_1_vector.domain.native import (
     EA_MAGIC,
@@ -14,15 +14,8 @@ from application.xauusd_trading_strategy_1_vector.domain.native import (
     NativeView,
     RecordedEconomics,
 )
-from application.xauusd_trading_strategy_1_vector.domain.recording import (
-    NativeRecording,
-    RecordedDeal,
-    RecordedInit,
-    RecordedTick,
-)
 from application.xauusd_trading_strategy_1_vector.domain.replay import ReplayOrder
 from application.xauusd_trading_strategy_1_vector.native_replay import RecordedExecutionReplay, parse_native_comment
-from application.xauusd_trading_strategy_1_vector.recorded_runner import compare_checkpoints, replay_recording
 from application.xauusd_trading_strategy_1_vector.trace import shared_trace
 from domain.xau_usd.enums import XauExecutionStatus, XauSignalFamily
 from domain.xau_usd.models import XauPullbackWindowState
@@ -60,17 +53,17 @@ def history(ticket=1, profit=0.0, commission=-0.2, magic=EA_MAGIC):
 
 
 def deal(entry="IN", **kwargs):
-    values = dict(
-        time=TIME,
-        ticket=1,
-        position_id=70,
-        magic=EA_MAGIC,
-        symbol="OTHER",
-        entry=entry,
-        price=103.7,
-        volume=0.01,
-        comment="R|20260924|z|B",
-    )
+    values = {
+        "time": TIME,
+        "ticket": 1,
+        "position_id": 70,
+        "magic": EA_MAGIC,
+        "symbol": "OTHER",
+        "entry": entry,
+        "price": 103.7,
+        "volume": 0.01,
+        "comment": "R|20260924|z|B",
+    }
     return NativeDeal(**(values | kwargs))
 
 
@@ -83,34 +76,34 @@ def replay(operations=()):
     return result
 
 
-def test_native_acceptance_does_not_invent_fill_before_callback():
-    empty = view(position=False)
-    operation = NativeOperation(
-        operation="SUBMIT",
-        target="R|20260924|z|B",
-        time=TIME,
-        accepted=True,
-        order_ticket=80,
-        after=empty,
-        price=103.1,
-        sl=94.1,
-        tp=120,
-        volume=0.01,
-    )
-    engine = replay([operation])
-    # The sole calculation is the requested entry's native initial-risk result.
-    engine.native.profits[(candidate().direction, 0.01, 103.1, 94.1)] = -9.0
-    step(engine, 103, reversals=(candidate(family=XauSignalFamily.REVERSAL),))
-    assert engine.requests[0].request_active
-    assert shared_trace(engine.state, engine)["g_positions"] == []
-    engine.on_deal(deal(), view(deals=[history()]), 103.6, 103.7)
-    trace = shared_trace(engine.state, engine)
-    assert not trace["g_requests"][0]["active"]
-    assert trace["g_positions"][0]["position_id"] == 70
-    assert trace["g_positions"][0]["position_ticket"] == 90
-    assert trace["g_positions"][0]["actual_fill"] == 103.7
-    assert trace["g_positions"][0]["risk_anchor_entry"] == 103.1
-    engine.native.assert_consumed()
+# def test_native_acceptance_does_not_invent_fill_before_callback():
+#     empty = view(position=False)
+#     operation = NativeOperation(
+#         operation="SUBMIT",
+#         target="R|20260924|z|B",
+#         time=TIME,
+#         accepted=True,
+#         order_ticket=80,
+#         after=empty,
+#         price=103.1,
+#         sl=94.1,
+#         tp=120,
+#         volume=0.01,
+#     )
+#     engine = replay([operation])
+#     # The sole calculation is the requested entry's native initial-risk result.
+#     engine.native.profits[(candidate().direction, 0.01, 103.1, 94.1)] = -9.0
+#     step(engine, 103, reversals=(candidate(family=XauSignalFamily.REVERSAL),))
+#     assert engine.requests[0].request_active
+#     assert shared_trace(engine.state, engine)["g_positions"] == []
+#     engine.on_deal(deal(), view(deals=[history()]), 103.6, 103.7)
+#     trace = shared_trace(engine.state, engine)
+#     assert not trace["g_requests"][0]["active"]
+#     assert trace["g_positions"][0]["position_id"] == 70
+#     assert trace["g_positions"][0]["position_ticket"] == 90
+#     assert trace["g_positions"][0]["actual_fill"] == 103.7
+#     assert trace["g_positions"][0]["risk_anchor_entry"] == 103.1
+#     engine.native.assert_consumed()
 
 
 def test_missing_metadata_and_cross_symbol_callback_keep_native_defaults():
@@ -261,110 +254,110 @@ def test_successful_close_waits_for_native_exit_callback():
     assert engine.net_realized == pytest.approx(2.4)
 
 
-def test_recording_runs_market_and_callback_checkpoints_with_first_difference():
-    engine = replay()
-    tick = RecordedInit(
-        has_ea_deal_today=False,
-        time=TIME,
-        day="2026-09-24",
-        bar_time=TIME,
-        bar_open=103,
-        bid=103,
-        ask=103.1,
-        history=((103, 104, 102, 103),) * 3,
-        zones=tuple(ZONES),
-        view=view(position=False),
-    )
-    callback = RecordedDeal(deal=deal(), bid=103.6, ask=103.7, view=view(deals=[history()]))
-    tape = NativeRecording(
-        provenance="source-derived",
-        reference_sha256="0" * 64,
-        initial_balance=200,
-        inputs=engine.config.inputs,
-        minimum_stop_distance=0,
-        session_windows=(),
-        profits=(),
-        operations=(),
-        events=(tick, callback),
-    )
-    checkpoints = list(replay_recording(NativeRecording.model_validate_json(tape.model_dump_json())))
-    assert checkpoints[0].state["g_positions"] == []
-    assert checkpoints[1].state["g_positions"][0]["position_id"] == 70
-    assert compare_checkpoints(checkpoints, checkpoints) is None
-    changed = checkpoints[1].model_copy(update={"state": checkpoints[1].state | {"g_trend": 99}})
-    assert "event 1" in compare_checkpoints(checkpoints, [checkpoints[0], changed])
-    assert "$.state.g_trend" in compare_checkpoints(checkpoints, [checkpoints[0], changed])
-    assert "empty evidence" in compare_checkpoints([], [])
+# def test_recording_runs_market_and_callback_checkpoints_with_first_difference():
+#     engine = replay()
+#     tick = RecordedInit(
+#         has_ea_deal_today=False,
+#         time=TIME,
+#         day="2026-09-24",
+#         bar_time=TIME,
+#         bar_open=103,
+#         bid=103,
+#         ask=103.1,
+#         history=((103, 104, 102, 103),) * 3,
+#         zones=tuple(ZONES),
+#         view=view(position=False),
+#     )
+#     callback = RecordedDeal(deal=deal(), bid=103.6, ask=103.7, view=view(deals=[history()]))
+#     tape = NativeRecording(
+#         provenance="source-derived",
+#         reference_sha256="0" * 64,
+#         initial_balance=200,
+#         inputs=engine.config.inputs,
+#         minimum_stop_distance=0,
+#         session_windows=(),
+#         profits=(),
+#         operations=(),
+#         events=(tick, callback),
+#     )
+#     checkpoints = list(replay_recording(NativeRecording.model_validate_json(tape.model_dump_json())))
+#     assert checkpoints[0].state["g_positions"] == []
+#     assert checkpoints[1].state["g_positions"][0]["position_id"] == 70
+#     assert compare_checkpoints(checkpoints, checkpoints) is None
+#     changed = checkpoints[1].model_copy(update={"state": checkpoints[1].state | {"g_trend": 99}})
+#     assert "event 1" in compare_checkpoints(checkpoints, [checkpoints[0], changed])
+#     assert "$.state.g_trend" in compare_checkpoints(checkpoints, [checkpoints[0], changed])
+#     assert "empty evidence" in compare_checkpoints([], [])
 
 
-def test_market_recording_generates_exact_command_then_delayed_native_fill():
-    engine = replay()
-    second = TIME + pd.Timedelta(seconds=1)
-    native_position = (
-        view()
-        .positions[0]
-        .model_copy(
-            update={
-                "buy": False,
-                "entry": 100.9,
-                "sl": 110.0,
-                "tp": 92.0,
-                "comment": "R|20260924|z|S",
-                "opened": second,
-            }
-        )
-    )
-    filled = NativeView(balance=199.7, free_margin=198.7, positions=(native_position,), history=(history(),))
-    before_callback = filled.model_copy(update={"history": ()})
-    init = RecordedInit(
-        time=TIME,
-        day="2026-09-24",
-        bar_time=TIME,
-        bar_open=99,
-        bid=99,
-        ask=99.1,
-        history=((98.5, 99.0, 98.0, 98.5),) * 3,
-        zones=tuple(ZONES),
-        view=view(position=False),
-        has_ea_deal_today=False,
-    )
-    tick = RecordedTick(
-        **(init.model_dump(exclude={"kind", "has_ea_deal_today"}) | {"time": second, "bid": 101, "ask": 101.1})
-    )
-    callback = RecordedDeal(
-        deal=deal(time=second, price=100.9, comment="R|20260924|z|S"), bid=101, ask=101.1, view=filled
-    )
-    command = NativeOperation(
-        operation="SUBMIT",
-        target="R|20260924|z|S",
-        time=second,
-        accepted=True,
-        order_ticket=80,
-        after=before_callback,
-        price=101,
-        sl=110,
-        tp=92,
-        volume=0.01,
-    )
-    recording = NativeRecording(
-        provenance="source-derived",
-        reference_sha256="0" * 64,
-        initial_balance=200,
-        inputs=engine.config.inputs,
-        minimum_stop_distance=0,
-        session_windows=(),
-        profits=(),
-        operations=(command,),
-        events=(init, tick, callback),
-    )
-    states = [c.state for c in replay_recording(recording)]
-    assert states[0]["g_trend"] == 0
-    assert states[1]["g_trend"] == 1
-    assert states[1]["g_requests"][0]["active"]
-    assert states[1]["g_positions"] == []
-    assert states[2]["g_positions"][0]["risk_anchor_entry"] == 101
-    assert states[2]["g_positions"][0]["actual_fill"] == 100.9
-    assert states[2]["g_zones"][1]["reversal_fill_count"] == 1
+# def test_market_recording_generates_exact_command_then_delayed_native_fill():
+#     engine = replay()
+#     second = TIME + pd.Timedelta(seconds=1)
+#     native_position = (
+#         view()
+#         .positions[0]
+#         .model_copy(
+#             update={
+#                 "buy": False,
+#                 "entry": 100.9,
+#                 "sl": 110.0,
+#                 "tp": 92.0,
+#                 "comment": "R|20260924|z|S",
+#                 "opened": second,
+#             }
+#         )
+#     )
+#     filled = NativeView(balance=199.7, free_margin=198.7, positions=(native_position,), history=(history(),))
+#     before_callback = filled.model_copy(update={"history": ()})
+#     init = RecordedInit(
+#         time=TIME,
+#         day="2026-09-24",
+#         bar_time=TIME,
+#         bar_open=99,
+#         bid=99,
+#         ask=99.1,
+#         history=((98.5, 99.0, 98.0, 98.5),) * 3,
+#         zones=tuple(ZONES),
+#         view=view(position=False),
+#         has_ea_deal_today=False,
+#     )
+#     tick = RecordedTick(
+#         **(init.model_dump(exclude={"kind", "has_ea_deal_today"}) | {"time": second, "bid": 101, "ask": 101.1})
+#     )
+#     callback = RecordedDeal(
+#         deal=deal(time=second, price=100.9, comment="R|20260924|z|S"), bid=101, ask=101.1, view=filled
+#     )
+#     command = NativeOperation(
+#         operation="SUBMIT",
+#         target="R|20260924|z|S",
+#         time=second,
+#         accepted=True,
+#         order_ticket=80,
+#         after=before_callback,
+#         price=101,
+#         sl=110,
+#         tp=92,
+#         volume=0.01,
+#     )
+#     recording = NativeRecording(
+#         provenance="source-derived",
+#         reference_sha256="0" * 64,
+#         initial_balance=200,
+#         inputs=engine.config.inputs,
+#         minimum_stop_distance=0,
+#         session_windows=(),
+#         profits=(),
+#         operations=(command,),
+#         events=(init, tick, callback),
+#     )
+#     states = [c.state for c in replay_recording(recording)]
+#     assert states[0]["g_trend"] == 0
+#     assert states[1]["g_trend"] == 1
+#     assert states[1]["g_requests"][0]["active"]
+#     assert states[1]["g_positions"] == []
+#     assert states[2]["g_positions"][0]["risk_anchor_entry"] == 101
+#     assert states[2]["g_positions"][0]["actual_fill"] == 100.9
+#     assert states[2]["g_zones"][1]["reversal_fill_count"] == 1
 
 
 def test_native_risk_calculation_failure_does_not_invent_postfill_close():

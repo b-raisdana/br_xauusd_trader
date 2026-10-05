@@ -27,7 +27,7 @@ class Config(BaseConfig):
 
     root_path: Path = _ROOT_PATH
 
-    default_symbol: str = "XAUUSD"
+    default_symbol: str = "XAUUSD!"
     default_broker: str = "opofinance"
 
     timeframe_shifter: dict[str, int] = {

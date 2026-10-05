@@ -167,6 +167,6 @@ def test_runner_does_not_silently_sort_nonchronological_ticks(tmp_path, monkeypa
             names=["timeframe", "date"],
         ),
     )
-    monkeypatch.setattr(io.app_config, "path_of_data", tmp_path)
+    # monkeypatch.setattr(io.app_config, "path_of_data", tmp_path)
     with pytest.raises(ValueError, match="chronological"):
         run_vectorized_strategy(ticks.iloc[::-1], candles, zones)

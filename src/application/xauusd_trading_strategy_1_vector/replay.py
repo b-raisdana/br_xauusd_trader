@@ -379,9 +379,8 @@ class ExecutionReplay:
                 and order.candidate.family == XauSignalFamily.REVERSAL
                 and order.candidate.zone_id == candidate.zone_id
                 and order.direction != candidate.direction
-            ):
-                if not self._close(order, time, bid, ask, "OPPOSITE_BREAKOUT"):
-                    return False
+            ) and not self._close(order, time, bid, ask, "OPPOSITE_BREAKOUT"):
+                return False
         self._submit(candidate, time, bid, ask)
         zone = next((z.zone for z in self.state.zones if z.zone.id == candidate.zone_id), None)
         if zone is None:
@@ -771,33 +770,33 @@ class ExecutionReplay:
             window.order_ticket = ""
             window.pending_active = window.waiting_logged = window.risk_waiting_logged = False
 
-    def step(
-        self,
-        time: datetime,
-        day: str,
-        bar: datetime,
-        bar_open: float,
-        bid: float,
-        ask: float,
-        zones: Sequence[XauZone],
-        openings: Sequence[XauPullbackWindowState],
-        breakouts: Sequence[XauSignalCandidate],
-        reversals: Sequence[XauSignalCandidate],
-    ) -> ReplaySnapshot:
-        self._begin_tick(bid, ask)
-        self._session(time, bid, ask)
-        self._roll(day, bar, bar_open, zones, openings, time, bid, ask)
-        if not self._restart(time, bid, ask):
-            self._settle(time, bid, ask)
-            for candidate in breakouts:
-                self._breakout(candidate, time, bid, ask)
-            for candidate in reversals:
-                self._submit(candidate, time, bid, ask)
-            pullbacks = self._pullbacks(time, bid, ask)
-            self._manage(time, bid, ask, ())
-        else:
-            pullbacks = []
-        return self._snapshot(bid, ask, pullbacks)
+    # def step(
+    #     self,
+    #     time: datetime,
+    #     day: str,
+    #     bar: datetime,
+    #     bar_open: float,
+    #     bid: float,
+    #     ask: float,
+    #     zones: Sequence[XauZone],
+    #     openings: Sequence[XauPullbackWindowState],
+    #     breakouts: Sequence[XauSignalCandidate],
+    #     reversals: Sequence[XauSignalCandidate],
+    # ) -> ReplaySnapshot:
+    #     self._begin_tick(bid, ask)
+    #     self._session(time, bid, ask)
+    #     self._roll(day, bar, bar_open, zones, openings, time, bid, ask)
+    #     if not self._restart(time, bid, ask):
+    #         self._settle(time, bid, ask)
+    #         for candidate in breakouts:
+    #             self._breakout(candidate, time, bid, ask)
+    #         for candidate in reversals:
+    #             self._submit(candidate, time, bid, ask)
+    #         pullbacks = self._pullbacks(time, bid, ask)
+    #         self._manage(time, bid, ask, ())
+    #     else:
+    #         pullbacks = []
+    #     return self._snapshot(bid, ask, pullbacks)
 
     def _begin_tick(self, bid: float, ask: float) -> None:
         if not (isfinite(bid) and isfinite(ask) and 0 < bid <= ask):

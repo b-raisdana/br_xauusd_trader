@@ -1,7 +1,5 @@
-import json
 from copy import deepcopy
 from datetime import datetime
-from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -17,7 +15,6 @@ from domain.xau_usd.models import (
 
 from .domain.robust import RobustInputs, pullback_allowed
 from .replay import ExecutionReplay
-from .trace import shared_trace, timestamp
 
 type ClosedHistory = NDArray[np.float64] | list[tuple[float, float, float, float]]
 
@@ -165,105 +162,105 @@ class MarketState:
                 )
         return candidates
 
-    def step(
-        self,
-        time: datetime,
-        day: str,
-        bar: datetime,
-        bar_open: float,
-        bid: float,
-        ask: float,
-        history: ClosedHistory,
-        zones: list[XauZone],
-    ) -> dict[str, Any]:
-        if len(history) < 3:
-            raise ValueError("MT5 startup requires three native closed M15 candles")
-        execution = self.execution
-        if execution:
-            execution._begin_tick(bid, ask)
-            execution._session(time, bid, ask)
-        previous_cycles = len(self.state.pullbacks)
-        breakouts = []
-        if self.bar != bar:
-            if self.bar is not None:
-                self._age(time)
-                breakouts = self._breakouts(time, float(history[-1][3]), bid, ask)
-            if day != self.state.broker_day:
-                self._change_day(day, zones, time)
-            if self.bar is None:
-                self.previous_bid = bid
-            self.bar = bar
-            self.state.bar_open = bar_open
-            self.history = history
-            for state in self.state.zones:
-                state.buy_engaged = state.sell_engaged = state.zone.low <= bar_open <= state.zone.high
-            if execution:
-                execution.bar, execution.bar_open = bar, bar_open
-                execution.closed_bars = history
-        reference_high = max(c[1] for c in self.history[-3:])
-        reference_low = min(c[2] for c in self.history[-3:])
-        locked = execution is not None and execution._restart(time, bid, ask)
-        multi = False
-        reversals: list[XauSignalCandidate] = []
-        pullbacks: list[XauSignalCandidate] = []
-        if not locked:
-            if execution:
-                execution._settle(time, bid, ask)
-            if bid > reference_high:
-                self.trend = XauTrend.UP
-            elif bid < reference_low:
-                self.trend = XauTrend.DOWN
-            multi, reversals = self._touches(time, bid, ask)
-            if execution:
-                pullbacks = execution._pullbacks(time, bid, ask)
-                execution._manage(time, bid, ask, ())
-            else:
-                pullbacks = self._signal_pullbacks(time, bid)
-        self.previous_bid = bid
-        active = [w for w in self.state.pullbacks if w.active]
-        result: dict[str, Any] = {
-            "trend": int(self.trend),
-            "trend_count": 3,
-            "bar_open": bar_open,
-            "bar_active": True,
-            "day_active": bool(self.state.zones),
-            "reference_high": reference_high,
-            "reference_low": reference_low,
-            "buy_engaged": any(z.buy_engaged for z in self.state.zones),
-            "sell_engaged": any(z.sell_engaged for z in self.state.zones),
-            "multi_zone_tick_gap": multi,
-            "breakout_sequence": self.state.breakout_sequence,
-            "breakout_signals": tuple(breakouts),
-            "reversal_signals": tuple(reversals),
-            "pullback_signals": tuple(pullbacks),
-            "pullback_windows_opened": tuple(deepcopy(self.state.pullbacks[previous_cycles:])),
-            "pullback_active": bool(active),
-            "pullback_bar_offset": max((w.bar_offset for w in active), default=0),
-            "pullback_penetration_latched": any(w.penetration_latched for w in active),
-        }
-        for i, candle in enumerate(self.history[-3:]):
-            result[f"trend_high_{i}"] = candle[1]
-            result[f"trend_low_{i}"] = candle[2]
-        for z in self.state.zones:
-            result[f"buy_engaged:{z.zone.id}"] = z.buy_engaged
-            result[f"sell_engaged:{z.zone.id}"] = z.sell_engaged
-        for z in self.state.zones:
-            for direction in XauDirection:
-                window = next((w for w in active if w.zone.id == z.zone.id and w.direction == direction), None)
-                prefix = f"pullback:{z.zone.id}:{direction.value}"
-                result[f"{prefix}:parent"] = window.parent_breakout_id if window else ""
-                result[f"{prefix}:offset"] = window.bar_offset if window else 0
-        if execution:
-            result.update(execution._snapshot(bid, ask, pullbacks))
-        trace = shared_trace(self.state, execution)
-        trace.update(
-            {
-                "g_bar_time": timestamp(bar),
-                "g_prev_bid": bid,
-                "g_trend": int(self.trend),
-                "g_ref_high": reference_high,
-                "g_ref_low": reference_low,
-            }
-        )
-        result["mt5_state"] = json.dumps(trace, allow_nan=False)
-        return result
+    # def step(
+    #     self,
+    #     time: datetime,
+    #     day: str,
+    #     bar: datetime,
+    #     bar_open: float,
+    #     bid: float,
+    #     ask: float,
+    #     history: ClosedHistory,
+    #     zones: list[XauZone],
+    # ) -> dict[str, Any]:
+    #     if len(history) < 3:
+    #         raise ValueError("MT5 startup requires three native closed M15 candles")
+    #     execution = self.execution
+    #     if execution:
+    #         execution._begin_tick(bid, ask)
+    #         execution._session(time, bid, ask)
+    #     previous_cycles = len(self.state.pullbacks)
+    #     breakouts = []
+    #     if self.bar != bar:
+    #         if self.bar is not None:
+    #             self._age(time)
+    #             breakouts = self._breakouts(time, float(history[-1][3]), bid, ask)
+    #         if day != self.state.broker_day:
+    #             self._change_day(day, zones, time)
+    #         if self.bar is None:
+    #             self.previous_bid = bid
+    #         self.bar = bar
+    #         self.state.bar_open = bar_open
+    #         self.history = history
+    #         for state in self.state.zones:
+    #             state.buy_engaged = state.sell_engaged = state.zone.low <= bar_open <= state.zone.high
+    #         if execution:
+    #             execution.bar, execution.bar_open = bar, bar_open
+    #             execution.closed_bars = history
+    #     reference_high = max(c[1] for c in self.history[-3:])
+    #     reference_low = min(c[2] for c in self.history[-3:])
+    #     locked = execution is not None and execution._restart(time, bid, ask)
+    #     multi = False
+    #     reversals: list[XauSignalCandidate] = []
+    #     pullbacks: list[XauSignalCandidate] = []
+    #     if not locked:
+    #         if execution:
+    #             execution._settle(time, bid, ask)
+    #         if bid > reference_high:
+    #             self.trend = XauTrend.UP
+    #         elif bid < reference_low:
+    #             self.trend = XauTrend.DOWN
+    #         multi, reversals = self._touches(time, bid, ask)
+    #         if execution:
+    #             pullbacks = execution._pullbacks(time, bid, ask)
+    #             execution._manage(time, bid, ask, ())
+    #         else:
+    #             pullbacks = self._signal_pullbacks(time, bid)
+    #     self.previous_bid = bid
+    #     active = [w for w in self.state.pullbacks if w.active]
+    #     result: dict[str, Any] = {
+    #         "trend": int(self.trend),
+    #         "trend_count": 3,
+    #         "bar_open": bar_open,
+    #         "bar_active": True,
+    #         "day_active": bool(self.state.zones),
+    #         "reference_high": reference_high,
+    #         "reference_low": reference_low,
+    #         "buy_engaged": any(z.buy_engaged for z in self.state.zones),
+    #         "sell_engaged": any(z.sell_engaged for z in self.state.zones),
+    #         "multi_zone_tick_gap": multi,
+    #         "breakout_sequence": self.state.breakout_sequence,
+    #         "breakout_signals": tuple(breakouts),
+    #         "reversal_signals": tuple(reversals),
+    #         "pullback_signals": tuple(pullbacks),
+    #         "pullback_windows_opened": tuple(deepcopy(self.state.pullbacks[previous_cycles:])),
+    #         "pullback_active": bool(active),
+    #         "pullback_bar_offset": max((w.bar_offset for w in active), default=0),
+    #         "pullback_penetration_latched": any(w.penetration_latched for w in active),
+    #     }
+    #     for i, candle in enumerate(self.history[-3:]):
+    #         result[f"trend_high_{i}"] = candle[1]
+    #         result[f"trend_low_{i}"] = candle[2]
+    #     for z in self.state.zones:
+    #         result[f"buy_engaged:{z.zone.id}"] = z.buy_engaged
+    #         result[f"sell_engaged:{z.zone.id}"] = z.sell_engaged
+    #     for z in self.state.zones:
+    #         for direction in XauDirection:
+    #             window = next((w for w in active if w.zone.id == z.zone.id and w.direction == direction), None)
+    #             prefix = f"pullback:{z.zone.id}:{direction.value}"
+    #             result[f"{prefix}:parent"] = window.parent_breakout_id if window else ""
+    #             result[f"{prefix}:offset"] = window.bar_offset if window else 0
+    #     if execution:
+    #         result.update(execution._snapshot(bid, ask, pullbacks))
+    #     trace = shared_trace(self.state, execution)
+    #     trace.update(
+    #         {
+    #             "g_bar_time": timestamp(bar),
+    #             "g_prev_bid": bid,
+    #             "g_trend": int(self.trend),
+    #             "g_ref_high": reference_high,
+    #             "g_ref_low": reference_low,
+    #         }
+    #     )
+    #     result["mt5_state"] = json.dumps(trace, allow_nan=False)
+    #     return result

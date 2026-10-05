@@ -108,27 +108,6 @@ def test_partial_state_operations_reject_invalid_inputs(operation, defect):
         function(frame)
 
 
-# def test_validation_returns_validated_copy_so_callers_consume_the_return_value():
-#     @pandera_validate
-#     def mutate(frame: pt.DataFrame[EngagementResult]) -> pt.DataFrame[EngagementResult]:
-#         frame["buy_engaged"] = True
-#         return frame
-
-#     frame = pd.DataFrame(
-#         {
-#             "bid": [1.0],
-#             "bar_time": pd.date_range("2026-09-18", periods=1, tz="UTC").as_unit("ns"),
-#             "buy_engaged": False,
-#             "sell_engaged": False,
-#             "multi_zone_tick_gap": False,
-#         }
-#     )
-#     result = mutate(frame)
-#     assert result.buy_engaged.all()
-#     assert result is not frame
-#     assert not bool(frame.buy_engaged.iloc[0])
-
-
 @pytest.mark.parametrize("defect", ["missing_column", "wrong_dtype"])
 def test_inplace_validation_still_rejects_broken_outputs(defect):
     @pandera_validate

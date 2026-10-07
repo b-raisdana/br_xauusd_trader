@@ -121,35 +121,6 @@ def oracle(frame, zones):
     return expected, snapshots
 
 
-# @pytest.mark.parametrize(
-#     "direction,close,expected",
-#     [
-#         ("buy", 103.0, False),
-#         ("buy", 103.001, True),
-#         ("sell", 99.0, False),
-#         ("sell", 98.999, True),
-#     ],
-# )
-# def test_strict_buffer_and_closed_bar_availability(direction, close, expected):
-#     prices = [100, 101, 100, close, 100] if direction == "buy" else [101, 102, 102, close, 102]
-#     frame = ticks(
-#         ["2026-09-18 00:00", "2026-09-18 00:01", "2026-09-18 00:15", "2026-09-18 00:16", "2026-09-18 00:30"], prices
-#     )
-#     result, per_tick_state = run(frame, [XauZone("z", 100, 102)])
-#     assert all(not values for values in result.breakout_signals.iloc[:-1])
-#     assert bool(result.breakout_signals.iloc[-1]) == expected
-#     assert per_tick_state.breakout_sequence.iloc[-1] == int(expected)
-#     assert result.action.isna().all()
-#     if expected:
-#         candidate = result.breakout_signals.iloc[-1][0]
-#         assert candidate.entry_price == close
-#         assert candidate.signal_time == pd.Timestamp("2026-09-18 00:30", tz="UTC")
-#         assert candidate.direction == (XauDirection.BUY if direction == "buy" else XauDirection.SELL)
-#         window = result.pullback_windows_opened.iloc[-1][0]
-#         assert window.parent_breakout_id == candidate.candidate_id == "BO1"
-#         assert window.active and window.bar_offset == 1
-
-
 def test_scalar_parity_for_candidates_sequence_and_window_ownership():
     rng = np.random.default_rng(14)
     times = pd.DatetimeIndex(
@@ -272,29 +243,6 @@ def test_gap_uses_observed_new_bar_time_and_advances_window_once():
     assert candidate.signal_time == pd.Timestamp("2026-09-18 01:00", tz="UTC")
     assert candidate.bar_id == str(pd.Timestamp("2026-09-18 00:15", tz="UTC"))
     assert per_tick_state[f"pullback:z:{XauDirection.BUY.value}:offset"].tolist() == [0, 0, 0, 1, 2]
-
-
-# def test_window_expires_at_sixth_observed_bar_without_new_breakout():
-#     frame = ticks(
-#         pd.date_range("2026-09-18", periods=9, freq="15min", tz="UTC").insert(
-#             2, pd.Timestamp("2026-09-18 00:16", tz="UTC")
-#         ),
-#         [100, 101, 104, 104, 104, 104, 104, 104, 104, 104],
-#     )
-#     result, per_tick_state = run(frame, [XauZone("z", 100, 102)])
-#     assert sum(map(len, result.breakout_signals)) == 1
-#     assert per_tick_state[f"pullback:z:{XauDirection.BUY.value}:offset"].tolist() == [0, 0, 0, 1, 2, 3, 4, 5, 0, 0]
-#     assert not per_tick_state.pullback_active.iloc[-1]
-
-
-# def test_close_time_trend_not_following_tick_trend_controls_candidate():
-#     frame = ticks(
-#         ["2026-09-18 00:00", "2026-09-18 00:01", "2026-09-18 00:15", "2026-09-18 00:16", "2026-09-18 00:30"],
-#         [100, 101, 100, 104, 90],
-#     )
-#     result, per_tick_state = run(frame, [XauZone("z", 100, 102)])
-#     assert result.breakout_signals.iloc[-1][0].direction == XauDirection.BUY
-#     assert per_tick_state.trend.iloc[-1] == XauTrend.DOWN.value
 
 
 def test_breakout_requires_matching_trend_even_when_engaged_and_beyond_buffer():

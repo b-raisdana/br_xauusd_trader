@@ -253,37 +253,6 @@ class Zones:
         return deepcopy(ZONES)
 
 
-# def test_action_projection_tracks_real_lifecycle_without_synthetic_fills():
-#     ticks = frame([103, 104, 100])
-#     data = VectorizedXauUsdStrategy(Zones())._initialize_per_tick_temp_state(ticks)
-#     data["bar_open"] = 103.0
-#     data.iat[0, data.columns.get_loc("breakout_signals")] = (candidate(),)
-#     replayed = generate_actions(ticks, data, ZONES, config())
-#     result = generate_position_tracking_columns(generate_order_management_columns(replayed))
-#     assert result.position_status.tolist() == [
-#         XauExecutionStatus.FILLED,
-#         XauExecutionStatus.FILLED,
-#         XauExecutionStatus.CLOSED,
-#     ]
-#     assert result.position_unrealized_pnl.iloc[1] == pytest.approx(0.8)
-#     assert result.position_realized_pnl.iloc[2] == pytest.approx(-7.4)
-#     assert result.position_id.nunique() == 1
-#     assert data.action.isna().all()
-#     for broken in (result.drop(columns="position_status"), result.assign(position_status="FILLED")):
-#         with pytest.raises(SchemaErrors):
-#             PositionTrackingResult.validate(broken, lazy=True)
-
-
-# @pytest.mark.parametrize("empty", [False, True])
-# def test_public_result_keeps_all_families_and_lifecycle_columns(empty):
-#     ticks = frame([] if empty else [101, 101.8, 103])
-#     result = VectorizedXauUsdStrategy(Zones(), config()).process_tick_data(ticks, candles_from_ticks(ticks))
-#     assert {"reversal_signals", "pullback_signals", "orders", "positions"} <= set(result.columns)
-#     StrategyResult.validate(result, lazy=True)
-#     positions = generate_position_tracking_columns(generate_order_management_columns(result.assign(bid=ticks.bid)))
-#     assert len(positions) == len(ticks)
-
-
 @pytest.mark.parametrize("defect", ["missing", "dtype", "index"])
 def test_execution_input_validation_rejects_broken_data(defect):
     ticks = frame([103])

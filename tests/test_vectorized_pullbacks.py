@@ -185,14 +185,6 @@ def test_invalid_daily_counts_are_rejected(counts):
         generate_pullback_signals(ticks, data)
 
 
-# def test_missing_input_and_output_columns_are_rejected():
-#     ticks, data = state([101.8])
-#     with pytest.raises(SchemaErrors):
-#         generate_pullback_signals(data.drop(columns="pullback_windows_opened"))
-#     with pytest.raises(SchemaErrors):
-#         PullbackResult.validate(data, lazy=True)
-
-
 def test_breakout_openings_feed_pullback_generation():
     ticks, data = state([101, 104, 101.8], ["2026-09-24 00:00", "2026-09-24 00:01", "2026-09-24 00:15"])
     data["trend"] = 1

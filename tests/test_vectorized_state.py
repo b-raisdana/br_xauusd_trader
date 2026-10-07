@@ -121,43 +121,10 @@ def test_broker_symbol_partitions_and_daily_zone_loading_are_isolated():
     assert set(per_tick_state.reference_high) == {100.0, 200.0}
 
 
-# def test_bar_processing_never_iterates_groupby_or_applies_rows(monkeypatch):
-#     frame = ticks(pd.date_range("2026-09-18", periods=100, freq="min", tz="UTC"), np.arange(100) + 100)
-#     strategy = VectorizedXauUsdStrategy(EmptyZones())
-#     per_tick_state = strategy._initialize_per_tick_temp_state(frame)
-#     per_candle_state = strategy._process_day_boundaries(per_tick_state)
-
-#     def forbidden(*args, **kwargs):
-#         raise AssertionError("Python iteration over rows or bars is forbidden")
-
-#     candle_df = candles_from_ticks(per_tick_state)
-#     monkeypatch.setattr(DataFrameGroupBy, "agg", forbidden)
-#     monkeypatch.setattr(DataFrameGroupBy, "__iter__", forbidden)
-#     monkeypatch.setattr(pd.DataFrame, "apply", forbidden)
-#     strategy._update_trend(strategy._process_bar_boundaries(per_tick_state, candle_df))
-
-
 def test_unsorted_input_is_rejected():
     frame = ticks(["2026-09-18 00:01", "2026-09-18 00:00"], [1, 2])
     with pytest.raises(ValueError, match="chronological"):
         calculate(frame)
-
-
-# def test_reference_reduction_ignores_unused_slots():
-#     counts = [0, 1, 2, 3]
-#     recorded = {"high": [100, 5, 5, 5], "low": [-100, 5, 5, 5]}
-#     fillers = {"high": 100.0, "low": -100.0}
-#     per_tick_state = pd.DataFrame({"trend_count": counts})
-#     for slot, filler in fillers.items():
-#         for index in range(trend_point_count()):
-#             per_tick_state[trend_columns(slot)[index]] = [
-#                 value if count > index else filler for value, count in zip(recorded[slot], counts, strict=True)
-#             ]
-#     expected_high = [compute_reference_high(row) for _, row in per_tick_state.iterrows()]
-#     expected_low = [compute_reference_low(row) for _, row in per_tick_state.iterrows()]
-#     compute_references(per_tick_state)
-#     assert per_tick_state.reference_high.tolist() == expected_high
-#     assert per_tick_state.reference_low.tolist() == expected_low
 
 
 def test_engagement_latches_within_bar_and_resets_at_next_open():

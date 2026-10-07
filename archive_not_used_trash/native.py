@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 
 # from archive_not_used_trash.xauusd_trading_strategy_1 import XauNativeDealOutcome, XauNativeSymbol
 

@@ -9,11 +9,11 @@ from pathlib import Path
 #     protection_modification_valid,
 # )
 
-DEFAULT_STORAGE_ROOT = Path(__file__).resolve().parents[3] / "data" / "mt5"
+# DEFAULT_STORAGE_ROOT = Path(__file__).resolve().parents[3] / "data" / "mt5"
 
 
-def execution_request_id_valid(request_id: str) -> bool:
-    return bool(request_id) and not any(character in request_id for character in "\t\r\n")
+# def execution_request_id_valid(request_id: str) -> bool:
+#     return bool(request_id) and not any(character in request_id for character in "\t\r\n")
 
 
 # def bind_execution_order(

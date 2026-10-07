@@ -6,7 +6,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 import pandas as pd
-from br_py_log_n_profile import log_e
+from br_py_log_n_profile import log_e, log_exception
 
 from application.xauusd_trading_strategy_1_vector.domain.columnar import NativeStrategyResult, SignalTickState
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
@@ -15,6 +15,7 @@ from application.xauusd_trading_strategy_1_vector.domain.schema import (
     VectorizedTick,
 )
 from br_pre_commit import pandera_validate
+from config import app_config
 from domain.xau_usd.models import XauPullbackWindowState, XauSignalCandidate
 from helper.importer import pt
 from infrastructure.result_processing.io import ResultFilesManifest
@@ -53,22 +54,32 @@ def _native_market_rows(
 @pandera_validate
 def save_results_to_file(
     manifest: ResultFilesManifest,
-    output_file: str,
+    output_file: Path | str,
 ) -> None:
     """Export primitive native tables, or separate legacy position artifacts."""
+    if isinstance(output_file, str):
+        output_file = Path(output_file)
+    if not output_file.is_relative_to(app_config.path_of_data):
+        if output_file.is_absolute():
+            log_exception(
+                f"Absolute path of {output_file} is not allowed; must be relative to {app_config.path_of_data}",
+                ValueError,
+            )
+        else:
+            output_file = app_config.path_of_data / output_file
+
     days = manifest.successful_days("signal_state")
     if days:
-        path = Path(output_file)
-        path.parent.mkdir(parents=True, exist_ok=True)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
         result = pd.concat(
             [_native_market_rows(manifest.read_daily_ticks(day), manifest.read_daily_signal_state(day)) for day in days]
         )
-        result.reset_index().to_parquet(path, index=False)
+        result.reset_index().to_parquet(output_file, index=False)
         pd.concat([manifest.read_daily_signals(day) for day in days]).reset_index().to_parquet(
-            path.with_name(f"{path.stem}_signals.parquet"), index=False
+            output_file.with_name(f"{output_file.stem}_signals.parquet"), index=False
         )
         pd.concat([manifest.read_daily_windows(day) for day in days]).reset_index().to_parquet(
-            path.with_name(f"{path.stem}_windows.parquet"), index=False
+            output_file.with_name(f"{output_file.stem}_windows.parquet"), index=False
         )
         print(f"Results saved to {output_file} (Parquet format)")
         return

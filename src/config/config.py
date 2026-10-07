@@ -52,8 +52,12 @@ class Config(BaseConfig):
     INFINITY_TIME_DELTA: timedelta = timedelta(days=10 * 365)
     EPSILON_TIME_DELTA: timedelta = timedelta(seconds=1)
 
+    # path_of_data: Path = Field(
+    #     default=_ROOT_PATH.parent / "data" / "XAAUSD_PA",
+    #     validation_alias="DLF_DATA_ROOT",
+    # )
     path_of_data: Path = Field(
-        default=_ROOT_PATH.parent / "data" / "XAAUSD_PA",
+        default=_ROOT_PATH / "data",
         validation_alias="DLF_DATA_ROOT",
     )
     path_of_logs: Path = Field(

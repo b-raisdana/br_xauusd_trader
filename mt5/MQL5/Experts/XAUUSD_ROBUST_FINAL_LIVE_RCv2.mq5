@@ -397,6 +397,90 @@ string GapText(double v)
   return DoubleToString(v, 2);
 }
 
+string JsonEscape(string value)
+{
+  StringReplace(value, "\\", "\\\\");
+  StringReplace(value, "\"", "\\\"");
+  StringReplace(value, "\r", "\\r");
+  StringReplace(value, "\n", "\\n");
+  StringReplace(value, "\t", "\\t");
+  return value;
+}
+
+string JsonBool(bool value) { return value ? "true" : "false"; }
+
+string JsonRawZones()
+{
+  string json = "[";
+  for (int i = 0; i < ArraySize(g_raw_zones); i++)
+  {
+    if (i > 0) json += ",";
+    json += StringFormat("{\"day\":%I64d,\"day_key\":\"%s\",\"low\":%.16g,\"high\":%.16g,\"priority\":\"%s\",\"note\":\"%s\"}",
+                         (long)g_raw_zones[i].day, JsonEscape(g_raw_zones[i].day_key), g_raw_zones[i].low, g_raw_zones[i].high,
+                         JsonEscape(g_raw_zones[i].priority), JsonEscape(g_raw_zones[i].note));
+  }
+  return json + "]";
+}
+
+string JsonZones()
+{
+  string json = "[";
+  for (int i = 0; i < ArraySize(g_zones); i++)
+  {
+    if (i > 0) json += ",";
+    json += StringFormat("{\"day_key\":\"%s\",\"id\":\"%s\",\"low\":%.16g,\"high\":%.16g,\"priority\":\"%s\",\"engaged_buy\":%s,\"engaged_sell\":%s,\"reversal_usage\":%d,\"reversal_fill_count\":%d,\"pullback_fill_count\":%d,\"last_reversal_buy_signal_bar\":%I64d,\"last_reversal_sell_signal_bar\":%I64d}",
+      JsonEscape(g_zones[i].day_key), JsonEscape(g_zones[i].id), g_zones[i].low, g_zones[i].high, JsonEscape(g_zones[i].priority),
+      JsonBool(g_zones[i].engaged_buy), JsonBool(g_zones[i].engaged_sell), g_zones[i].reversal_usage, g_zones[i].reversal_fill_count,
+      g_zones[i].pullback_fill_count, (long)g_zones[i].last_reversal_buy_signal_bar, (long)g_zones[i].last_reversal_sell_signal_bar);
+  }
+  return json + "]";
+}
+
+string JsonCycles()
+{
+  string json = "[";
+  for (int i = 0; i < ArraySize(g_cycles); i++)
+  {
+    if (i > 0) json += ",";
+    json += StringFormat("{\"active\":%s,\"buy\":%s,\"day_key\":\"%s\",\"zone_id\":\"%s\",\"zone_low\":%.16g,\"zone_high\":%.16g,\"breakout_bar_time\":%I64d,\"valid_bar_no\":%d,\"penetration_latched\":%s,\"order_ticket\":%I64u,\"waiting_logged\":%s,\"risk_waiting_logged\":%s,\"parent_breakout_id\":\"%s\"}",
+      JsonBool(g_cycles[i].active), JsonBool(g_cycles[i].buy), JsonEscape(g_cycles[i].day_key), JsonEscape(g_cycles[i].zone_id),
+      g_cycles[i].zone_low, g_cycles[i].zone_high, (long)g_cycles[i].breakout_bar_time, g_cycles[i].valid_bar_no,
+      JsonBool(g_cycles[i].penetration_latched), g_cycles[i].order_ticket, JsonBool(g_cycles[i].waiting_logged),
+      JsonBool(g_cycles[i].risk_waiting_logged), JsonEscape(g_cycles[i].parent_breakout_id));
+  }
+  return json + "]";
+}
+
+string JsonRequests()
+{
+  string json = "[";
+  for (int i = 0; i < ArraySize(g_requests); i++)
+  {
+    if (i > 0) json += ",";
+    json += StringFormat("{\"active\":%s,\"comment\":\"%s\",\"requested_price\":%.16g,\"sl\":%.16g,\"tp\":%.16g,\"r0\":%.16g,\"target_zone_id\":\"%s\",\"parent_breakout_id\":\"%s\",\"reversal_ordinal\":%d}",
+      JsonBool(g_requests[i].active), JsonEscape(g_requests[i].comment), g_requests[i].requested_price, g_requests[i].sl, g_requests[i].tp,
+      g_requests[i].r0, JsonEscape(g_requests[i].target_zone_id), JsonEscape(g_requests[i].parent_breakout_id), g_requests[i].reversal_ordinal);
+  }
+  return json + "]";
+}
+
+string JsonPositions()
+{
+  string json = "[";
+  for (int i = 0; i < ArraySize(g_positions); i++)
+  {
+    if (i > 0) json += ",";
+    json += StringFormat("{\"active\":%s,\"position_id\":%I64u,\"position_ticket\":%I64u,\"day_key\":\"%s\",\"zone_id\":\"%s\",\"trade_type\":\"%s\",\"buy\":%s,\"risk_anchor_entry\":%.16g,\"actual_fill\":%.16g,\"initial_sl\":%.16g,\"tp\":%.16g,\"r0\":%.16g,\"r_stage\":%d,\"desired_sl\":%.16g,\"sl_retry_logged\":%s,\"target_zone_id\":\"%s\",\"parent_breakout_id\":\"%s\",\"stacked_pullback\":%s,\"reversal_ordinal\":%d,\"session_close_requested\":%s,\"session_close_reason\":\"%s\",\"last_carry_audit_key\":\"%s\"}",
+      JsonBool(g_positions[i].active), g_positions[i].position_id, g_positions[i].position_ticket, JsonEscape(g_positions[i].day_key),
+      JsonEscape(g_positions[i].zone_id), JsonEscape(g_positions[i].trade_type), JsonBool(g_positions[i].buy), g_positions[i].risk_anchor_entry,
+      g_positions[i].actual_fill, g_positions[i].initial_sl, g_positions[i].tp, g_positions[i].r0, g_positions[i].r_stage,
+      g_positions[i].desired_sl, JsonBool(g_positions[i].sl_retry_logged), JsonEscape(g_positions[i].target_zone_id),
+      JsonEscape(g_positions[i].parent_breakout_id), JsonBool(g_positions[i].stacked_pullback), g_positions[i].reversal_ordinal,
+      JsonBool(g_positions[i].session_close_requested), JsonEscape(g_positions[i].session_close_reason), JsonEscape(g_positions[i].last_carry_audit_key));
+  }
+  return json + "]";
+}
+
 // QA concise report: signals, real trades, secondary candidates and QA tags; management remains in full Journal.
 void WriteSummary(string category, string event, string zone_id, string signal_type, string entry_type,
                   double requested_price, double fill_price, double sl, double tp, double r0,
@@ -474,10 +558,41 @@ string WriteJournal(string rule_id, string event, string zone_id, string signal_
     FileWrite(h, "event_id", "server_time", "ea_version", "symbol", "broker_server", "sl_tp_model",
               "rule_id", "event", "zone_id", "trend_state", "signal_type", "entry_type",
               "breakout_id", "parent_breakout_id", "requested_price", "fill_price", "sl", "tp", "order_ticket", "deal_ticket", "position_ticket",
-              "gap_below", "gap_above", "nearest_gap", "reason_error");
+              "gap_below", "gap_above", "nearest_gap", "reason_error",
+              "g_raw_zones", "g_zones", "g_cycles", "g_requests", "g_positions",
+              "g_day_key", "g_day_valid", "g_bar_time", "g_prev_bid", "g_ref_high", "g_ref_low", "g_trend",
+              "g_event_seq", "g_breakout_seq", "g_initial_deposit", "g_daily_realized_net", "g_daily_realized_gross_loss",
+              "g_daily_stop", "g_daily_would_trigger_logged", "g_visual_prefix", "g_session_preclose_active", "g_restart_lock",
+              "g_last_new_order_bar", "g_session_cutoff_key", "g_session_active_window_key", "g_session_active_from", "g_session_active_to");
   }
   double gb, ga, gn;
   GetZoneGapContext(zone_id, gb, ga, gn);
+  string raw_zones = "", zones = "", cycles = "", requests = "", positions = "";
+  string snapshot_day_key = "", snapshot_day_valid = "", snapshot_bar_time = "", snapshot_prev_bid = "";
+  string snapshot_ref_high = "", snapshot_ref_low = "", snapshot_trend = "", snapshot_event_seq = "";
+  string snapshot_breakout_seq = "", snapshot_initial_deposit = "", snapshot_daily_realized_net = "";
+  string snapshot_daily_realized_gross_loss = "", snapshot_daily_stop = "", snapshot_daily_would_trigger_logged = "";
+  string snapshot_visual_prefix = "", snapshot_session_preclose_active = "", snapshot_restart_lock = "";
+  string snapshot_last_new_order_bar = "", snapshot_session_cutoff_key = "", snapshot_session_active_window_key = "";
+  string snapshot_session_active_from = "", snapshot_session_active_to = "";
+  if (event == "MULTI_ZONE_TICK_GAP")
+  {
+    raw_zones = JsonRawZones(); zones = JsonZones(); cycles = JsonCycles(); requests = JsonRequests(); positions = JsonPositions();
+    snapshot_day_key = g_day_key; snapshot_day_valid = JsonBool(g_day_valid);
+    snapshot_bar_time = StringFormat("%I64d", (long)g_bar_time); snapshot_prev_bid = DoubleToString(g_prev_bid, _Digits);
+    snapshot_ref_high = DoubleToString(g_ref_high, _Digits); snapshot_ref_low = DoubleToString(g_ref_low, _Digits);
+    snapshot_trend = TrendToString(g_trend); snapshot_event_seq = StringFormat("%I64d", g_event_seq);
+    snapshot_breakout_seq = IntegerToString(g_breakout_seq); snapshot_initial_deposit = DoubleToString(g_initial_deposit, 2);
+    snapshot_daily_realized_net = DoubleToString(g_daily_realized_net, 2);
+    snapshot_daily_realized_gross_loss = DoubleToString(g_daily_realized_gross_loss, 2);
+    snapshot_daily_stop = JsonBool(g_daily_stop); snapshot_daily_would_trigger_logged = JsonBool(g_daily_would_trigger_logged);
+    snapshot_visual_prefix = g_visual_prefix; snapshot_session_preclose_active = JsonBool(g_session_preclose_active);
+    snapshot_restart_lock = JsonBool(g_restart_lock);
+    snapshot_last_new_order_bar = StringFormat("%I64d", (long)g_last_new_order_bar);
+    snapshot_session_cutoff_key = g_session_cutoff_key; snapshot_session_active_window_key = g_session_active_window_key;
+    snapshot_session_active_from = StringFormat("%I64d", (long)g_session_active_from);
+    snapshot_session_active_to = StringFormat("%I64d", (long)g_session_active_to);
+  }
   FileSeek(h, 0, SEEK_END);
   FileWrite(h, eid, ServerTimeMs(), "2.10-ROBUST-FINAL", _Symbol, AccountInfoString(ACCOUNT_SERVER), ModelToString(),
             rule_id, event, zone_id, TrendToString(g_trend), signal_type, entry_type,
@@ -485,7 +600,12 @@ string WriteJournal(string rule_id, string event, string zone_id, string signal_
             DoubleToString(requested_price, _Digits), DoubleToString(fill_price, _Digits),
             DoubleToString(sl, _Digits), DoubleToString(tp, _Digits),
             StringFormat("%I64u", order_ticket), StringFormat("%I64u", deal_ticket), StringFormat("%I64u", position_ticket),
-            GapText(gb), GapText(ga), GapText(gn), Sanitize(reason));
+            GapText(gb), GapText(ga), GapText(gn), Sanitize(reason),
+            raw_zones, zones, cycles, requests, positions, snapshot_day_key, snapshot_day_valid, snapshot_bar_time, snapshot_prev_bid,
+            snapshot_ref_high, snapshot_ref_low, snapshot_trend, snapshot_event_seq, snapshot_breakout_seq, snapshot_initial_deposit,
+            snapshot_daily_realized_net, snapshot_daily_realized_gross_loss, snapshot_daily_stop, snapshot_daily_would_trigger_logged,
+            snapshot_visual_prefix, snapshot_session_preclose_active, snapshot_restart_lock, snapshot_last_new_order_bar,
+            snapshot_session_cutoff_key, snapshot_session_active_window_key, snapshot_session_active_from, snapshot_session_active_to);
   FileClose(h);
   return eid;
 }

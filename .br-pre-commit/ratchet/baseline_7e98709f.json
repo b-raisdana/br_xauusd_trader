@@ -3,7 +3,7 @@
   "mypy:arg-type": 3,
   "mypy:assignment": 3,
   "mypy:attr-defined": 11,
-  "mypy:call-arg": 2,
+  "mypy:call-arg": 1,
   "mypy:call-overload": 1,
   "mypy:import-not-found": 1,
   "mypy:import-untyped": 42,

@@ -97,6 +97,9 @@ def test_main_runs_with_fetch_shaped_inputs_and_writes_parquet(monkeypatch, tmp_
     import asyncio
 
     from application.xauusd_trading_strategy_1_vector import __main__ as entry
+    from config import app_config
+
+    monkeypatch.setattr(app_config, "path_of_data", tmp_path)
 
     ticks, candles = inputs()
     raw_ticks = ticks.drop(columns=["bar_time", "broker_day"])
@@ -124,12 +127,12 @@ def test_main_runs_with_fetch_shaped_inputs_and_writes_parquet(monkeypatch, tmp_
     monkeypatch.setattr(entry, "get_ticks", fetch_ticks)
     monkeypatch.setattr(entry, "get_ohlcv", fetch_candles)
     monkeypatch.setattr(entry, "load_zones_from_file", fetch_zones)
-    output = tmp_path / "results.parquet"
-    asyncio.run(entry.main(output=str(output)))
-    saved = pd.read_parquet(output)
+    output = "results.parquet"
+    asyncio.run(entry.main(output=output))
+    saved = pd.read_parquet(tmp_path / output)
     assert len(saved) == len(ticks)
     assert saved.bid.tolist() == ticks.bid.tolist()
     assert {"stream_tick", "breakout_sequence", "pullback_active"} <= set(saved)
     assert not {"orders", "positions", "breakout_signals"}.intersection(saved)
-    assert pd.read_parquet(output.with_name("results_signals.parquet")).family.isin([0, 1, 2]).all()
-    assert output.with_name("results_windows.parquet").exists()
+    assert pd.read_parquet((tmp_path / output).with_name("results_signals.parquet")).family.isin([0, 1, 2]).all()
+    assert (tmp_path / output).with_name("results_windows.parquet").exists()

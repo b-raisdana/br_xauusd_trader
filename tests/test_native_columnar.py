@@ -149,6 +149,15 @@ def test_chunked_stream_including_duplicate_timestamps_matches_whole():
         pd.testing.assert_frame_equal(actual, getattr(whole, name))
 
 
+def test_pullback_signal_emits_once_per_window_after_penetration_latches():
+    ticks, candles = data(seed=1)
+    result = process_columns(ticks, candles, ColumnarMarket(RobustInputs()), ZONES)
+    pullbacks = result.signals.loc[result.signals.family.eq(2)]
+
+    assert not pullbacks.empty
+    assert not pullbacks.reset_index().duplicated(["date", "candidate_id"]).any()
+
+
 def test_bar_ids_and_window_times_preserve_nanoseconds():
     ticks, candles = data()
     delta = pd.Timedelta(nanoseconds=123456789)

@@ -144,12 +144,13 @@ class MarketState:
             if not window.active:
                 continue
             buy = window.direction == XauDirection.BUY
+            was_latched = window.penetration_latched
             window.penetration_latched |= (
                 bid <= window.zone.high - self.inputs.penetration
                 if buy
                 else bid >= window.zone.low + self.inputs.penetration
             )
-            if window.penetration_latched:
+            if window.penetration_latched and not was_latched:
                 candidates.append(
                     XauSignalCandidate(
                         candidate_id=f"{window.parent_breakout_id}:PB",

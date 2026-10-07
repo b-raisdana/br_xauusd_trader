@@ -5,16 +5,21 @@ from copy import deepcopy
 import pandas as pd
 from br_py_log_n_profile import log_e
 
+from application.xauusd_trading_strategy_1_vector.columnar_process.breakouts import _breakouts
+from application.xauusd_trading_strategy_1_vector.columnar_process.helpers import _signal_rows, _take, empty_table
+from application.xauusd_trading_strategy_1_vector.columnar_process.windows import _windows
+from application.xauusd_trading_strategy_1_vector.domain.columnar import (
+    ColumnarMarket,
+    ColumnarResult,
+    SignalTable,
+    SignalTickState,
+    WindowTable,
+)
+from application.xauusd_trading_strategy_1_vector.domain.schema import PerCandleState, StrategyCandles, VectorizedTick
 from br_pre_commit import pandera_validate
 from domain.xau_usd.enums import XauDirection, XauSignalFamily
 from domain.xau_usd.models import XauDailyZoneSignalState, XauZone
 from helper.importer import pt
-
-from .columnar_breakouts import _breakouts
-from .columnar_helpers import _signal_rows, _take, empty_table
-from .columnar_windows import _windows
-from .domain.columnar import ColumnarMarket, ColumnarResult, SignalTable, SignalTickState, WindowTable
-from .domain.schema import PerCandleState, StrategyCandles, VectorizedTick
 
 
 @pandera_validate

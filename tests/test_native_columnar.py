@@ -9,7 +9,7 @@ import pytest
 from pandera.errors import SchemaErrors
 from vectorized_fixtures import candles_from_ticks, with_native_bootstrap
 
-from application.xauusd_trading_strategy_1_vector.columnar import process_columns
+from application.xauusd_trading_strategy_1_vector.columnar_process.__main__ import process_columns
 from application.xauusd_trading_strategy_1_vector.domain.columnar import (
     ColumnarMarket,
     SignalTable,

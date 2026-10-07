@@ -2,10 +2,9 @@
 
 import pandas as pd
 
+from application.xauusd_trading_strategy_1_vector.domain.columnar import SignalTable, SignalTickState, WindowTable
 from br_pre_commit import pandera_validate
 from domain.xau_usd.enums import XauSignalFamily
-
-from .domain.columnar import SignalTable, SignalTickState, WindowTable
 
 
 @pandera_validate(allow_pandas_dataframe=True)

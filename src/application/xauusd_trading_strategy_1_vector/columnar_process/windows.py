@@ -2,13 +2,13 @@
 
 import pandas as pd
 
+from application.xauusd_trading_strategy_1_vector.domain.columnar import ActiveWindows, ColumnarMarket
 from br_pre_commit import pandera_validate
 from domain.xau_usd.enums import XauDirection, XauSignalFamily
 from domain.xau_usd.models import XauZone
 from helper.importer import pt
 
-from .columnar_helpers import _signal_rows, _take
-from .domain.columnar import ActiveWindows, ColumnarMarket
+from .helpers import _signal_rows, _take
 
 
 def _select_windows(events: pd.DataFrame, width: int) -> pd.DataFrame:

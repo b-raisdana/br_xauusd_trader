@@ -6,6 +6,7 @@ from br_py_log_n_profile import log_w, profile_it
 from br_py_log_n_profile.do_log.log_it import NOT_TESTED
 from numpy.typing import NDArray
 
+from application.xauusd_trading_strategy_1_vector.columnar_process.__main__ import process_columns
 from application.xauusd_trading_strategy_1_vector.config.trend_points import (
     TREND_SIDES,
     trend_columns,
@@ -27,7 +28,6 @@ from domain.xau_usd.models import XauZone
 from helper.importer import pt
 from infrastructure.result_processing.io import ResultFilesManifest
 
-from .columnar import process_columns
 from .domain.columnar import ColumnarMarket, ColumnarResult
 from .domain.replay import ReplayConfig
 from .domain.robust import RobustInputs

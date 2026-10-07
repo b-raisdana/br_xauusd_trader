@@ -2,11 +2,10 @@
 
 import pandas as pd
 
+from application.xauusd_trading_strategy_1_vector.domain.columnar import ColumnarMarket
+from application.xauusd_trading_strategy_1_vector.domain.robust import pullback_allowed
 from domain.xau_usd.enums import XauDirection
 from domain.xau_usd.models import XauDailyZoneSignalState, XauZone
-
-from .domain.columnar import ColumnarMarket
-from .domain.robust import pullback_allowed
 
 
 def _breakouts(

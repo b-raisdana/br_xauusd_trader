@@ -1,0 +1,2 @@
+event_id,server_time,ea_version,symbol,broker_server,sl_tp_model,rule_id,event,zone_id,trend_state,signal_type,entry_type,breakout_id,parent_breakout_id,requested_price,fill_price,sl,tp,order_ticket,deal_ticket,position_ticket,gap_below,gap_above,nearest_gap,reason_error
+E1,2026.10.06 19:11:40.551,2.10-ROBUST-FINAL,XAUUSD!,Opogroup-Server1,MVP_SIMPLE_EXPLICIT_ROBUST,S1,EA_DEINITIALIZED,,TREND_NONE,,,,,0.00,0.00,0.00,0.00,0,0,0,N/A,N/A,N/A,reason=8

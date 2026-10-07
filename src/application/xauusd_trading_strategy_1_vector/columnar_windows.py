@@ -142,11 +142,13 @@ def _windows(
             state[f"{prefix}:parent"] = matched.parent_breakout_id.where(active_mask, "").astype("str")
             state[f"{prefix}:offset"] = offset.where(active_mask, 0).astype("int64")
             latches.append(latched.groupby(matched.window_id, sort=False).max())
-            if latched.any():
+            newly_latched = hit & active_mask & ~matched.penetration_latched.fillna(False).astype(bool)
+            first_latch = newly_latched & newly_latched.groupby(matched.window_id, sort=False).cumsum().eq(1)
+            if first_latch.any():
                 signals.append(
                     _signal_rows(
                         data,
-                        latched,
+                        first_latch,
                         zone.id,
                         int(direction),
                         int(XauSignalFamily.PULLBACK),

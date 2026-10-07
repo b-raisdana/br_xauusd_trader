@@ -1,9 +1,9 @@
-"""Run an ordered native event tape and compare every shared-state checkpoint."""
+# """Run an ordered native event tape and compare every shared-state checkpoint."""
 
-from .domain.recording import NativeCheckpoint, RecordedInit
-from .market import MarketState
-from .native_replay import RecordedExecutionReplay
-from .trace import first_difference
+# from .domain.recording import NativeCheckpoint, RecordedInit
+# from .market import MarketState
+# from .native_replay import RecordedExecutionReplay
+# from .trace import first_difference
 
 # def replay_recording(recording: NativeRecording) -> Iterator[NativeCheckpoint]:
 #     economics = RecordedEconomics(
@@ -52,32 +52,32 @@ from .trace import first_difference
 #     economics.assert_consumed()
 
 
-def initialize_market(market: MarketState, execution: RecordedExecutionReplay, event: RecordedInit) -> None:
-    if len(event.history) < 3:
-        raise ValueError("MT5 initialization requires at least three native closed candles")
-    execution._begin_tick(event.bid, event.ask)
-    execution.update_view(event.view)
-    market._change_day(event.day, list(event.zones), event.time)
-    market.bar = execution.bar = event.bar_time
-    market.history = execution.closed_bars = list(event.history)
-    market.previous_bid = execution.previous_bid = event.bid
-    execution.previous_ask = event.ask
-    market.state.bar_open = execution.bar_open = event.bar_open
-    for state in market.state.zones:
-        state.buy_engaged = state.sell_engaged = state.zone.low <= event.bar_open <= state.zone.high
-    execution.detect_restart(event.time, event.has_ea_deal_today, event.bid, event.ask)
+# def initialize_market(market: MarketState, execution: RecordedExecutionReplay, event: RecordedInit) -> None:
+#     if len(event.history) < 3:
+#         raise ValueError("MT5 initialization requires at least three native closed candles")
+#     execution._begin_tick(event.bid, event.ask)
+#     execution.update_view(event.view)
+#     market._change_day(event.day, list(event.zones), event.time)
+#     market.bar = execution.bar = event.bar_time
+#     market.history = execution.closed_bars = list(event.history)
+#     market.previous_bid = execution.previous_bid = event.bid
+#     execution.previous_ask = event.ask
+#     market.state.bar_open = execution.bar_open = event.bar_open
+#     for state in market.state.zones:
+#         state.buy_engaged = state.sell_engaged = state.zone.low <= event.bar_open <= state.zone.high
+#     execution.detect_restart(event.time, event.has_ea_deal_today, event.bid, event.ask)
 
 
-def compare_checkpoints(expected: list[NativeCheckpoint], actual: list[NativeCheckpoint]) -> str | None:
-    for index, (left, right) in enumerate(zip(expected, actual, strict=False)):
-        difference = first_difference(left.model_dump(mode="json"), right.model_dump(mode="json"))
-        if difference:
-            return f"event {index} ({left.time.isoformat()} {left.kind}): {difference}"
-    if len(expected) != len(actual):
-        return f"event count: {len(actual)} != {len(expected)}"
-    if not expected:
-        return "No checkpoints: empty evidence cannot establish parity"
-    return None
+# def compare_checkpoints(expected: list[NativeCheckpoint], actual: list[NativeCheckpoint]) -> str | None:
+#     for index, (left, right) in enumerate(zip(expected, actual, strict=False)):
+#         difference = first_difference(left.model_dump(mode="json"), right.model_dump(mode="json"))
+#         if difference:
+#             return f"event {index} ({left.time.isoformat()} {left.kind}): {difference}"
+#     if len(expected) != len(actual):
+#         return f"event count: {len(actual)} != {len(expected)}"
+#     if not expected:
+#         return "No checkpoints: empty evidence cannot establish parity"
+#     return None
 
 
 # def main() -> int:

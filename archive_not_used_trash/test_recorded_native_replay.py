@@ -15,7 +15,7 @@ from application.xauusd_trading_strategy_1_vector.domain.native import (
     RecordedEconomics,
 )
 from application.xauusd_trading_strategy_1_vector.domain.replay import ReplayOrder
-from application.xauusd_trading_strategy_1_vector.native_replay import RecordedExecutionReplay, parse_native_comment
+from archive_not_used_trash.native_replay import RecordedExecutionReplay, parse_native_comment
 from application.xauusd_trading_strategy_1_vector.trace import shared_trace
 from domain.xau_usd.enums import XauExecutionStatus, XauSignalFamily
 from domain.xau_usd.models import XauPullbackWindowState

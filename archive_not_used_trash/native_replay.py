@@ -8,11 +8,11 @@ from sys import float_info
 from domain.xau_usd.enums import XauDirection, XauExecutionStatus, XauSignalFamily
 from domain.xau_usd.models import XauSignalCandidate
 
-from .domain.native import EA_MAGIC, NativeCalculationFailure, NativeDeal, NativePosition, NativeView, RecordedEconomics
-from .domain.replay import ReplayConfig, ReplayOrder
-from .domain.robust import reversal_limit
-from .domain.schema import ReplayReason
-from .replay import ExecutionReplay
+from ..src.application.xauusd_trading_strategy_1_vector.domain.native import EA_MAGIC, NativeCalculationFailure, NativeDeal, NativePosition, NativeView, RecordedEconomics
+from ..src.application.xauusd_trading_strategy_1_vector.domain.replay import ReplayConfig, ReplayOrder
+from ..src.application.xauusd_trading_strategy_1_vector.domain.robust import reversal_limit
+from ..src.application.xauusd_trading_strategy_1_vector.domain.schema import ReplayReason
+from ..src.application.xauusd_trading_strategy_1_vector.replay import ExecutionReplay
 
 
 def parse_native_comment(comment: str) -> tuple[str, str, str, bool] | None:

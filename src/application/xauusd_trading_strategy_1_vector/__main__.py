@@ -51,13 +51,13 @@ def cli(
     symbol: str = typer.Option(app_config.default_symbol, help="The symbol to use"),
     zones: Path = typer.Option(Path("ranges.zip"), help="Path to zones CSV file"),
     output: str = typer.Option("strategy_results.parquet", help="Path to output file"),
-    backtest: bool = typer.Option(False, "--backtest", help="Run vectorbt on available position artifacts"),
+    no_backtest: bool = typer.Option(False, "--no-backtest", help="Skip the vectorbt backtest report"),
     execution_config: Path | None = typer.Option(None, help="Unsupported in native mode; use the replay API"),
 ) -> None:
     if execution_config is not None:
         log_e("Native strategy supports signals-only mode; execution replay is separate")
         raise ValueError("Native strategy supports signals-only mode; execution replay is separate")
-    asyncio.run(main(symbol=symbol, zones=zones, output=output, backtest=backtest))
+    asyncio.run(main(symbol=symbol, zones=zones, output=output, backtest=not no_backtest))
 
 
 @profile_it
@@ -65,7 +65,7 @@ async def main(
     symbol: str = app_config.default_symbol,
     zones: Path = Path("ranges.zip"),
     output: str = "strategy_results.parquet",
-    backtest: bool = False,
+    backtest: bool = True,
     execution: ReplayConfig | None = None,
 ) -> None:
     if execution is not None:

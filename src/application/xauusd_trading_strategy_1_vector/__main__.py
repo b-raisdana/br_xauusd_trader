@@ -23,6 +23,7 @@ from infrastructure.result_processing.__main__ import (
     generate_position_tracking_columns,
     merge_results_with_candles,
 )
+from infrastructure.result_processing.io import ResultFilesManifest
 
 from .backtest import print_backtest_report
 from .domain.replay import ReplayConfig
@@ -44,6 +45,22 @@ __all__ = [
 ]
 
 app = typer.Typer(help="Vectorized XAUUSD Trading Strategy", add_completion=False)
+
+
+def _print_backtest_if_positions(
+    manifest: ResultFilesManifest,
+    *,
+    report_file: str,
+    trades_file: str,
+) -> bool:
+    if not manifest.successful_days("positions"):
+        logging.getLogger(__name__).warning(
+            "Backtest skipped: this signals-only run produced no position artifacts. "
+            "Run an execution replay to generate positions."
+        )
+        return False
+    print_backtest_report(manifest, report_file=report_file, trades_file=trades_file)
+    return True
 
 
 @app.command()
@@ -134,7 +151,7 @@ async def main(
             output_path = app_config.path_of_data / output_path
         report_path = output_path.with_name(f"{output_path.stem}_backtest_report.parquet")
         trades_path = output_path.with_name(f"{output_path.stem}_backtest_trades.parquet")
-        print_backtest_report(manifest, report_file=str(report_path), trades_file=str(trades_path))
+        _print_backtest_if_positions(manifest, report_file=str(report_path), trades_file=str(trades_path))
 
     print(f"\nExecution completed successfully. Results saved to {output}")
 

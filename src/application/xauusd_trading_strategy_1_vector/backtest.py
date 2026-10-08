@@ -88,7 +88,13 @@ def run_vectorbt_backtest(
         vectorbt Portfolio object with backtest results.
     """
     # log_w(NOT_TESTED)
-    result = pd.concat([manifest.read_positions(day) for day in manifest.successful_days("positions")])
+    position_days = manifest.successful_days("positions")
+    if not position_days:
+        raise ValueError(
+            "Vectorbt backtest requires position artifacts, but the native signals-only run produced none. "
+            "Run an execution replay first."
+        )
+    result = pd.concat([manifest.read_positions(day) for day in position_days])
     close, entries, exits = _extract_signals(result)
 
     import inspect
@@ -125,7 +131,12 @@ def run_vectorbt_backtest(
 
 @profile_it
 @pandera_validate
-def print_backtest_report(manifest: ResultFilesManifest) -> None:
+def print_backtest_report(
+    manifest: ResultFilesManifest,
+    *,
+    report_file: str | None = None,
+    trades_file: str | None = None,
+) -> None:
     """Print a comprehensive backtest report from strategy results.
 
     Runs the vectorbt backtest and prints performance metrics including
@@ -176,6 +187,11 @@ def print_backtest_report(manifest: ResultFilesManifest) -> None:
         print(f"Average trade PnL: {trades_df['pnl'].mean():,.2f}")
         print(f"Best trade: {trades_df['pnl'].max():,.2f}")
         print(f"Worst trade: {trades_df['pnl'].min():,.2f}")
+
+    if report_file is not None:
+        save_backtest_report(portfolio, report_file)
+    if trades_file is not None:
+        save_backtest_trades(portfolio, trades_file)
 
     print("=== End Backtest Report ===\n")
 

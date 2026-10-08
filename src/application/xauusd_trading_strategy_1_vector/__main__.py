@@ -24,6 +24,7 @@ from infrastructure.result_processing.__main__ import (
     merge_results_with_candles,
 )
 
+from .backtest import print_backtest_report
 from .domain.replay import ReplayConfig
 from .reporting import (
     print_strategy_summary,
@@ -50,13 +51,13 @@ def cli(
     symbol: str = typer.Option(app_config.default_symbol, help="The symbol to use"),
     zones: Path = typer.Option(Path("ranges.zip"), help="Path to zones CSV file"),
     output: str = typer.Option("strategy_results.parquet", help="Path to output file"),
-    backtest: bool = typer.Option(False, "--backtest", help="Unsupported in signals-only native mode"),
+    backtest: bool = typer.Option(False, "--backtest", help="Run vectorbt on available position artifacts"),
     execution_config: Path | None = typer.Option(None, help="Unsupported in native mode; use the replay API"),
 ) -> None:
-    if execution_config is not None or backtest:
-        log_e("Native strategy supports signals-only mode; execution replay/backtesting is separate")
-        raise ValueError("Native strategy supports signals-only mode; execution replay/backtesting is separate")
-    asyncio.run(main(symbol=symbol, zones=zones, output=output))
+    if execution_config is not None:
+        log_e("Native strategy supports signals-only mode; execution replay is separate")
+        raise ValueError("Native strategy supports signals-only mode; execution replay is separate")
+    asyncio.run(main(symbol=symbol, zones=zones, output=output, backtest=backtest))
 
 
 @profile_it
@@ -67,7 +68,7 @@ async def main(
     backtest: bool = False,
     execution: ReplayConfig | None = None,
 ) -> None:
-    if execution is not None or backtest:
+    if execution is not None:
         log_e("Native strategy supports signals-only mode; execution replay/backtesting is separate")
         raise ValueError("Native strategy supports signals-only mode; execution replay/backtesting is separate")
     output_format = Path(output).suffix.lstrip(".").lower()
@@ -126,6 +127,14 @@ async def main(
     )
 
     print_strategy_summary(manifest)
+
+    if backtest:
+        output_path = Path(output)
+        if not output_path.is_absolute():
+            output_path = app_config.path_of_data / output_path
+        report_path = output_path.with_name(f"{output_path.stem}_backtest_report.parquet")
+        trades_path = output_path.with_name(f"{output_path.stem}_backtest_trades.parquet")
+        print_backtest_report(manifest, report_file=str(report_path), trades_file=str(trades_path))
 
     print(f"\nExecution completed successfully. Results saved to {output}")
 

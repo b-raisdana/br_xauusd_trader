@@ -24,9 +24,11 @@ def run_vectorized_strategy(
     *,
     execution: ReplayConfig | None = None,
 ) -> ResultFilesManifest:
-    """Persist source frames once, then hand off only the manifest between stages."""
-    if execution is not None:
-        raise ValueError("Native strategy supports signals-only mode; use ExecutionReplay separately")
+    """Persist source frames once, then hand off only the manifest between stages.
+
+    When execution is provided, runs execution replay on the generated signals.
+    When execution is None, runs signals-only mode.
+    """
     with core_vectors.use(), strategy_config.use():
         manifest = ResultFilesManifest()
         try:

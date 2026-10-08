@@ -27,9 +27,11 @@
   "mypy:unused-ignore": 8,
   "mypy:valid-type": 3,
   "mypy:var-annotated": 1,
+  "ruff:B007": 1,
   "ruff:C420": 1,
   "ruff:E501": 1,
   "ruff:E721": 1,
+  "ruff:F401": 5,
   "ruff:F821": 1,
   "ruff:F841": 1,
   "ruff:I001": 1,
@@ -40,5 +42,6 @@
   "ruff:UP035": 4,
   "ruff:UP037": 1,
   "ruff:UP045": 6,
+  "ruff:invalid-syntax": 1,
   "xenon": 25
 }

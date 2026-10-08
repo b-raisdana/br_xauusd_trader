@@ -13,6 +13,11 @@ from application.xauusd_trading_strategy_1_vector.config.trend_points import (
     trend_point_count,
     trend_row_columns,
 )
+from application.xauusd_trading_strategy_1_vector.domain.execution_schema import (
+    CandidateEvents,
+    StreamEvents,
+    ZoneEvents,
+)
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
     HasDay,
     PerCandleState,
@@ -34,6 +39,7 @@ from .domain.robust import RobustInputs
 from .engagement import update_zone_engagement
 from .signals import generate_breakout_signals, generate_pullback_signals, generate_reversal_signals
 from .trend import compute_bar_time, update_trend
+from .vectorized_replay import VectorizedExecutionReplay
 from .zone_cache import ZoneCache
 
 _STATE_COLUMNS = frozenset(trend_schema_columns(PerTickState))
@@ -62,15 +68,21 @@ class VectorizedXauUsdStrategy:
         self, zone_cache: ZoneCache, execution: ReplayConfig | None = None, inputs: RobustInputs | None = None
     ) -> None:
         if execution is not None:
-            raise ValueError("Native strategy supports signals-only mode; use ExecutionReplay separately")
+            raise ValueError(
+                "VectorizedXauUsdStrategy runs in signals-only mode; execution replay is not supported here."
+            )
         self._zone_cache = zone_cache
-        self.execution = execution
+        self.execution = None
         self.inputs = inputs or RobustInputs()
 
     @profile_it
     @pandera_validate(dump_output=True)
     def process_tick_data(self, manifest: ResultFilesManifest) -> ResultFilesManifest:
-        """Read daily market artifacts and persist validated calculation states."""
+        """Read daily market artifacts and persist validated calculation states.
+
+        When execution config is provided, runs execution replay on the generated signals
+        and persists order/position artifacts.
+        """
         markets: dict[tuple[str, str], ColumnarMarket] = {}
         for day in manifest.successful_days("ticks"):
             ticks = manifest.read_daily_ticks(day)
@@ -98,8 +110,83 @@ class VectorizedXauUsdStrategy:
                 manifest.save_daily_signals(day, pd.concat([result.signals for result in results]))
                 manifest.save_daily_windows(day, pd.concat([result.windows for result in results]))
                 manifest.save_daily_candles_temp_state(day, pd.concat(candle_states).sort_index(kind="stable"))
+
+                # Run execution replay if config provided
+                if self.execution is not None:
+                    self._run_execution_replay(manifest, day, ticks, results)
+
         manifest.wait_for_writes()
         return manifest
+
+    def _run_execution_replay(
+        self,
+        manifest: ResultFilesManifest,
+        day: str,
+        ticks: pt.DataFrame[VectorizedTick],
+        results: list[ColumnarResult],
+    ) -> None:
+        """Run vectorized execution replay on generated signals."""
+        # Convert day string to datetime for manifest methods
+        day_dt = pd.Timestamp(day).to_pydatetime()
+
+        # Convert ticks to StreamEvents format
+        streams_list = []
+        for (broker, symbol), broker_ticks in ticks.groupby(level=["broker", "symbol"], sort=False):
+            stream_id = f"{broker}_{symbol}"
+            stream_ticks = broker_ticks.reset_index()
+            stream_ticks["stream_id"] = stream_id
+            stream_ticks["stream_tick"] = range(len(stream_ticks))
+            streams_list.append(
+                stream_ticks[
+                    [
+                        "stream_id",
+                        "stream_tick",
+                        "precise_time",
+                        "broker_day",
+                        "bar_time",
+                        "bid",
+                        "ask",
+                    ]
+                ]
+            )
+        streams = pd.concat(streams_list, ignore_index=True)
+        streams = StreamEvents.validate(streams)
+
+        # Convert zones to ZoneEvents format
+        zones_list = []
+        day_zones = self._zone_cache.get_zones_for_day(day)
+        for zone in day_zones:
+            zones_list.append(
+                {
+                    "zone_id": zone.id,
+                    "broker_day": day,
+                    "high": zone.high,
+                    "low": zone.low,
+                    "priority": zone.priority,
+                }
+            )
+        zones = pd.DataFrame(zones_list)
+        if not zones.empty:
+            zones = ZoneEvents.validate(zones)
+
+        # Convert signals to CandidateEvents format
+        candidates_list = []
+        for result in results:
+            # Extract candidate signals from the signal state
+            # For now, skip candidate extraction - will be implemented with signal integration
+            log_w(f"Candidate extraction is not implemented. the result:{result}")
+            pass
+        candidates = pd.DataFrame(candidates_list)
+        if not candidates.empty:
+            candidates = CandidateEvents.validate(candidates)
+
+        # Run vectorized replay
+        replay = VectorizedExecutionReplay(self.execution)
+        orders, fills, closes, positions, events = replay.run(streams, zones, candidates)
+
+        # Persist execution artifacts
+        manifest.save_daily_orders(day_dt, orders)
+        manifest.save_daily_positions(day_dt, positions)
 
     @pandera_validate(dump_output=True)
     def process_native_stream(

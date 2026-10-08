@@ -26,7 +26,7 @@ from infrastructure.result_processing.__main__ import (
 from infrastructure.result_processing.io import ResultFilesManifest
 
 from .backtest import print_backtest_report
-from .domain.replay import ReplayConfig
+from .domain.replay import ReplayConfig, ReplayFileConfig
 from .reporting import (
     print_strategy_summary,
     save_results_to_file,
@@ -55,8 +55,7 @@ def _print_backtest_if_positions(
 ) -> bool:
     if not manifest.successful_days("positions"):
         logging.getLogger(__name__).warning(
-            "Backtest skipped: this signals-only run produced no position artifacts. "
-            "Run an execution replay to generate positions."
+            "Backtest skipped: no position artifacts available. Run with execution config to generate positions."
         )
         return False
     print_backtest_report(manifest, report_file=report_file, trades_file=trades_file)
@@ -69,12 +68,13 @@ def cli(
     zones: Path = typer.Option(Path("ranges.zip"), help="Path to zones CSV file"),
     output: str = typer.Option("strategy_results.parquet", help="Path to output file"),
     no_backtest: bool = typer.Option(False, "--no-backtest", help="Skip the vectorbt backtest report"),
-    execution_config: Path | None = typer.Option(None, help="Unsupported in native mode; use the replay API"),
+    execution_config: Path | None = typer.Option(None, help="Path to execution config JSON file"),
 ) -> None:
-    if execution_config is not None:
-        log_e("Native strategy supports signals-only mode; execution replay is separate")
-        raise ValueError("Native strategy supports signals-only mode; execution replay is separate")
-    asyncio.run(main(symbol=symbol, zones=zones, output=output, backtest=not no_backtest))
+    asyncio.run(
+        main(
+            symbol=symbol, zones=zones, output=output, backtest=not no_backtest, execution_config_path=execution_config
+        )
+    )
 
 
 @profile_it
@@ -84,10 +84,21 @@ async def main(
     output: str = "strategy_results.parquet",
     backtest: bool = True,
     execution: ReplayConfig | None = None,
+    execution_config_path: Path | None = None,
 ) -> None:
-    if execution is not None:
-        log_e("Native strategy supports signals-only mode; execution replay/backtesting is separate")
-        raise ValueError("Native strategy supports signals-only mode; execution replay/backtesting is separate")
+    if execution_config_path is not None:
+        if execution_config_path.suffix != ".json":
+            log_e("Execution config must be a JSON file")
+            raise ValueError("Execution config must be a JSON file")
+        try:
+            import json
+
+            with open(execution_config_path) as f:
+                config_dict = json.load(f)
+            execution = ReplayFileConfig(**config_dict).replay_config()
+        except Exception as e:
+            log_e(f"Failed to load execution config: {e}")
+            raise ValueError(f"Failed to load execution config: {e}") from e
     output_format = Path(output).suffix.lstrip(".").lower()
     if output_format != "parquet":
         log_e("Columnar output requires a .parquet extension")

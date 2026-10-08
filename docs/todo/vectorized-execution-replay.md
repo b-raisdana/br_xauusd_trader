@@ -1,6 +1,24 @@
 # Vectorized Execution Replay TODO
 
-Status: READY FOR DETAILED REVIEW; implementation not started.
+Status: IN PROGRESS; foundation infrastructure complete, batch reconstruction pending.
+
+## Completed
+
+- Test-only scalar oracle with 21 lifecycle tests covering fills, protection, pending orders, pullback feedback, rejections, session modes, risk modes, and QA discovery
+- Typed execution schemas (StreamEvents, ZoneEvents, CandidateEvents, OrderEvents, FillEvents, CloseEvents, PositionSnapshots, ExecutionEvents)
+- VectorizedExecutionReplay class with scalar oracle reference implementation
+- Integration of execution config through CLI/API, main, runner, and strategy
+- Execution artifact persistence (orders, positions) through ResultFilesManifest
+- Removal of execution blocking from native strategy runner
+
+## Remaining
+
+- Batch reconstruction of execution state using pandas/NumPy operations
+- Signal-to-candidate extraction and integration with replay feedback
+- Derive fill/close economics and position snapshots from event tables
+- Batch economics interface replacing per-row callbacks
+- Benchmark against scalar oracle
+- Regression testing
 
 ## Objective
 

@@ -238,6 +238,18 @@ class ResultFilesManifest(BaseModel):
         return OrderManagementResult.validate(self._read("orders", day), lazy=True)
 
     @pandera_validate
+    def save_daily_orders(self, day: datetime, df: pd.DataFrame) -> Self:
+        """Save execution order events in generic format."""
+        self._submit_write("orders", day, df, f"orders.{day:%y-%m-%d}.{self.hash_df(df)}.parquet")
+        return self
+
+    @pandera_validate
+    def save_daily_positions(self, day: datetime, df: pd.DataFrame) -> Self:
+        """Save execution position snapshots in generic format."""
+        self._submit_write("positions", day, df, f"positions.{day:%y-%m-%d}.{self.hash_df(df)}.parquet")
+        return self
+
+    @pandera_validate
     def save_results_with_columns(self, day: datetime, df: pt.DataFrame[StrategyResultWithCandles]) -> Self:
         StrategyResultWithCandles.validate(df, lazy=True)
         self._submit_write(

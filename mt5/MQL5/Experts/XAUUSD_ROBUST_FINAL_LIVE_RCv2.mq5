@@ -4,14 +4,13 @@
 //| Status: generated Live RC; approved Strategy body preserved.          |
 //+------------------------------------------------------------------+
 #property strict
-#property version "2.20"
+#property version "1.015"
+#define CODE_VERSION "1.015"
 #property description "XAUUSD robust final - guarded broker Live RC"
 #property tester_file "ranges.csv"
 
 // MetaTrader original Trade/Trade.mqh has been included.
 #include <Trade/Trade.mqh>
-
-input string CodeVersion = "0.0.10";
 
 // AR-SESSION-01 experimental family. BASELINE_CARRY must preserve frozen trading behavior.
 enum ENUM_SESSION_FLAT_MODE
@@ -141,6 +140,15 @@ int HarnessFileScopeFlag()
   if ((bool)MQLInfoInteger(MQL_TESTER))
     return (FILE_COMMON);
   return (0);
+}
+
+string ResolveFilePath(const string file_name, const int scope_flag)
+{
+  string base_path = TerminalInfoString(TERMINAL_DATA_PATH);
+  if (StringLen(base_path) == 0)
+    return file_name;
+  string suffix = (scope_flag == FILE_COMMON) ? " (FILE_COMMON scope)" : "";
+  return base_path + "\\MQL5\\Files\\" + file_name + suffix;
 }
 
 enum ENUM_TREND_STATE
@@ -3445,12 +3453,11 @@ bool XauReleaseProjectionMatches(string &reason);
 //+------------------------------------------------------------------+
 int ApprovedStrategyOnInit()
 {
-  Print("The version of code is:", CodeVersion);
+  Print("The version of code is #property:", CODE_VERSION);
 
   if (!XauReleasePreflight())
     return INIT_FAILED;
   // visual-1..3: clear stale custom objects from earlier EA visual versions.
-  Print("1");
 
   DeleteVisuals();
   if ((bool)MQLInfoInteger(MQL_TESTER))
@@ -3458,7 +3465,6 @@ int ApprovedStrategyOnInit()
     FileDelete(InpJournalFile, HarnessFileScopeFlag());
     FileDelete(InpSummaryFile, HarnessFileScopeFlag());
   }
-  Print("2222");
 
   trade.SetExpertMagicNumber(EA_MAGIC);
   trade.SetTypeFillingBySymbol(_Symbol);
@@ -3490,7 +3496,6 @@ int ApprovedStrategyOnInit()
     WriteJournal("b-23/QA-DL", "TEST_CONFIGURATION_ERROR", "", "", "", 0, 0, 0, 0, 0, 0, 0, "InpQAStrategyCapitalBasis must be > 0 in QA Discovery");
     return INIT_FAILED;
   }
-  Print("4");
   if (InpSessionPreCloseMinutes <= 0.0 || InpSessionPreCloseMinutes > 60.0)
   {
     WriteJournal("AR-SESSION-01", "TEST_CONFIGURATION_ERROR", "", "", "", 0, 0, 0, 0, 0, 0, 0, "InpSessionPreCloseMinutes must be >0 and <=60");
@@ -3506,7 +3511,6 @@ int ApprovedStrategyOnInit()
     WriteJournal("AR-RISK-01", "TEST_CONFIGURATION_ERROR", "", "", "", 0, 0, 0, 0, 0, 0, 0, "InpPortfolioRiskBudgetPercent must be >0 and <100 when enabled");
     return INIT_FAILED;
   }
-  Print("3");
   if (InpTargetR0Multiplier <= 0.0 || InpPullbackMinFreeSpaceUSD < 0.0 || InpHighReversalMinFreeSpaceUSD < 0.0 ||
       InpBreakoutBufferUSD < 0.0 || InpPullbackPenetrationUSD <= 0.0 || InpPullbackWindowBars < 1 || InpPullbackWindowBars > 10 ||
       InpNormalPullbackMaxPerDay < 0 || InpHighPullbackMaxPerDay < 0)
@@ -3516,28 +3520,23 @@ int ApprovedStrategyOnInit()
   }
   if (!ValidateTimeframe())
   {
-    Print("5");
     return INIT_FAILED;
   }
   if (!ValidateAccountMode())
   {
-    Print("6");
     return INIT_FAILED;
   }
   if (!ValidateVolumeCompatibility())
   {
-    Print("7");
     return INIT_FAILED;
   }
   if (!LoadAllRawZones())
   {
-    Print("8");
     return INIT_FAILED;
   }
   LogWeeklySessionSchedule();
   if (Bars(_Symbol, PERIOD_M15) < 4)
   {
-    Print("9");
     WriteJournal("trend-1", "TEST_CONFIGURATION_ERROR", "", "", "", 0, 0, 0, 0, 0, 0, 0, "Need at least 4 M15 bars (current + 3 closed references)");
     return INIT_FAILED;
   }

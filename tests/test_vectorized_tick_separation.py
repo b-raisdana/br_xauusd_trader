@@ -46,8 +46,8 @@ def test_separated_ticks_run_without_mutation_or_market_columns_in_state(replay)
         100.0, 100.0, 0.0, 0.0, 0.0, {"2026-09-18": pd.Timestamp("2026-09-18 23:59", tz="UTC")}
     )
     if replay:
-        with pytest.raises(ValueError, match="signals-only"):
-            VectorizedXauUsdStrategy(Zones(), ReplayConfig(economics))
+        strategy = VectorizedXauUsdStrategy(Zones(), ReplayConfig(economics))
+        assert strategy.execution is not None
         return
     strategy = VectorizedXauUsdStrategy(Zones())
     result, _ = calculate_manifest(strategy, ticks, candles)

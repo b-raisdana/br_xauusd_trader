@@ -1,9 +1,4 @@
-"""Vectorized execution replay using batched pandas operations.
-
-This module implements execution replay using pandas/NumPy operations
-instead of per-tick iteration. It converts the scalar ExecutionReplay logic
-into batched state reconstruction using grouped shifts, joins, and event tables.
-"""
+"""Adapt normalized native event tables to the causal execution state machine."""
 
 from __future__ import annotations
 
@@ -11,34 +6,23 @@ import pandas as pd
 from br_py_log_n_profile import profile_it
 
 from br_pre_commit import pandera_validate
-from helper.importer import pt
+from domain.xau_usd.enums import XauDirection, XauOrderType, XauSignalFamily
+from domain.xau_usd.models import XauPullbackWindowState, XauSignalCandidate, XauZone
 
-from .domain.execution_schema import (
-    CandidateEvents,
-    CloseEvents,
-    ExecutionEvents,
-    FillEvents,
-    OrderEvents,
-    PositionSnapshots,
-    StreamEvents,
-    ZoneEvents,
-)
+from .domain.columnar import WindowTable
+from .domain.execution_schema import CandidateEvents, StreamEvents, ZoneEvents
 from .domain.replay import ReplayConfig
 from .replay import ExecutionReplay
 
 
 class VectorizedExecutionReplay:
-    """Batched execution replay over stream events and candidates.
-
-    This class reconstructs execution state using pandas operations rather
-    than per-tick iteration. It produces the same outputs as ExecutionReplay
-    but in a vectorized form suitable for large datasets.
-    """
+    """Adapt normalized native stream, signal and window events to replay state."""
 
     def __init__(self, config: ReplayConfig, stream_id: str = "default") -> None:
         self.config = config
         self.stream_id = stream_id
         self.inputs = config.inputs
+        self.replay = ExecutionReplay(config, stream_id)
 
     @profile_it
     @pandera_validate(dump_output=True)
@@ -47,52 +31,71 @@ class VectorizedExecutionReplay:
         streams: pd.DataFrame,
         zones: pd.DataFrame,
         candidates: pd.DataFrame,
+        windows: pd.DataFrame | None = None,
     ):
-        """Run vectorized execution replay.
+        """Replay one stream while matching candidate and window events by tick ordinal.
 
         Args:
-            streams: Tick-level stream input with stable identity
-            zones: Zone definitions per trading day
-            candidates: Signal candidates emitted by strategy
+            streams: Ordered tick-level stream input with stable identity and M15 opens
+            zones: Zone definitions per broker day in native ordering
+            candidates: Native candidate events keyed by stream tick
+            windows: Native pullback-window opening events keyed by stream tick
 
         Returns:
             Tuple of (orders, fills, closes, positions, events)
         """
-        # Initial validation
         streams = StreamEvents.validate(streams)
         zones = ZoneEvents.validate(zones)
         candidates = CandidateEvents.validate(candidates)
 
-        # Sort by time to ensure chronological order
-        streams = streams.sort_values("precise_time")
-        candidates = candidates.sort_values("signal_time")
+        streams = streams.sort_values(["precise_time", "stream_tick"], kind="stable")
+        candidates = candidates.sort_values("stream_tick", kind="stable")
+        if windows is None:
+            windows = pd.DataFrame()
+        elif not windows.empty:
+            windows = WindowTable.validate(windows)
+        stream_ids = streams.stream_id.unique()
+        if len(stream_ids) > 1 or (len(stream_ids) == 1 and stream_ids[0] != self.stream_id):
+            raise ValueError(f"Replay input must contain only stream {self.stream_id!r}")
+        if streams.stream_tick.duplicated().any():
+            raise ValueError("Replay stream_tick values must be unique within a stream partition")
+        if len(streams) > 1 and not streams.stream_tick.diff().iloc[1:].gt(0).all():
+            raise ValueError("Replay stream_tick values must increase with stream time")
+        available_ticks = set(streams.stream_tick)
+        if not candidates.stream_tick.isin(available_ticks).all():
+            raise ValueError("Candidate events reference stream ticks outside this replay partition")
+        if not windows.empty and not windows.stream_tick.isin(available_ticks).all():
+            raise ValueError("Window events reference stream ticks outside this replay partition")
+        if (
+            not windows.empty
+            and not windows.broker_day.eq(
+                streams.set_index("stream_tick").broker_day.reindex(windows.stream_tick).to_numpy()
+            ).all()
+        ):
+            raise ValueError("Window broker_day must match its replay stream tick")
 
-        # Initialize output containers
-        orders = self._initialize_orders_dataframe()
-        fills = self._initialize_fills_dataframe()
-        closes = self._initialize_closes_dataframe()
-        positions = self._initialize_positions_dataframe()
-        events = self._initialize_events_dataframe()
-
-        # For now, use the scalar oracle as reference implementation
-        # This will be replaced with batched operations in subsequent steps
-        self._run_scalar_oracle(
-            streams,
-            zones,
-            candidates,
-            orders,
-            fills,
-            closes,
-            positions,
-            events,
+        records: dict[str, list[dict]] = {
+            key: [] for key in ("orders", "fills", "closes", "positions", "events", "rejections")
+        }
+        self._run_state_machine(streams, zones, candidates, windows, records)
+        return tuple(
+            pd.DataFrame.from_records(records[name], columns=columns)
+            for name, columns in (
+                ("orders", self._initialize_orders_dataframe().columns),
+                ("fills", self._initialize_fills_dataframe().columns),
+                ("closes", self._initialize_closes_dataframe().columns),
+                ("positions", self._initialize_positions_dataframe().columns),
+                ("events", self._initialize_events_dataframe().columns),
+                ("rejections", self._initialize_rejections_dataframe().columns),
+            )
         )
-
-        return orders, fills, closes, positions, events
 
     def _initialize_orders_dataframe(self) -> pd.DataFrame:
         """Create empty orders DataFrame with correct schema."""
         return pd.DataFrame(
             columns=[
+                "stream_id",
+                "stream_tick",
                 "request_id",
                 "order_type",
                 "order_direction",
@@ -108,11 +111,19 @@ class VectorizedExecutionReplay:
             ]
         )
 
+    def _initialize_rejections_dataframe(self) -> pd.DataFrame:
+        """Create empty entry rejections DataFrame with correct schema."""
+        return pd.DataFrame(columns=["stream_id", "stream_tick", "rejection_ordinal", "candidate_id", "rejection_code"])
+
     def _initialize_fills_dataframe(self) -> pd.DataFrame:
         """Create empty fills DataFrame with correct schema."""
         return pd.DataFrame(
             columns=[
+                "stream_id",
+                "stream_tick",
                 "request_id",
+                "position_id",
+                "position_direction",
                 "fill_time",
                 "fill_price",
                 "fill_side",
@@ -125,7 +136,11 @@ class VectorizedExecutionReplay:
         """Create empty closes DataFrame with correct schema."""
         return pd.DataFrame(
             columns=[
+                "stream_id",
+                "stream_tick",
                 "request_id",
+                "position_id",
+                "position_direction",
                 "close_time",
                 "close_price",
                 "close_reason",
@@ -138,6 +153,8 @@ class VectorizedExecutionReplay:
         """Create empty positions DataFrame with correct schema."""
         return pd.DataFrame(
             columns=[
+                "stream_id",
+                "stream_tick",
                 "position_id",
                 "position_direction",
                 "position_size",
@@ -157,6 +174,9 @@ class VectorizedExecutionReplay:
         """Create empty events DataFrame with correct schema."""
         return pd.DataFrame(
             columns=[
+                "stream_id",
+                "stream_tick",
+                "event_ordinal",
                 "request_id",
                 "event",
                 "time",
@@ -164,28 +184,15 @@ class VectorizedExecutionReplay:
             ]
         )
 
-    def _run_scalar_oracle(
+    def _run_state_machine(
         self,
         streams: pd.DataFrame,
         zones: pd.DataFrame,
         candidates: pd.DataFrame,
-        orders: pd.DataFrame,
-        fills: pd.DataFrame,
-        closes: pd.DataFrame,
-        positions: pd.DataFrame,
-        events: pd.DataFrame,
+        windows: pd.DataFrame,
+        records: dict[str, list[dict]],
     ) -> None:
-        """Run scalar ExecutionReplay oracle as reference implementation.
-
-        This method converts the vectorized inputs back to the scalar format
-        expected by ExecutionReplay, runs it tick-by-tick, and collects the
-        outputs. This serves as the reference implementation while the batched
-        version is being developed.
-        """
-        from domain.xau_usd.enums import XauDirection, XauOrderType, XauSignalFamily
-        from domain.xau_usd.models import XauSignalCandidate, XauZone
-
-        # Convert streams to zones per day
+        """Apply the established causal transition order to one market stream."""
         zones_by_day: dict[str, list[XauZone]] = {}
         for day, day_zones in zones.groupby("broker_day"):
             zones_by_day[day] = [
@@ -198,13 +205,12 @@ class VectorizedExecutionReplay:
                 for _, row in day_zones.iterrows()
             ]
 
-        # Convert candidates to scalar format
-        candidates_by_tick: dict[pd.Timestamp, list[XauSignalCandidate]] = {}
-        for _, row in candidates.iterrows():
-            time = row.signal_time
-            if time not in candidates_by_tick:
-                candidates_by_tick[time] = []
-            candidates_by_tick[time].append(
+        candidates_by_tick: dict[int, list[XauSignalCandidate]] = {}
+        for row in candidates.itertuples(index=False):
+            tick = int(row.stream_tick)
+            if tick not in candidates_by_tick:
+                candidates_by_tick[tick] = []
+            candidates_by_tick[tick].append(
                 XauSignalCandidate(
                     candidate_id=row.candidate_id,
                     parent_breakout_id=row.parent_breakout_id,
@@ -212,138 +218,142 @@ class VectorizedExecutionReplay:
                     zone_id=row.zone_id,
                     family=XauSignalFamily(row.family),
                     direction=XauDirection(row.direction),
-                    order_type=XauOrderType(row.order_type) if row.order_type is not None else XauOrderType.MARKET,
-                    signal_time=row.signal_time,
+                    order_type=XauOrderType(row.order_type),
+                    signal_time=row.signal_time.to_pydatetime(),
                     entry_price=row.entry_price,
                 )
             )
 
-        # Initialize scalar replay
-        replay = ExecutionReplay(self.config, self.stream_id)
+        openings_by_tick: dict[int, list[XauPullbackWindowState]] = {}
+        if not windows.empty:
+            for row in windows.itertuples(index=False):
+                openings_by_tick.setdefault(int(row.stream_tick), []).append(
+                    XauPullbackWindowState(
+                        parent_breakout_id=row.parent_breakout_id,
+                        zone=XauZone(row.zone_id, row.zone_low, row.zone_high, row.priority),
+                        direction=XauDirection(row.direction),
+                        active=bool(row.active),
+                        bar_offset=int(row.bar_offset),
+                        penetration_latched=bool(row.penetration_latched),
+                        breakout_bar_time=row.breakout_bar_time.to_pydatetime(),
+                        broker_day=row.broker_day,
+                    )
+                )
 
-        # Process tick by tick
-        for _, row in streams.iterrows():
+        for row in streams.itertuples(index=False):
             time = row.precise_time
             day = row.broker_day
             bar_time = row.bar_time
+            stream_tick = int(row.stream_tick)
             bid = row.bid
             ask = row.ask
 
-            # Get zones for this day
             day_zones = zones_by_day.get(day, [])
 
-            # Get candidates for this tick
-            tick_candidates = candidates_by_tick.get(time, [])
-
-            # Separate by family
+            tick_candidates = candidates_by_tick.get(stream_tick, [])
             breakouts = [c for c in tick_candidates if c.family == XauSignalFamily.BREAKOUT]
             reversals = [c for c in tick_candidates if c.family == XauSignalFamily.REVERSAL]
-            # Pullbacks are generated by replay, not from candidates
-
-            # Run scalar step
-            replay._begin_tick(bid, ask)
-            replay._session(time, bid, ask)
-            replay._roll(day, bar_time, bid, day_zones, [], time, bid, ask)
-            if not replay._restart(time, bid, ask):
-                replay._settle(time, bid, ask)
+            self.replay._begin_tick(bid, ask)
+            self.replay._session(time, bid, ask)
+            self.replay._roll(
+                day, bar_time, row.bar_open, day_zones, openings_by_tick.get(stream_tick, []), time, bid, ask
+            )
+            if not self.replay._restart(time, bid, ask):
+                self.replay._settle(time, bid, ask)
                 for candidate in breakouts:
-                    replay._breakout(candidate, time, bid, ask)
+                    self.replay._breakout(candidate, time, bid, ask)
                 for candidate in reversals:
-                    replay._submit(candidate, time, bid, ask)
-                pullbacks = replay._pullbacks(time, bid, ask)
-                replay._manage(time, bid, ask, ())
+                    self.replay._submit(candidate, time, bid, ask)
+                pullbacks = self.replay._pullbacks(time, bid, ask)
+                self.replay._manage(time, bid, ask, ())
             else:
                 pullbacks = []
-
-            # Collect snapshot
-            snapshot = replay._snapshot(bid, ask, pullbacks)
-
-            # Convert snapshot to DataFrames
-            self._collect_snapshot(snapshot, time, orders, fills, closes, positions, events)
+            snapshot = self.replay._snapshot(bid, ask, pullbacks)
+            self._collect_snapshot(snapshot, records, stream_tick)
 
     def _collect_snapshot(
         self,
         snapshot: dict,
-        time: pd.Timestamp,
-        orders: pt.DataFrame[OrderEvents],
-        fills: pt.DataFrame[FillEvents],
-        closes: pt.DataFrame[CloseEvents],
-        positions: pt.DataFrame[PositionSnapshots],
-        events: pt.DataFrame[ExecutionEvents],
+        records: dict[str, list[dict]],
+        stream_tick: int,
     ) -> None:
-        """Collect snapshot data into output DataFrames."""
-        # Collect events
-        for event in snapshot.get("execution_events", []):
-            events = pd.concat(
-                [
-                    events,
-                    pd.DataFrame(
-                        [
-                            {
-                                "request_id": event["request_id"],
-                                "event": event["event"],
-                                "time": event["time"],
-                                "reason": event.get("reason", ""),
-                            }
-                        ]
-                    ),
-                ],
-                ignore_index=True,
+        for event_ordinal, event in enumerate(snapshot.get("execution_events", [])):
+            records["events"].append(
+                {
+                    "stream_id": self.stream_id,
+                    "stream_tick": stream_tick,
+                    "event_ordinal": event_ordinal,
+                    "request_id": event["request_id"],
+                    "event": event["event"],
+                    "time": event["time"],
+                    "reason": event.get("reason", ""),
+                }
             )
-
-        # Collect orders
-        for order in snapshot.get("orders", []):
-            orders = pd.concat(
-                [
-                    orders,
-                    pd.DataFrame(
-                        [
-                            {
-                                "request_id": order["order_id"],
-                                "order_type": order["order_type"],
-                                "order_direction": order["order_direction"],
-                                "order_status": order["order_status"],
-                                "entry_price": order["entry_price"],
-                                "stop_loss": order["stop_loss"],
-                                "take_profit": order["take_profit"],
-                                "order_time": order["order_time"],
-                                "fill_price": order["fill_price"],
-                                "close_price": order["close_price"],
-                                "candidate_id": order["candidate_id"],
-                                "parent_breakout_id": order["parent_breakout_id"],
-                            }
-                        ]
-                    ),
-                ],
-                ignore_index=True,
-            )
-
-        # Collect positions
-        for position in snapshot.get("positions", []):
-            positions = pd.concat(
-                [
-                    positions,
-                    pd.DataFrame(
-                        [
-                            {
-                                "position_id": position["position_id"],
-                                "position_direction": position["position_direction"],
-                                "position_size": position["position_size"],
-                                "position_entry_price": position["position_entry_price"],
-                                "position_current_price": position["position_current_price"],
-                                "position_unrealized_pnl": position["position_unrealized_pnl"],
-                                "position_realized_pnl": position["position_realized_pnl"],
-                                "position_status": position["position_status"],
-                                "position_time": position["position_time"],
-                                "position_close_time": position["position_close_time"],
-                                "stop_loss": position["stop_loss"],
-                                "take_profit": position["take_profit"],
-                            }
-                        ]
-                    ),
-                ],
-                ignore_index=True,
-            )
-
-        # Note: fills and closes are derived from events in the scalar oracle
-        # They will be extracted from order status changes in a batched version
+            order = self.replay.orders[event["request_id"]]
+            if event["event"] == "FILL":
+                records["fills"].append(
+                    {
+                        "stream_id": self.stream_id,
+                        "stream_tick": stream_tick,
+                        "request_id": order.request_id,
+                        "position_id": order.position_id,
+                        "position_direction": int(order.direction),
+                        "fill_time": order.fill_time,
+                        "fill_price": order.fill_price,
+                        "fill_side": "ask" if order.direction == XauDirection.BUY else "bid",
+                        "volume": order.volume,
+                        "cost": order.entry_cost,
+                    }
+                )
+            elif event["event"] == "CLOSE":
+                records["closes"].append(
+                    {
+                        "stream_id": self.stream_id,
+                        "stream_tick": stream_tick,
+                        "request_id": order.request_id,
+                        "position_id": order.position_id,
+                        "position_direction": int(order.direction),
+                        "close_time": order.close_time,
+                        "close_price": order.close_price,
+                        "close_reason": event.get("reason", ""),
+                        "realized_pnl": order.realized_pnl,
+                        "exit_cost": order.exit_cost,
+                    }
+                )
+        records["rejections"].extend(
+            {
+                "stream_id": self.stream_id,
+                "stream_tick": stream_tick,
+                "rejection_ordinal": rejection_ordinal,
+                "candidate_id": candidate_id,
+                "rejection_code": rejection_code,
+            }
+            for rejection_ordinal, (candidate_id, rejection_code) in enumerate(snapshot.get("entry_rejections", []))
+        )
+        records["orders"].extend(
+            {
+                "stream_id": self.stream_id,
+                "stream_tick": stream_tick,
+                "request_id": order["order_id"],
+                "order_type": order["order_type"],
+                "order_direction": order["order_direction"],
+                "order_status": order["order_status"],
+                "entry_price": order["entry_price"],
+                "stop_loss": order["stop_loss"],
+                "take_profit": order["take_profit"],
+                "order_time": order["order_time"],
+                "fill_price": order["fill_price"],
+                "close_price": order["close_price"],
+                "candidate_id": order["candidate_id"],
+                "parent_breakout_id": order["parent_breakout_id"],
+            }
+            for order in snapshot.get("orders", [])
+        )
+        records["positions"].extend(
+            {
+                "stream_id": self.stream_id,
+                "stream_tick": stream_tick,
+                **position,
+            }
+            for position in snapshot.get("positions", [])
+        )

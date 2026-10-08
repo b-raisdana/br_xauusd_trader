@@ -107,6 +107,8 @@ class ReplayOrder:
     close_price: float = 0.0
     close_time: datetime | None = None
     costs: float = 0.0
+    entry_cost: float = 0.0
+    exit_cost: float = 0.0
     realized_pnl: float = 0.0
     closed_directions: list[int] = field(default_factory=list)
     trigger: XauPreZoneTriggerState = field(default_factory=XauPreZoneTriggerState)

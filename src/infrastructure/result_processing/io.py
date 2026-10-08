@@ -12,6 +12,11 @@ import pandas as pd
 from pydantic import BaseModel, Field, PrivateAttr
 
 from application.xauusd_trading_strategy_1_vector.domain.columnar import SignalTable, SignalTickState, WindowTable
+from application.xauusd_trading_strategy_1_vector.domain.execution_schema import (
+    ModificationEvents,
+    PullbackCycleSnapshots,
+    RejectionEvents,
+)
 from application.xauusd_trading_strategy_1_vector.domain.schema import (
     OrderManagementResult,
     PerCandleState,
@@ -32,6 +37,12 @@ type ResultCategory = Literal[
     "ticks",
     "per_tick_state",
     "orders",
+    "fills",
+    "closes",
+    "execution_events",
+    "rejections",
+    "modifications",
+    "cycles",
     "results_with_columns",
     "positions",
     "signal_state",
@@ -65,6 +76,12 @@ class ResultFilesManifest(BaseModel):
     ticks: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
     per_tick_state: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
     orders: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
+    fills: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
+    closes: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
+    execution_events: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
+    rejections: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
+    modifications: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
+    cycles: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
     results_with_columns: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
     positions: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
     signal_state: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
@@ -92,6 +109,12 @@ class ResultFilesManifest(BaseModel):
             "ticks": self.ticks,
             "per_tick_state": self.per_tick_state,
             "orders": self.orders,
+            "fills": self.fills,
+            "closes": self.closes,
+            "execution_events": self.execution_events,
+            "rejections": self.rejections,
+            "modifications": self.modifications,
+            "cycles": self.cycles,
             "results_with_columns": self.results_with_columns,
             "positions": self.positions,
             "signal_state": self.signal_state,
@@ -243,11 +266,57 @@ class ResultFilesManifest(BaseModel):
         self._submit_write("orders", day, df, f"orders.{day:%y-%m-%d}.{self.hash_df(df)}.parquet")
         return self
 
+    @pandera_validate(allow_pandas_dataframe=True)
+    def save_daily_fills(self, day: datetime, df: pd.DataFrame) -> Self:
+        self._submit_write("fills", day, df, f"fills.{day:%y-%m-%d}.{self.hash_df(df)}.parquet")
+        return self
+
+    @pandera_validate(allow_pandas_dataframe=True)
+    def save_daily_closes(self, day: datetime, df: pd.DataFrame) -> Self:
+        self._submit_write("closes", day, df, f"closes.{day:%y-%m-%d}.{self.hash_df(df)}.parquet")
+        return self
+
+    @pandera_validate(allow_pandas_dataframe=True)
+    def save_daily_execution_events(self, day: datetime, df: pd.DataFrame) -> Self:
+        self._submit_write("execution_events", day, df, f"execution_events.{day:%y-%m-%d}.{self.hash_df(df)}.parquet")
+        return self
+
+    @pandera_validate(allow_pandas_dataframe=True)
+    def save_daily_modifications(self, day: datetime, df: pd.DataFrame) -> Self:
+        ModificationEvents.validate(df, lazy=True)
+        self._submit_write("modifications", day, df, f"modifications.{day:%y-%m-%d}.{self.hash_df(df)}.parquet")
+        return self
+
+    @pandera_validate(allow_pandas_dataframe=True)
+    def save_daily_cycles(self, day: datetime, df: pd.DataFrame) -> Self:
+        PullbackCycleSnapshots.validate(df, lazy=True)
+        self._submit_write("cycles", day, df, f"cycles.{day:%y-%m-%d}.{self.hash_df(df)}.parquet")
+        return self
+
+    @pandera_validate
+    def save_daily_rejections(self, day: datetime, df: pd.DataFrame) -> Self:
+        RejectionEvents.validate(df, lazy=True)
+        self._submit_write("rejections", day, df, f"rejections.{day:%y-%m-%d}.{self.hash_df(df)}.parquet")
+        return self
+
     @pandera_validate
     def save_daily_positions(self, day: datetime, df: pd.DataFrame) -> Self:
         """Save execution position snapshots in generic format."""
         self._submit_write("positions", day, df, f"positions.{day:%y-%m-%d}.{self.hash_df(df)}.parquet")
         return self
+
+    @pandera_validate(allow_pandas_dataframe=True)
+    def read_daily_positions(self, day: datetime) -> pd.DataFrame:
+        """Read raw replay position snapshots without applying the legacy report schema."""
+        return self._read("positions", day)
+
+    @pandera_validate(allow_pandas_dataframe=True)
+    def read_daily_execution_artifact(
+        self,
+        category: Literal["fills", "closes", "execution_events", "rejections", "modifications", "cycles"],
+        day: datetime,
+    ) -> pd.DataFrame:
+        return self._read(category, day)
 
     @pandera_validate
     def save_results_with_columns(self, day: datetime, df: pt.DataFrame[StrategyResultWithCandles]) -> Self:

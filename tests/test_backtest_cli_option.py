@@ -50,8 +50,10 @@ def test_backtest_with_positions_calls_report(monkeypatch):
     manifest = ManifestStub()
 
     completed = entrypoint._print_backtest_if_positions(
-        manifest, report_file="report.parquet", trades_file="trades.parquet"
+        manifest, report_file="report.parquet", trades_file="trades.parquet", initial_cash=200
     )
 
     assert completed is True
-    assert calls == [((manifest,), {"report_file": "report.parquet", "trades_file": "trades.parquet"})]
+    assert calls == [
+        ((manifest,), {"report_file": "report.parquet", "trades_file": "trades.parquet", "initial_cash": 200})
+    ]

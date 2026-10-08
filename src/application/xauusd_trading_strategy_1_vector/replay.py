@@ -184,7 +184,8 @@ class ExecutionReplay:
         order.status = XauExecutionStatus.FILLED
         order.fill_price = ask if order.direction == XauDirection.BUY else bid
         order.fill_time = time
-        order.costs = self.economics.cost(order.volume, time, True)
+        order.entry_cost = self.economics.cost(order.volume, time, True)
+        order.costs = order.entry_cost
         self.balance -= order.costs
         self._feedback(order, filled=True)
         zone = next((z for z in self.state.zones if z.zone.id == order.candidate.zone_id), None)
@@ -210,9 +211,9 @@ class ExecutionReplay:
         order.close_price = order.mark(bid, ask)
         order.close_time = time
         gross = self.economics.profit(order.direction, order.volume, order.fill_price, order.close_price)
-        exit_cost = self.economics.cost(order.volume, time, False)
-        self.balance += gross - exit_cost
-        order.costs += exit_cost
+        order.exit_cost = self.economics.cost(order.volume, time, False)
+        self.balance += gross - order.exit_cost
+        order.costs += order.exit_cost
         order.realized_pnl = gross - order.costs
         self.net_realized += order.realized_pnl
         self.gross_loss += max(-order.realized_pnl, 0.0)

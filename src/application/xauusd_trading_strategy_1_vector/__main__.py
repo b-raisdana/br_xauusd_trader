@@ -52,13 +52,22 @@ def _print_backtest_if_positions(
     *,
     report_file: str,
     trades_file: str,
+    initial_cash: float | None = None,
 ) -> bool:
     if not manifest.successful_days("positions"):
         logging.getLogger(__name__).warning(
             "Backtest skipped: no position artifacts available. Run with execution config to generate positions."
         )
         return False
-    print_backtest_report(manifest, report_file=report_file, trades_file=trades_file)
+    if initial_cash is None:
+        print_backtest_report(manifest, report_file=report_file, trades_file=trades_file)
+    else:
+        print_backtest_report(
+            manifest,
+            report_file=report_file,
+            trades_file=trades_file,
+            initial_cash=initial_cash,
+        )
     return True
 
 
@@ -162,7 +171,12 @@ async def main(
             output_path = app_config.path_of_data / output_path
         report_path = output_path.with_name(f"{output_path.stem}_backtest_report.parquet")
         trades_path = output_path.with_name(f"{output_path.stem}_backtest_trades.parquet")
-        _print_backtest_if_positions(manifest, report_file=str(report_path), trades_file=str(trades_path))
+        _print_backtest_if_positions(
+            manifest,
+            report_file=str(report_path),
+            trades_file=str(trades_path),
+            initial_cash=execution.initial_balance if execution is not None else None,
+        )
 
     print(f"\nExecution completed successfully. Results saved to {output}")
 

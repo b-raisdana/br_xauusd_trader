@@ -61,6 +61,81 @@ def _extract_signals(
     return close, entries, exits
 
 
+def _extract_replay_signals(
+    ticks: pd.DataFrame,
+    fills: pd.DataFrame,
+    closes: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Project replay fills and closes into aligned per-position Vectorbt signal matrices."""
+    if ticks.empty:
+        raise ValueError("Replay backtest requires market ticks")
+    if fills.empty:
+        raise ValueError("Replay backtest requires at least one filled position")
+    if "stream_tick" not in ticks or "stream_id" not in fills or "stream_tick" not in fills:
+        raise ValueError("Replay backtest requires stable stream_id and stream_tick keys")
+
+    tick_keys = pd.DataFrame(
+        {
+            "stream_id": [
+                f"{broker}_{symbol}"
+                for broker, symbol in zip(
+                    ticks.index.get_level_values("broker"),
+                    ticks.index.get_level_values("symbol"),
+                    strict=True,
+                )
+            ],
+            "stream_tick": ticks["stream_tick"].to_numpy(),
+            "_tick_row": range(len(ticks)),
+        }
+    )
+    if (
+        "position_id" not in fills
+        or "position_direction" not in fills
+        or "position_id" not in closes
+        or "position_direction" not in closes
+    ):
+        raise ValueError("Replay fill and close artifacts must include position identity and direction")
+    positions = pd.Index(fills.position_id.dropna().unique(), name="position_id")
+    if len(positions) == 0:
+        raise ValueError("Replay fill artifacts contain no position identifiers")
+    entries = pd.DataFrame(False, index=range(len(ticks)), columns=positions)
+    exits = pd.DataFrame(False, index=range(len(ticks)), columns=positions)
+    short_entries = entries.copy()
+    short_exits = exits.copy()
+    close = pd.DataFrame(
+        {position_id: ticks["bid"].astype(float).to_numpy() for position_id in positions},
+        index=ticks.index,
+    )
+
+    for events, long_signals, short_signals, price_column in (
+        (fills, entries, short_entries, "fill_price"),
+        (closes, exits, short_exits, "close_price"),
+    ):
+        if events.empty:
+            continue
+        keyed_events = events.merge(tick_keys, on=["stream_id", "stream_tick"], how="left", validate="many_to_one")
+        if keyed_events["_tick_row"].isna().any():
+            raise ValueError("Replay events reference ticks absent from the report input")
+        if keyed_events.duplicated(["_tick_row", "position_id"]).any():
+            raise ValueError("Replay has duplicate lifecycle events for a position at one tick")
+        for tick_row, position_id, direction, event_price in zip(
+            keyed_events["_tick_row"],
+            keyed_events["position_id"],
+            keyed_events["position_direction"],
+            keyed_events[price_column],
+            strict=True,
+        ):
+            if position_id not in long_signals.columns:
+                raise ValueError(f"Replay event references unknown position {position_id!r}")
+            signals = long_signals if direction == XauDirection.BUY else short_signals
+            signals.at[tick_row, position_id] = True
+            if price_column == "close_price":
+                close.iloc[tick_row, close.columns.get_loc(position_id)] = event_price
+
+    entries.index = exits.index = short_entries.index = short_exits.index = close.index
+    return close, entries, exits, short_entries, short_exits
+
+
 @profile_it
 @pandera_validate
 def run_vectorbt_backtest(
@@ -94,8 +169,34 @@ def run_vectorbt_backtest(
             "Vectorbt backtest requires position artifacts, but the native signals-only run produced none. "
             "Run an execution replay first."
         )
-    result = pd.concat([manifest.read_positions(day) for day in position_days])
-    close, entries, exits = _extract_signals(result)
+    ticks = pd.concat([manifest.read_daily_ticks(day) for day in manifest.successful_days("ticks")])
+    signal_states = pd.concat(
+        [manifest.read_daily_signal_state(day) for day in manifest.successful_days("signal_state")]
+    )
+    if not ticks.index.equals(signal_states.index):
+        raise ValueError("Replay report ticks and native stream state must have identical indexes")
+    report_ticks = ticks.copy()
+    report_ticks["stream_tick"] = signal_states["stream_tick"].to_numpy()
+    stream_ids = pd.Series(
+        [
+            f"{broker}_{symbol}"
+            for broker, symbol in zip(
+                ticks.index.get_level_values("broker"), ticks.index.get_level_values("symbol"), strict=True
+            )
+        ],
+        index=ticks.index,
+    )
+    keyed_ticks = report_ticks.copy()
+    keyed_ticks["stream_id"] = stream_ids
+    fills = pd.concat(
+        [manifest.read_daily_execution_artifact("fills", day) for day in manifest.successful_days("fills")],
+        ignore_index=True,
+    )
+    closes = pd.concat(
+        [manifest.read_daily_execution_artifact("closes", day) for day in manifest.successful_days("closes")],
+        ignore_index=True,
+    )
+    close, entries, exits, short_entries, short_exits = _extract_replay_signals(keyed_ticks, fills, closes)
 
     import inspect
     import os
@@ -120,10 +221,13 @@ def run_vectorbt_backtest(
         close=close.to_numpy(),
         entries=entries.to_numpy(),
         exits=exits.to_numpy(),
+        short_entries=short_entries.to_numpy(),
+        short_exits=short_exits.to_numpy(),
         init_cash=initial_cash,
         fees=fees,
         slippage=slippage,
         freq=freq,
+        cash_sharing=True,
     )
 
     return portfolio

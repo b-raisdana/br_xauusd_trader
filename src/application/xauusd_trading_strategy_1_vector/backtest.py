@@ -11,7 +11,7 @@ from br_py_log_n_profile import log_d, profile_it
 
 from application.xauusd_trading_strategy_1_vector.domain.schema import VectorbtBacktestInput
 from br_pre_commit import pandera_validate
-from domain.xau_usd.enums import XauExecutionStatus
+from domain.xau_usd.enums import XauDirection, XauExecutionStatus
 from helper.importer import pt
 from infrastructure.result_processing.io import ResultFilesManifest
 

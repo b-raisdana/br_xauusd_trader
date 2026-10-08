@@ -23,7 +23,9 @@ from infrastructure.result_processing.__main__ import (
     generate_position_tracking_columns,
     merge_results_with_candles,
 )
+from infrastructure.result_processing.io import ResultFilesManifest
 
+from .backtest import print_backtest_report
 from .domain.replay import ReplayConfig
 from .reporting import (
     print_strategy_summary,
@@ -45,18 +47,31 @@ __all__ = [
 app = typer.Typer(help="Vectorized XAUUSD Trading Strategy", add_completion=False)
 
 
+def _run_backtest_report(manifest: ResultFilesManifest, requested: bool) -> None:
+    if not requested:
+        return
+    if not manifest.successful_days("positions"):
+        raise ValueError(
+            "Backtest report requires position artifacts, but this signals-only run produced none. "
+            "Provide a manifest populated by the execution replay pipeline."
+        )
+    print_backtest_report(manifest)
+
+
 @app.command()
 def cli(
     symbol: str = typer.Option(app_config.default_symbol, help="The symbol to use"),
     zones: Path = typer.Option(Path("ranges.zip"), help="Path to zones CSV file"),
     output: str = typer.Option("strategy_results.parquet", help="Path to output file"),
-    backtest: bool = typer.Option(False, "--backtest", help="Unsupported in signals-only native mode"),
+    backtest: bool = typer.Option(
+        False, "--backtest", help="Print a vectorbt report when position results are available"
+    ),
     execution_config: Path | None = typer.Option(None, help="Unsupported in native mode; use the replay API"),
 ) -> None:
-    if execution_config is not None or backtest:
+    if execution_config is not None:
         log_e("Native strategy supports signals-only mode; execution replay/backtesting is separate")
         raise ValueError("Native strategy supports signals-only mode; execution replay/backtesting is separate")
-    asyncio.run(main(symbol=symbol, zones=zones, output=output))
+    asyncio.run(main(symbol=symbol, zones=zones, output=output, backtest=backtest))
 
 
 @profile_it
@@ -67,7 +82,7 @@ async def main(
     backtest: bool = False,
     execution: ReplayConfig | None = None,
 ) -> None:
-    if execution is not None or backtest:
+    if execution is not None:
         log_e("Native strategy supports signals-only mode; execution replay/backtesting is separate")
         raise ValueError("Native strategy supports signals-only mode; execution replay/backtesting is separate")
     output_format = Path(output).suffix.lstrip(".").lower()
@@ -128,6 +143,7 @@ async def main(
     print_strategy_summary(manifest)
 
     print(f"\nExecution completed successfully. Results saved to {output}")
+    _run_backtest_report(manifest, backtest)
 
 
 if __name__ == "__main__":

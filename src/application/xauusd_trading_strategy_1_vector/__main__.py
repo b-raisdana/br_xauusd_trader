@@ -78,10 +78,18 @@ def cli(
     output: str = typer.Option("strategy_results.parquet", help="Path to output file"),
     no_backtest: bool = typer.Option(False, "--no-backtest", help="Skip the vectorbt backtest report"),
     execution_config: Path | None = typer.Option(None, help="Path to execution config JSON file"),
+    ticks_input: Path | None = typer.Option(None, help="Local tick Parquet input"),
+    candles_input: Path | None = typer.Option(None, help="Local M15 candle Parquet input"),
 ) -> None:
     asyncio.run(
         main(
-            symbol=symbol, zones=zones, output=output, backtest=not no_backtest, execution_config_path=execution_config
+            symbol=symbol,
+            zones=zones,
+            output=output,
+            backtest=not no_backtest,
+            execution_config_path=execution_config,
+            ticks_input=ticks_input,
+            candles_input=candles_input,
         )
     )
 
@@ -94,6 +102,8 @@ async def main(
     backtest: bool = True,
     execution: ReplayConfig | None = None,
     execution_config_path: Path | None = None,
+    ticks_input: Path | None = None,
+    candles_input: Path | None = None,
 ) -> None:
     if execution_config_path is not None:
         if execution_config_path.suffix != ".json":
@@ -114,16 +124,8 @@ async def main(
         raise ValueError("Columnar output requires a .parquet extension")
     print("Loading data ...")
 
+    zones = zones.resolve() if zones.exists() else (app_config.path_of_data / zones).resolve()
     zones_df = await load_zones_from_file(zones)
-    datetime_of_first_zone = zones_df.index.get_level_values("date")[0]
-    next_day_after_first_zone = zones_df.index.get_level_values("date")[0] + pd.Timedelta(days=1)
-    zones_df = zones_df[
-        (
-            (datetime_of_first_zone <= zones_df.index.get_level_values("date"))
-            & (zones_df.index.get_level_values("date") < next_day_after_first_zone)
-        )
-    ]
-
     if zones_df.empty:
         log_exception("Zone input must contain at least one day", ValueError)
     start = zones_df.index.get_level_values("date").min().normalize()
@@ -132,7 +134,13 @@ async def main(
     start = start.tz_localize(None).tz_localize(timezone).tz_convert("UTC")
     end = end.tz_localize(None).tz_localize(timezone).tz_convert("UTC")
     time_range_str = time_range_to_string(start=start, end=end)
-    tick_df = await get_ticks(time_range_str=time_range_str, symbol=symbol)
+    if (ticks_input is None) != (candles_input is None):
+        raise ValueError("Local replay requires both ticks_input and candles_input")
+    tick_df = (
+        pd.read_parquet(ticks_input)
+        if ticks_input is not None
+        else await get_ticks(time_range_str=time_range_str, symbol=symbol)
+    )
     tick_times = tick_df.index.get_level_values("precise_time")
 
     tick_df = tick_df.loc[(tick_times >= start) & (tick_times < end)]
@@ -141,17 +149,20 @@ async def main(
         log_e("No ticks returned for the requested zone days")
         raise ValueError("No ticks returned for the requested zone days")
 
-    candle_15min_df = await get_ohlcv(
-        symbol, time_range_str=time_range_to_string(start=start - pd.Timedelta(days=30), end=end), timeframe="15min"
-    )
-    candle_15min_df = candle_15min_df.reset_index().rename(columns={"date": "bar_time"})
-    candle_15min_df["bar_time"] = candle_15min_df["bar_time"].astype("datetime64[ns, UTC]")
-    candle_15min_df["date"] = candle_15min_df["bar_time"].dt.normalize()
-    candle_15min_df["broker"] = tick_df.index.get_level_values("broker")[0]
-    candle_15min_df["symbol"] = symbol
-    if "timeframe" not in candle_15min_df:
-        candle_15min_df["timeframe"] = "15min"
-    candle_15min_df = candle_15min_df.set_index(["date", "timeframe", "broker", "symbol", "bar_time"])
+    if candles_input is not None:
+        candle_15min_df = pd.read_parquet(candles_input)
+    else:
+        candle_15min_df = await get_ohlcv(
+            symbol, time_range_str=time_range_to_string(start=start - pd.Timedelta(days=30), end=end), timeframe="15min"
+        )
+        candle_15min_df = candle_15min_df.reset_index().rename(columns={"date": "bar_time"})
+        candle_15min_df["bar_time"] = candle_15min_df["bar_time"].astype("datetime64[ns, UTC]")
+        candle_15min_df["date"] = candle_15min_df["bar_time"].dt.normalize()
+        candle_15min_df["broker"] = tick_df.index.get_level_values("broker")[0]
+        candle_15min_df["symbol"] = symbol
+        if "timeframe" not in candle_15min_df:
+            candle_15min_df["timeframe"] = "15min"
+        candle_15min_df = candle_15min_df.set_index(["date", "timeframe", "broker", "symbol", "bar_time"])
 
     tick_df = VectorizedXauUsdStrategy.add_bar_time_n_broker_day(tick_df, timezone)
 
@@ -177,6 +188,24 @@ async def main(
             trades_file=str(trades_path),
             initial_cash=execution.initial_balance if execution is not None else None,
         )
+
+    from .provenance import save_provenance
+
+    output_path = Path(output)
+    if not output_path.is_absolute():
+        output_path = app_config.path_of_data / output_path
+    save_provenance(
+        manifest,
+        output_path,
+        execution,
+        {
+            "ticks": ticks_input,
+            "candles": candles_input,
+            "zones": zones,
+            "execution_config": execution_config_path,
+        },
+    )
+    manifest.close()
 
     print(f"\nExecution completed successfully. Results saved to {output}")
 

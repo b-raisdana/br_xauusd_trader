@@ -80,6 +80,7 @@ class VectorizedXauUsdStrategy:
         When configured, replay generated candidates and persist execution artifacts.
         """
         markets: dict[tuple[str, str], ColumnarMarket] = {}
+        self._native_markets = markets
         for day in manifest.successful_days("ticks"):
             ticks = manifest.read_daily_ticks(day)
             candles = manifest.read_daily_candles(day)
@@ -123,12 +124,18 @@ class VectorizedXauUsdStrategy:
     ) -> None:
         """Replay generated native events and persist normalized execution outputs."""
         day_dt = pd.Timestamp(day).to_pydatetime()
+        day = pd.Timestamp(day).strftime("%Y-%m-%d")
         orders_by_stream = []
         fills_by_stream = []
         closes_by_stream = []
         positions_by_stream = []
         events_by_stream = []
         rejections_by_stream = []
+        modifications_by_stream = []
+        cycles_by_stream = []
+        accounts_by_stream = []
+        feedback_by_stream = []
+        actions_by_stream = []
         for (broker, symbol), result in results:
             stream_id = f"{broker}_{symbol}"
             stream_mask = (ticks.index.get_level_values("broker") == broker) & (
@@ -172,7 +179,7 @@ class VectorizedXauUsdStrategy:
                 self._execution_replays[stream_id] = VectorizedExecutionReplay(self.execution, stream_id)
             replay = self._execution_replays[stream_id]
             orders, fills, closes, positions, events, rejections = replay.run(
-                streams, zones, candidates, result.windows
+                streams, zones, candidates, result.windows, stream_candles
             )
             orders_by_stream.append(orders)
             fills_by_stream.append(fills)
@@ -180,6 +187,22 @@ class VectorizedXauUsdStrategy:
             positions_by_stream.append(positions)
             events_by_stream.append(events)
             rejections_by_stream.append(rejections)
+            modifications_by_stream.append(replay.modifications)
+            cycles_by_stream.append(replay.cycles)
+            accounts_by_stream.append(replay.accounts)
+            feedback_by_stream.append(replay.feedback)
+            actions_by_stream.append(replay.actions)
+            # Native signals remain hypotheses. Execution owns causal window eligibility;
+            # synchronize terminal state so later partitions see accepted fill counts.
+            market = getattr(self, "_native_markets", {}).get((broker, symbol))
+            if market is not None:
+                counts = replay.kernel.counts
+                for zone in market.zones:
+                    key = f"{day}|{zone.zone.id}"
+                    index = replay.zone_keys.get_indexer([key])[0]
+                    if index >= 0:
+                        zone.pullback_fills = int(counts[index, 0])
+                        zone.reversal_fill_count = int(counts[index, 1])
 
         orders = pd.concat(orders_by_stream, ignore_index=True) if orders_by_stream else pd.DataFrame()
         fills = pd.concat(fills_by_stream, ignore_index=True) if fills_by_stream else pd.DataFrame()
@@ -193,6 +216,13 @@ class VectorizedXauUsdStrategy:
         manifest.save_daily_execution_events(day_dt, events)
         manifest.save_daily_rejections(day_dt, rejections)
         manifest.save_daily_positions(day_dt, positions)
+        manifest.save_daily_modifications(day_dt, pd.concat(modifications_by_stream, ignore_index=True))
+        manifest.save_daily_cycles(day_dt, pd.concat(cycles_by_stream, ignore_index=True))
+        manifest.save_daily_accounts(day_dt, pd.concat(accounts_by_stream, ignore_index=True))
+        manifest.save_daily_actions(day_dt, pd.concat(actions_by_stream, ignore_index=True))
+        manifest.save_daily_feedback(day_dt, pd.concat(feedback_by_stream, ignore_index=True))
+        manifest.meta["initial_balance"] = self.execution.initial_balance
+        manifest.meta["cash_per_price_unit_per_lot"] = float(replay.kernel.multiplier)
 
     @pandera_validate(dump_output=True)
     def process_native_stream(
@@ -364,7 +394,7 @@ class VectorizedXauUsdStrategy:
         return per_tick_state
 
     @profile_it
-    @pandera_validate(allow_pandas_dataframe=True)
+    @pandera_validate
     def _get_zones_for_group(self, ticks: pt.DataFrame[HasDay]) -> list[XauZone]:
         log_w(NOT_TESTED)
         zones = self._zone_cache.get_zones_for_day(ticks["broker_day"].iloc[0])

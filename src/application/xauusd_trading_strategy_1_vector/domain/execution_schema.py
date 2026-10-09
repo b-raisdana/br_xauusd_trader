@@ -14,6 +14,13 @@ from pandera import Field
 from pandera.pandas import DataFrameModel
 from pandera.typing import Series
 
+from .audit_schema import AccountSnapshots as AccountSnapshots
+from .audit_schema import ActionEvents as ActionEvents
+from .audit_schema import FeedbackEvents as FeedbackEvents
+from .cycle_schema import ModificationEvents as ModificationEvents
+from .cycle_schema import PullbackCycleSnapshots as PullbackCycleSnapshots
+from .execution_keys import StreamKey as StreamKey
+
 
 class StreamEvents(DataFrameModel):
     """Tick-level stream input with stable identity.
@@ -95,7 +102,7 @@ class CandidateEvents(DataFrameModel):
         coerce = True
 
 
-class OrderEvents(DataFrameModel):
+class OrderEvents(StreamKey):
     """Order lifecycle events.
 
     Key columns:
@@ -131,7 +138,7 @@ class OrderEvents(DataFrameModel):
         coerce = True
 
 
-class FillEvents(DataFrameModel):
+class FillEvents(StreamKey):
     """Order fill events.
 
     Key columns:
@@ -143,11 +150,15 @@ class FillEvents(DataFrameModel):
     - cost: commission/fees
     """
 
+    event_ordinal: Series[int] = Field(ge=0)
+    position_id: Series[str]
+    position_direction: Series[int] = Field(ge=0, le=1)
     request_id: Series[str]
     fill_time: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
     fill_price: Series[float] = Field(ge=0)
     fill_side: Series[str] = Field(isin=["bid", "ask"])
     volume: Series[float] = Field(gt=0)
+    vectorbt_size: Series[float] = Field(gt=0)
     cost: Series[float] = Field(ge=0)
 
     class Config:
@@ -155,7 +166,7 @@ class FillEvents(DataFrameModel):
         coerce = True
 
 
-class CloseEvents(DataFrameModel):
+class CloseEvents(StreamKey):
     """Position close events.
 
     Key columns:
@@ -167,6 +178,9 @@ class CloseEvents(DataFrameModel):
     - exit_cost: exit commission/fees
     """
 
+    event_ordinal: Series[int] = Field(ge=0)
+    position_id: Series[str]
+    position_direction: Series[int] = Field(ge=0, le=1)
     request_id: Series[str]
     close_time: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
     close_price: Series[float] = Field(ge=0)
@@ -179,7 +193,7 @@ class CloseEvents(DataFrameModel):
         coerce = True
 
 
-class PositionSnapshots(DataFrameModel):
+class PositionSnapshots(StreamKey):
     """Position state snapshots per tick.
 
     Key columns:
@@ -206,7 +220,7 @@ class PositionSnapshots(DataFrameModel):
     position_realized_pnl: Series[float]
     position_status: Series[int] = Field(ge=1, le=3)  # FILLED or CLOSED
     position_time: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
-    position_close_time: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]] = Field(default=pd.NaT)
+    position_close_time: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]] = Field(default=pd.NaT, nullable=True)
     stop_loss: Series[float] = Field(ge=0)
     take_profit: Series[float] = Field(ge=0)
 
@@ -215,7 +229,7 @@ class PositionSnapshots(DataFrameModel):
         coerce = True
 
 
-class ExecutionEvents(DataFrameModel):
+class ExecutionEvents(StreamKey):
     """All execution event timeline.
 
     Key columns:
@@ -225,6 +239,8 @@ class ExecutionEvents(DataFrameModel):
     - reason: additional context for the event
     """
 
+    event_ordinal: Series[int] = Field(ge=0)
+    phase: Series[int] = Field(ge=1, le=9)
     request_id: Series[str]
     event: Series[str]
     time: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
@@ -243,52 +259,6 @@ class RejectionEvents(DataFrameModel):
     rejection_ordinal: Series[int] = Field(ge=0)
     candidate_id: Series[str]
     rejection_code: Series[int] = Field(ge=1, le=8)
-
-    class Config:
-        strict = True
-        coerce = True
-
-
-class ModificationEvents(DataFrameModel):
-    """Stop-management requests and outcomes attributed to their source tick."""
-
-    stream_id: Series[str]
-    stream_tick: Series[int] = Field(ge=0)
-    event_ordinal: Series[int] = Field(ge=0)
-    request_id: Series[str]
-    event: Series[str] = Field(isin=["MODIFY", "MODIFY_REJECT"])
-    time: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
-    accepted: Series[bool]
-    previous_stop_loss: Series[float] = Field(ge=0)
-    requested_stop_loss: Series[float] = Field(ge=0)
-    resulting_stop_loss: Series[float] = Field(ge=0)
-    take_profit: Series[float] = Field(ge=0)
-
-    class Config:
-        strict = True
-        coerce = True
-
-
-class PullbackCycleSnapshots(DataFrameModel):
-    """Active and completed pullback-cycle state attributed to each source tick."""
-
-    stream_id: Series[str]
-    stream_tick: Series[int] = Field(ge=0)
-    cycle_ordinal: Series[int] = Field(ge=0)
-    cycle_id: Series[str]
-    parent_breakout_id: Series[str]
-    zone_id: Series[str]
-    direction: Series[int] = Field(ge=0, le=1)
-    bar_offset: Series[int] = Field(ge=0)
-    active: Series[bool]
-    penetration_latched: Series[bool]
-    pending_active: Series[bool]
-    sequence: Series[int] = Field(ge=0)
-    breakout_bar_time: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]]
-    broker_day: Series[str]
-    order_ticket: Series[str]
-    waiting_logged: Series[bool]
-    risk_waiting_logged: Series[bool]
 
     class Config:
         strict = True

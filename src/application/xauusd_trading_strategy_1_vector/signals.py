@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime
-from typing import List, Tuple, TypedDict
+from typing import TypedDict
 
 import numpy as np
 import pandas as pd
@@ -113,10 +113,10 @@ def _find_bar_boundaries(
 def _detect_zone_breakouts(
     ticks: pt.DataFrame[VectorizedTick],
     per_tick_state: pt.DataFrame[PerTickState],
-    zones: List[XauZone],
+    zones: list[XauZone],
     starts: NDArray[np.int64],
     closes: NDArray[np.int64],
-) -> List[Tuple[int, int, XauDirection]]:
+) -> list[tuple[int, int, XauDirection]]:
     """Detect valid breakout events per zone and direction."""
     prices = ticks["bid"].to_numpy()
     trends = per_tick_state["trend"].to_numpy()
@@ -166,7 +166,7 @@ def _create_breakout_candidate(
 
 def _update_pullback_columns(
     per_tick_state: pt.DataFrame[PerTickState],
-    zones: List[XauZone],
+    zones: list[XauZone],
     opened_windows: dict[tuple[int, XauDirection], list[tuple[int, str]]],
     tick_bar_ids: NDArray[np.int64],
     size: int,
@@ -237,11 +237,11 @@ def _register_breakout(
 
 
 @profile_it
-@pandera_validate(allow_pandas_dataframe=True)
+@pandera_validate
 def generate_breakout_signals(
     ticks: pt.DataFrame[VectorizedTick],
     per_tick_state: pt.DataFrame[PerTickState],
-    zones: List[XauZone],
+    zones: list[XauZone],
 ) -> pt.DataFrame[PerTickState]:
     """Emit closed-bar candidates at the next observed bar, with per-zone lineage."""
     size = len(per_tick_state)
@@ -299,7 +299,7 @@ def generate_breakout_signals(
 def generate_reversal_signals(
     ticks: pt.DataFrame[VectorizedTick],
     per_tick_state: pt.DataFrame[PerTickState],
-    zones: List[XauZone],
+    zones: list[XauZone],
 ) -> pt.DataFrame[PerTickState]:
     """Generate reversal signals on zone touches against trend.
 

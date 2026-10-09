@@ -7,7 +7,7 @@ from br_pre_commit import pandera_validate
 from domain.xau_usd.enums import XauSignalFamily
 
 
-@pandera_validate(allow_pandas_dataframe=True)
+@pandera_validate
 def empty_table(
     model: type[SignalTable] | type[WindowTable] | type[SignalTickState], index: pd.MultiIndex
 ) -> pd.DataFrame:

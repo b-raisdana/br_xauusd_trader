@@ -30,14 +30,14 @@ from helper.importer import pt
 
 
 @profile_it
-@pandera_validate(allow_pandas_dataframe=True)
+@pandera_validate
 def compute_bar_time(datetime_series: pd.DatetimeIndex) -> pd.DatetimeIndex:
     """Floor datetime to 15-minute intervals (PERIOD_M15)."""
     return datetime_series.floor("15min")
     # return pd.to_datetime(ts // (60 * 15))
 
 
-@pandera_validate(allow_pandas_dataframe=True)
+@pandera_validate
 def compute_reference_high(tick_state_row: pt.Series[float]) -> float:
     """Compute reference high from trend history for a single row."""
     # log_w(NOT_TESTED)
@@ -48,7 +48,7 @@ def compute_reference_high(tick_state_row: pt.Series[float]) -> float:
     return max(float(tick_state_row[column]) for column in columns)
 
 
-@pandera_validate(allow_pandas_dataframe=True)
+@pandera_validate
 def compute_reference_low(tick_state_row: pt.Series[float]) -> float:
     """Compute reference low from trend history for a single row."""
     # log_w(NOT_TESTED)
@@ -93,7 +93,7 @@ def compute_references(per_tick_state: pt.DataFrame[TrendInfo]) -> pt.DataFrame[
 
 
 @profile_it
-@pandera_validate(allow_pandas_dataframe=True)
+@pandera_validate
 def update_trend(
     ticks: pt.DataFrame[VectorizedTick], per_tick_state: pt.DataFrame[PerTickState]
 ) -> pt.DataFrame[PerTickState]:

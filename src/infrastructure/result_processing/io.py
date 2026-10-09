@@ -13,6 +13,9 @@ from pydantic import BaseModel, Field, PrivateAttr
 
 from application.xauusd_trading_strategy_1_vector.domain.columnar import SignalTable, SignalTickState, WindowTable
 from application.xauusd_trading_strategy_1_vector.domain.execution_schema import (
+    AccountSnapshots,
+    ActionEvents,
+    FeedbackEvents,
     ModificationEvents,
     PullbackCycleSnapshots,
     RejectionEvents,
@@ -43,6 +46,9 @@ type ResultCategory = Literal[
     "rejections",
     "modifications",
     "cycles",
+    "accounts",
+    "actions",
+    "feedback",
     "results_with_columns",
     "positions",
     "signal_state",
@@ -82,6 +88,9 @@ class ResultFilesManifest(BaseModel):
     rejections: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
     modifications: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
     cycles: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
+    accounts: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
+    actions: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
+    feedback: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
     results_with_columns: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
     positions: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
     signal_state: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
@@ -115,6 +124,9 @@ class ResultFilesManifest(BaseModel):
             "rejections": self.rejections,
             "modifications": self.modifications,
             "cycles": self.cycles,
+            "accounts": self.accounts,
+            "actions": self.actions,
+            "feedback": self.feedback,
             "results_with_columns": self.results_with_columns,
             "positions": self.positions,
             "signal_state": self.signal_state,
@@ -293,6 +305,24 @@ class ResultFilesManifest(BaseModel):
         self._submit_write("cycles", day, df, f"cycles.{day:%y-%m-%d}.{self.hash_df(df)}.parquet")
         return self
 
+    @pandera_validate(allow_pandas_dataframe=True)
+    def save_daily_actions(self, day: datetime, df: pd.DataFrame) -> Self:
+        df = ActionEvents.validate(df)
+        self._submit_write("actions", day, df, f"actions.{day:%y-%m-%d}.{self.hash_df(df)}.parquet")
+        return self
+
+    @pandera_validate(allow_pandas_dataframe=True)
+    def save_daily_feedback(self, day: datetime, df: pd.DataFrame) -> Self:
+        df = FeedbackEvents.validate(df)
+        self._submit_write("feedback", day, df, f"feedback.{day:%y-%m-%d}.{self.hash_df(df)}.parquet")
+        return self
+
+    @pandera_validate(allow_pandas_dataframe=True)
+    def save_daily_accounts(self, day: datetime, df: pd.DataFrame) -> Self:
+        df = AccountSnapshots.validate(df)
+        self._submit_write("accounts", day, df, f"accounts.{day:%y-%m-%d}.{self.hash_df(df)}.parquet")
+        return self
+
     @pandera_validate
     def save_daily_rejections(self, day: datetime, df: pd.DataFrame) -> Self:
         RejectionEvents.validate(df, lazy=True)
@@ -313,7 +343,17 @@ class ResultFilesManifest(BaseModel):
     @pandera_validate(allow_pandas_dataframe=True)
     def read_daily_execution_artifact(
         self,
-        category: Literal["fills", "closes", "execution_events", "rejections", "modifications", "cycles"],
+        category: Literal[
+            "fills",
+            "closes",
+            "execution_events",
+            "rejections",
+            "modifications",
+            "cycles",
+            "accounts",
+            "actions",
+            "feedback",
+        ],
         day: datetime,
     ) -> pd.DataFrame:
         return self._read(category, day)

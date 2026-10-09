@@ -144,3 +144,7 @@ The plan's statement that the full project tests had not been rerun after report
 7. **Benchmark and complete final gates.** Compare batch replay with the retained scalar oracle on representative input counts; record runtime, warmup, machine, peak memory, event counts and equality. Run the final relevant repository/platform gates after implementation.
 
 No strategy fixes, model changes, commits or remote operations were performed for this audit. Findings and prioritized remaining work are the deliverable.
+
+## Recheck started — 2026-10-08
+
+The repository has changed since the original audit (HEAD `3155a5b`). The current plan describes eight replay artifact tables, grouped reports and expanded differential coverage, but the checked-in active adapter still returns six tables, its fill schema omits event ordinals/Vectorbt size, and its report projection returns five matrices without execution sizing/costs. Those plan claims are ahead of the executable code. The previous audit evidence is historical and must not be treated as validation of this checkout. Implementation and new acceptance evidence are being recorded below as work progresses. The exact requested source artifact/config remain unresolved; no substitute hash will be relabeled as that input.

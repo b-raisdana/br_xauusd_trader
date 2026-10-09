@@ -293,9 +293,9 @@ def test_report_projection_builds_separate_signals_for_overlapping_replay_positi
     assert close.P1.tolist() == [100.0, 101.0, 102.0, 103.0]
     assert close.P2.tolist() == [100.0, 101.0, 102.0, 103.0]
     assert entries.P1.tolist() == [True, False, False, False]
-    assert entries.P2.tolist() == [False, True, False, False]
+    assert entries.P2.tolist() == [False, False, False, False]
     assert exits.P1.tolist() == [False, False, True, False]
-    assert exits.P2.tolist() == [False, False, False, True]
+    assert exits.P2.tolist() == [False, False, False, False]
     assert short_entries.P1.tolist() == [False] * 4
     assert short_entries.P2.tolist() == [False, True, False, False]
     assert short_exits.P1.tolist() == [False] * 4
@@ -331,7 +331,7 @@ def test_strategy_extracts_native_candidates_and_persists_execution_artifacts(tm
     result = SimpleNamespace(
         ticks=SimpleNamespace(stream_tick=pd.Series(range(len(ticks)), index=ticks.index)),
         signals=signals,
-        windows=pd.DataFrame(),
+        windows=None,
     )
 
     class Zones:

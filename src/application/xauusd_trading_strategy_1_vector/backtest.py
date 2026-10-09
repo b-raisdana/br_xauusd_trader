@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
-from br_py_log_n_profile import log_d, profile_it
+from br_py_log_n_profile import profile_it
 
 from application.xauusd_trading_strategy_1_vector.domain.schema import VectorbtBacktestInput
 from br_pre_commit import pandera_validate
@@ -141,9 +140,9 @@ def _extract_replay_signals(
 def run_vectorbt_backtest(
     manifest: ResultFilesManifest,
     *,
-    initial_cash: float = 100_000.0,
-    fees: float = 0.0002,
-    slippage: float = 0.0002,
+    initial_cash: float | None = None,
+    fees: float = 0.0,
+    slippage: float = 0.0,
     freq: str = "1min",
 ) -> Portfolio:
     """Run a vectorbt backtest on strategy results.
@@ -186,6 +185,10 @@ def run_vectorbt_backtest(
         ],
         index=ticks.index,
     )
+    if initial_cash is None:
+        initial_cash = manifest.meta.get("initial_balance")
+        if initial_cash is None:
+            raise ValueError("Replay report requires explicit initial_cash or manifest initial_balance")
     keyed_ticks = report_ticks.copy()
     keyed_ticks["stream_id"] = stream_ids
     fills = pd.concat(
@@ -196,41 +199,11 @@ def run_vectorbt_backtest(
         [manifest.read_daily_execution_artifact("closes", day) for day in manifest.successful_days("closes")],
         ignore_index=True,
     )
-    close, entries, exits, short_entries, short_exits = _extract_replay_signals(keyed_ticks, fills, closes)
+    from .replay_portfolio import report_from_events
 
-    import inspect
-    import os
-
-    log_d(f"MPLBACKEND ={os.environ.get('MPLBACKEND')}")
-    os.environ.setdefault("MPLBACKEND", "Agg")
-    log_d(f"after defaulting MPLBACKEND ={os.environ.get('MPLBACKEND')}")
-
-    # import matplotlib
-    # log_d("matplotlib backend =", matplotlib.get_backend())
-    # log_d("matplotlib config =", matplotlib.matplotlib_fname())
-
-    log_d("Now we try to import vectorbt as vbt")
-
-    import vectorbt as vbt
-
-    log_d(f"inspect.signature(vbt.Portfolio.from_signals):{inspect.signature(vbt.Portfolio.from_signals)}")
-    log_d(f"inspect.signature(vbt.Portfolio.from_order_func):{inspect.signature(vbt.Portfolio.from_order_func)}")
-
-    logging.getLogger("numba").setLevel(logging.WARNING)
-    portfolio = vbt.Portfolio.from_signals(
-        close=close.to_numpy(),
-        entries=entries.to_numpy(),
-        exits=exits.to_numpy(),
-        short_entries=short_entries.to_numpy(),
-        short_exits=short_exits.to_numpy(),
-        init_cash=initial_cash,
-        fees=fees,
-        slippage=slippage,
-        freq=freq,
-        cash_sharing=True,
-    )
-
-    return portfolio
+    if fees or slippage:
+        raise ValueError("Replay prices and costs are authoritative; additional fees/slippage would change execution")
+    return report_from_events(keyed_ticks, fills, closes, initial_cash)
 
 
 @profile_it
@@ -240,6 +213,7 @@ def print_backtest_report(
     *,
     report_file: str | None = None,
     trades_file: str | None = None,
+    initial_cash: float | None = None,
 ) -> None:
     """Print a comprehensive backtest report from strategy results.
 
@@ -250,48 +224,9 @@ def print_backtest_report(
         result: DataFrame with strategy results (VectorbtBacktestInput schema).
     """
     # log_w(NOT_TESTED)
-    portfolio = run_vectorbt_backtest(manifest)
-
-    print("\n=== Vectorbt Backtest Report ===")
-
-    # Basic portfolio stats
-    print(f"Initial cash: {portfolio.init_cash:,.2f}")
-    final_value = float(portfolio.value().iloc[-1])
-    print(f"Final value: {final_value:,.2f}")
-    print(f"Total return: {portfolio.total_return():.2%}")
-
-    # Risk metrics
-    try:
-        print(f"Annualized return: {portfolio.annualized_return():.2%}")
-    except Exception:
-        print("Annualized return: N/A")
-    try:
-        print(f"Sharpe ratio: {portfolio.sharpe_ratio():.4f}")
-    except Exception:
-        print("Sharpe ratio: N/A")
-    try:
-        print(f"Max drawdown: {portfolio.max_drawdown():.2%}")
-    except Exception:
-        print("Max drawdown: N/A")
-    try:
-        print(f"Calmar ratio: {portfolio.calmar_ratio():.4f}")
-    except Exception:
-        print("Calmar ratio: N/A")
-
-    # Trade statistics
-    trades_df = portfolio.trades.records
-    if not trades_df.empty:
-        print(f"\nTotal trades: {len(trades_df)}")
-        winning = trades_df["pnl"].gt(0).sum()
-        losing = trades_df["pnl"].lt(0).sum()
-        print(f"Winning trades: {winning}")
-        print(f"Losing trades: {losing}")
-        if len(trades_df) > 0:
-            print(f"Win rate: {trades_df['pnl'].gt(0).mean():.2%}")
-        print(f"Average trade PnL: {trades_df['pnl'].mean():,.2f}")
-        print(f"Best trade: {trades_df['pnl'].max():,.2f}")
-        print(f"Worst trade: {trades_df['pnl'].min():,.2f}")
-
+    portfolio = run_vectorbt_backtest(manifest, initial_cash=initial_cash)
+    print("\n=== Vectorbt Replay Backtest Report ===")
+    print(portfolio.stats().to_string())
     if report_file is not None:
         save_backtest_report(portfolio, report_file)
     if trades_file is not None:
@@ -313,7 +248,7 @@ def save_backtest_report(
     """
     # log_w(NOT_TESTED)
     stats = portfolio.stats()
-    stats_df = stats.to_frame("value")
+    stats_df = stats.to_frame("value") if isinstance(stats, pd.Series) else stats.T
     stats_df.index.name = "metric"
 
     Path(output_file).parent.mkdir(parents=True, exist_ok=True)
@@ -322,7 +257,7 @@ def save_backtest_report(
         stats_df.to_csv(output_file)
     else:
         # Parquet cannot serialize mixed object types (lists/tuples in some stats).
-        stats_df["value"] = stats_df["value"].astype(str)
+        stats_df = stats_df.astype(str)
         stats_df.to_parquet(output_file)
     print(f"Backtest report saved to {output_file}")
 

@@ -127,6 +127,7 @@ def test_main_runs_with_fetch_shaped_inputs_and_writes_parquet(monkeypatch, tmp_
     monkeypatch.setattr(entry, "get_ticks", fetch_ticks)
     monkeypatch.setattr(entry, "get_ohlcv", fetch_candles)
     monkeypatch.setattr(entry, "load_zones_from_file", fetch_zones)
+    (tmp_path / "ranges.zip").write_text("dummy")
     output = "results.parquet"
     asyncio.run(entry.main(output=output, backtest=False))
     saved = pd.read_parquet(tmp_path / output)

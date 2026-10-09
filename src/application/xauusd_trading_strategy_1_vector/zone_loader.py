@@ -26,7 +26,7 @@ async def load_zones_from_file(file_relative_path: Path) -> pt.DataFrame[Zone]:
     return normalize_mt5_zone_rows(zones)
 
 
-@pandera_validate(allow_pandas_dataframe=True)
+@pandera_validate
 def normalize_mt5_zone_rows(zones: pd.DataFrame) -> pt.DataFrame[Zone]:
     """Apply visible LoadAllRawZones row filters before the typed frame boundary."""
     zones = zones.copy()

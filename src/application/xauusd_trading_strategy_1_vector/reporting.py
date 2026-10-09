@@ -113,7 +113,7 @@ def print_strategy_summary(manifest: ResultFilesManifest) -> None:
         _print_strategy_summary(manifest.read_positions(day))
 
 
-@pandera_validate(allow_pandas_dataframe=True)
+@pandera_validate
 def _print_strategy_summary(result: pt.DataFrame[PositionTrackingResult]) -> None:
     """Internal: print summary from an already-loaded DataFrame."""
     print("\n=== Strategy Execution Summary ===")

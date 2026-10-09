@@ -49,7 +49,7 @@ def _select_windows(events: pd.DataFrame, width: int) -> pd.DataFrame:
     return events.loc[steps.ge(0) & reached.eq(events.node)].drop(columns="node")
 
 
-@pandera_validate(allow_pandas_dataframe=True)
+@pandera_validate
 def _windows(
     data: pd.DataFrame,
     bars: pd.DataFrame,

@@ -14,14 +14,15 @@ from infrastructure.result_processing.io import ResultFilesManifest
 @profile_it
 def merge_results_with_candles(manifest: ResultFilesManifest) -> ResultFilesManifest:
     for day in manifest.successful_days("per_tick_state"):
-        state = manifest.read_daily_ticks_temp_state(day)
-        ticks = manifest.read_daily_ticks(day)
+        state = manifest.get_cached_frame("per_tick_state", day) or manifest.read_daily_ticks_temp_state(day)
+        ticks = manifest.get_cached_frame("ticks", day) or manifest.read_daily_ticks(day)
         if not state.index.equals(ticks.index):
             ticks = ticks.sort_index(kind="stable")
         if not state.index.equals(ticks.index):
             raise ValueError("Tick and state artifacts must have identical row indexes")
         output = pd.concat([ticks, state], axis=1)
-        candles = manifest.read_daily_candles(day).reset_index()
+        candles = manifest.get_cached_frame("candles", day) or manifest.read_daily_candles(day)
+        candles = candles.reset_index()
         candles = candles.loc[candles["timeframe"].eq("15min")]
         keys = ["broker", "symbol", "bar_time"]
         payload = [name for name in ("open", "high", "low", "close", "volume") if name in candles]
@@ -39,7 +40,7 @@ def merge_results_with_candles(manifest: ResultFilesManifest) -> ResultFilesMani
 def generate_order_management_columns(manifest: ResultFilesManifest) -> ResultFilesManifest:
     for day in manifest.successful_days("results_with_columns"):
         output = _project_snapshots(
-            manifest.read_results_with_columns(day),
+            manifest.get_cached_frame("results_with_columns", day) or manifest.read_results_with_columns(day),
             "orders",
             {
                 "order_id": "str",
@@ -60,7 +61,7 @@ def generate_order_management_columns(manifest: ResultFilesManifest) -> ResultFi
 def generate_position_tracking_columns(manifest: ResultFilesManifest) -> ResultFilesManifest:
     for day in manifest.successful_days("orders"):
         output = _project_snapshots(
-            manifest.read_orders(day),
+            manifest.get_cached_frame("orders", day) or manifest.read_orders(day),
             "positions",
             {
                 "position_id": "str",

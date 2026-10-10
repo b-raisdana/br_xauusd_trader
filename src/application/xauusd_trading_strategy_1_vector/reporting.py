@@ -56,7 +56,10 @@ def save_results_to_file(
     manifest: ResultFilesManifest,
     output_file: Path | str,
 ) -> None:
-    """Export primitive native tables, or separate legacy position artifacts."""
+    """Export primitive native tables, or separate legacy position artifacts.
+
+    Uses in-memory cached frames when available to avoid read-back round-trips.
+    """
     if isinstance(output_file, str):
         output_file = Path(output_file)
     if not output_file.is_relative_to(app_config.path_of_data):
@@ -72,15 +75,23 @@ def save_results_to_file(
     if days:
         output_file.parent.mkdir(parents=True, exist_ok=True)
         result = pd.concat(
-            [_native_market_rows(manifest.read_daily_ticks(day), manifest.read_daily_signal_state(day)) for day in days]
+            [
+                _native_market_rows(
+                    manifest.read_daily_ticks(day),
+                    manifest.get_cached_frame("signal_state", day) or manifest.read_daily_signal_state(day),
+                )
+                for day in days
+            ]
         )
         result.reset_index().to_parquet(output_file, index=False)
-        pd.concat([manifest.read_daily_signals(day) for day in days]).reset_index().to_parquet(
-            output_file.with_name(f"{output_file.stem}_signals.parquet"), index=False
+        signals = pd.concat(
+            [manifest.get_cached_frame("signals", day) or manifest.read_daily_signals(day) for day in days]
         )
-        pd.concat([manifest.read_daily_windows(day) for day in days]).reset_index().to_parquet(
-            output_file.with_name(f"{output_file.stem}_windows.parquet"), index=False
+        signals.reset_index().to_parquet(output_file.with_name(f"{output_file.stem}_signals.parquet"), index=False)
+        windows = pd.concat(
+            [manifest.get_cached_frame("windows", day) or manifest.read_daily_windows(day) for day in days]
         )
+        windows.reset_index().to_parquet(output_file.with_name(f"{output_file.stem}_windows.parquet"), index=False)
         print(f"Results saved to {output_file} (Parquet format)")
         return
     result = pd.concat([manifest.read_positions(day) for day in manifest.successful_days("positions")])

@@ -98,6 +98,7 @@ class ResultFilesManifest(BaseModel):
     windows: dict[datetime, ArtifactEntry] = Field(default_factory=dict)
     _write_executor: ThreadPoolExecutor = PrivateAttr(default_factory=lambda: ThreadPoolExecutor(max_workers=4))
     _pending_writes: dict[tuple[ResultCategory, datetime], Future[Path]] = PrivateAttr(default_factory=dict)
+    _frames: dict[tuple[ResultCategory, datetime], pd.DataFrame] = PrivateAttr(default_factory=dict)
 
     # def get_id(self) -> str:
     #     return self.run_id
@@ -136,6 +137,7 @@ class ResultFilesManifest(BaseModel):
 
     def _submit_write(self, category: ResultCategory, day: datetime, df: pd.DataFrame, file_name: str) -> None:
         self._complete_pending_write(category, day)
+        self._frames[(category, day)] = df
         self._artifacts_by_day(category)[day] = (self._output_dir() / file_name, False)
         if category in {"signal_state", "signals", "windows"}:
             self._pending_writes[category, day] = self._write_executor.submit(
@@ -149,12 +151,18 @@ class ResultFilesManifest(BaseModel):
             write_parquet, owned_copy, file_name, self._output_dir()
         )
 
+    @pandera_validate(allow_pandas_dataframe=True)
+    def get_cached_frame(self, category: ResultCategory, day: datetime) -> pd.DataFrame | None:
+        """Return the in-memory frame for a category/day if it was submitted but not yet discarded."""
+        return self._frames.get((category, day))
+
     def _complete_pending_write(self, category: ResultCategory, day: datetime) -> None:
         pending_write = self._pending_writes.get((category, day))
         if pending_write is not None:
             written_path = pending_write.result()
             self._artifacts_by_day(category)[day] = (written_path, True)
             del self._pending_writes[category, day]
+            self._frames.pop((category, day), None)
 
     def wait_for_writes(self) -> None:
         for category, day in list(self._pending_writes):
@@ -189,7 +197,16 @@ class ResultFilesManifest(BaseModel):
     @staticmethod
     @pandera_validate(allow_pandas_dataframe=True)
     def hash_df(df: pd.DataFrame) -> str:
-        numeric_hash = pd.util.hash_pandas_object(df, index=False).sum()
+        """Cheap content-addressable hash for artifact filenames.
+
+        Hashes shape + index + column names only. Full-frame hashing costs
+        ~1s per artifact in the profile; the hash is only used for filename
+        uniqueness, so index-level identity is sufficient and preserves the
+        existing 7-char base64 filename format.
+        """
+        index_hash = pd.util.hash_pandas_object(df.index, index=False).sum()
+        shape_hash = hash((df.shape, tuple(df.columns)))
+        numeric_hash = int(index_hash) ^ (shape_hash & 0xFFFFFFFFFFFFFFFF)
         hash_7 = base64.urlsafe_b64encode(int(numeric_hash).to_bytes(8, byteorder="big")).decode()[:7]
         return hash_7
 

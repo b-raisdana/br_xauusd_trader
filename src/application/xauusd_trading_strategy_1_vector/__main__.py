@@ -85,7 +85,7 @@ def cli(
         main(
             symbol=symbol,
             zones=zones,
-            output=output,
+            output_file=output,
             backtest=not no_backtest,
             execution_config_path=execution_config,
             ticks_input=ticks_input,
@@ -97,8 +97,8 @@ def cli(
 @profile_it
 async def main(
     symbol: str = app_config.default_symbol,
-    zones: Path = Path("ranges.zip"),
-    output: str = "strategy_results.parquet",
+    zones_file: Path = Path("ranges.zip"),
+    output_file: str = "strategy_results.parquet",
     backtest: bool = True,
     execution: ReplayConfig | None = None,
     execution_config_path: Path | None = None,
@@ -118,14 +118,14 @@ async def main(
         except Exception as e:
             log_e(f"Failed to load execution config: {e}")
             raise ValueError(f"Failed to load execution config: {e}") from e
-    output_format = Path(output).suffix.lstrip(".").lower()
+    output_format = Path(output_file).suffix.lstrip(".").lower()
     if output_format != "parquet":
         log_e("Columnar output requires a .parquet extension")
         raise ValueError("Columnar output requires a .parquet extension")
     print("Loading data ...")
 
-    zones = zones.resolve() if zones.exists() else (app_config.path_of_data / zones).resolve()
-    zones_df = await load_zones_from_file(zones)
+    zones_file = zones_file.resolve() if zones_file.exists() else (app_config.path_of_data / zones_file).resolve()
+    zones_df = await load_zones_from_file(zones_file)
     if zones_df.empty:
         log_exception("Zone input must contain at least one day", ValueError)
     start = zones_df.index.get_level_values("date").min().normalize()
@@ -171,13 +171,13 @@ async def main(
 
     save_results_to_file(
         manifest,
-        output,
+        output_file,
     )
 
     print_strategy_summary(manifest)
 
     if backtest:
-        output_path = Path(output)
+        output_path = Path(output_file)
         if not output_path.is_absolute():
             output_path = app_config.path_of_data / output_path
         report_path = output_path.with_name(f"{output_path.stem}_backtest_report.parquet")
@@ -191,7 +191,7 @@ async def main(
 
     from .provenance import save_provenance
 
-    output_path = Path(output)
+    output_path = Path(output_file)
     if not output_path.is_absolute():
         output_path = app_config.path_of_data / output_path
     save_provenance(
@@ -201,13 +201,13 @@ async def main(
         {
             "ticks": ticks_input,
             "candles": candles_input,
-            "zones": zones,
+            "zones": zones_file,
             "execution_config": execution_config_path,
         },
     )
     manifest.close()
 
-    print(f"\nExecution completed successfully. Results saved to {output}")
+    print(f"\nExecution completed successfully. Results saved to {output_file}")
 
 
 if __name__ == "__main__":

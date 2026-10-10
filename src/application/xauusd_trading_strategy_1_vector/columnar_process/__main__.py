@@ -188,7 +188,7 @@ def process_columns(
         emitted["order_type"] = 0
         emitted["_position"] = events.position.array
         signals.append(emitted)
-    openings, terminal_windows, next_window_id = _windows(data, bars, state, events, market, zones, signals)
+    openings, terminal_windows, next_window_id, state = _windows(data, bars, state, events, market, zones, signals)
     signal_table = (
         pd.concat(signals, ignore_index=True).sort_values(["stream_tick", "family"], kind="stable")
         if signals

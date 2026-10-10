@@ -58,7 +58,7 @@ def _windows(
     market: ColumnarMarket,
     zones: list[XauZone],
     signals: list[pd.DataFrame],
-) -> tuple[pd.DataFrame, pt.DataFrame[ActiveWindows], int]:
+) -> tuple[pd.DataFrame, pt.DataFrame[ActiveWindows], int, pd.DataFrame]:
     width = market.inputs.window_bars
     candidates = events.loc[events.allowed & market.inputs.enable_pullback].rename(columns={"bar_number": "born_bar"})
     existing = market.windows
@@ -87,16 +87,22 @@ def _windows(
     all_windows = (
         pd.concat([existing, selected], ignore_index=True) if not existing.empty else selected.reset_index(drop=True)
     )
-    state["pullback_active"] = False
-    state["pullback_bar_offset"] = 0
-    state["pullback_penetration_latched"] = False
+    state_columns: dict[str, pd.Series] = {
+        "pullback_active": pd.Series(False, index=state.index, dtype=bool),
+        "pullback_bar_offset": pd.Series(0, index=state.index, dtype="int64"),
+        "pullback_penetration_latched": pd.Series(False, index=state.index, dtype=bool),
+    }
+    for zone in zones:
+        for direction in XauDirection:
+            prefix = f"pullback:{zone.id}:{direction.value}"
+            state_columns[f"{prefix}:parent"] = pd.Series("", index=state.index, dtype="str")
+            state_columns[f"{prefix}:offset"] = pd.Series(0, index=state.index, dtype="int64")
+    state = pd.concat([state, pd.DataFrame(state_columns, index=state.index)], axis=1)
     latches = []
     bar_ids = data.bar_time.astype("str")
     for zone in zones:
         for direction in XauDirection:
             prefix = f"pullback:{zone.id}:{direction.value}"
-            state[f"{prefix}:parent"] = ""
-            state[f"{prefix}:offset"] = 0
             if all_windows.empty:
                 continue
             windows = all_windows.loc[
@@ -179,4 +185,4 @@ def _windows(
             int(data.bar_number.iloc[-1])
         )
     terminal = all_windows.loc[all_windows.active, list(ActiveWindows.to_schema().columns)].reset_index(drop=True)
-    return selected, ActiveWindows.validate(terminal, lazy=True), next_window_id
+    return selected, ActiveWindows.validate(terminal, lazy=True), next_window_id, state

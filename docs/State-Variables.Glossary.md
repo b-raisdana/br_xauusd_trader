@@ -1,18 +1,18 @@
 # State variables glossary
 
-Audited 2026-10-02 against [the replacement MQ5](../mt5/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5) and the active Python signals/optional replay paths. [CSV inventory](State-Variables.Glossary.csv) contains **143 unique rows: 52 inputs, 62 fields in five structs, and 29 globals/constants/objects**. This replaces the obsolete MVP inventory; it does not assert equivalent state transitions.
+Audited 2026-10-09 against [the active MQ5](../mt5/MQL5/Experts/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5), its available run outputs under `data/MT5`, and the active Python CLI artifacts under `data`. [CSV inventory](State-Variables.Glossary.csv) contains **147 unique declarations: 143 core strategy declarations and four release-envelope declarations**; the CSV adds five artifact-coverage columns. The run artifacts overlap in time but are not proven to come from identical inputs/configuration; this mapping does not assert parity.
 
 ## Scope
 
 - Include every visible `Inp*`, `EA_MAGIC`, `trade`, `g_*`, and field of `RawZone`, `ZoneRuntime`, `PullbackCycle`, `RequestMeta`, `PositionTrack`.
 - Exclude transient locals, platform CTrade internals and enum members. Locals can be Python counterparts without becoming inventory entries.
-- The missing `XauRobustLiveEnvelope.mqh` prevents enumeration of envelope-owned state and verification of final event wiring. No missing code is inferred from declarations.
+- Include the visible `XauRobustLiveEnvelope.mqh` release-envelope globals and kill-button constant. They are absent from Python dumps and the current MT5 tester reports because live envelope guards are bypassed in tester mode.
 - Python scope: `the_strategy.py` production manifest path, `MarketState`, optional `ExecutionReplay`, `RobustInputs`, raw-zone loader/cache, trace projection and shared models. Legacy vector helpers are not the production parity path.
 - Default CLI is signals-only; `--execution-config` supplies `ReplayConfig` with explicit economics and EA inputs. Replay-only counterparts do not imply default CLI execution.
 
 ## CSV contract and evidence
 
-UTF-8 CSV; original six columns remain in order, followed by `Parity Verdict`, `Update Flow / Difference`, and `MT5 Write Functions`. Standard quoting, one header, one row per scoped name.
+UTF-8 CSV; the original nine source-mapping columns remain in order, followed by five artifact-coverage columns. Standard quoting, one header, one row per scoped MQ5 declaration.
 
 | Column | Interpretation |
 |---|---|
@@ -24,18 +24,36 @@ UTF-8 CSV; original six columns remain in order, followed by `Parity Verdict`, `
 | Parity Verdict | ABSENT: no corresponding active state/control; PARTIAL: related representation with caveats; DIFFERENT: identified update/semantic mismatch |
 | Update Flow / Difference | Initialization, mutation/reset/lifecycle and Python difference |
 | MT5 Write Functions | Owning functions for explicit writes; declaration-only entries are identified |
+| MT5 Journal Artifact / MT5 Summary Artifact | Exact report field or serialized state container; `NOT_CAPTURED` means absent from that artifact. Journal snapshots are currently populated on one event row only. |
+| Python Tick Artifact / Python Signals Artifact / Python Windows Artifact | Exact or documented flattened field in the named Parquet output; `NOT_CAPTURED` means absent, not a runtime mismatch. |
 
 References use repository-relative `path:line,line; path:line`, sorted and deduplicated. `NONE` means no explicit access; `NOT_IMPLEMENTED` means no mapped Python state/control. Read-modify-write belongs in both MQL columns; declarations initialize globals/inputs but struct declarations are not runtime writes. Array rows cover member updates; struct field rows include `arr`/`out` aliases in zone merging. Whole-record copies transport all fields and are discussed in lifecycle text rather than expanded into invented field expressions. Platform object method internals are unavailable; `trade` mutation anchors include configuration, while native request operations appear as object uses.
 
 Unlike the retired glossary contract, the Python columns intentionally give review anchors rather than claiming a complete alias-sensitive read/write index. Each mapped row identifies the functions to inspect and states its transition difference; matching locations in both columns do not mean every function both reads and writes every mapped field. MQL locations are an aid to source review, not proof of native runtime ordering.
 
+## Artifact capture prompt
+
+When refreshing this mapping, inspect the current EA, active Python CLI path, output writers, and the exact files in `data/MT5` and `data`. Keep source-level correspondence separate from artifact presence. For each of the 147 declarations, record exact output field names or the JSON container and its capture frequency in the CSV's five artifact columns. Use `NOT_CAPTURED` when no field carries the value; do not infer that an absent value was false, unchanged, or semantically different. For flattened Python fields, state the mapping pattern and limits. Verify CSV row uniqueness, column schema, source anchors, report headers, row counts, date bounds, provenance, and source hashes. Never call the runs paired or claim parity until input ticks, zones, candles/bootstrap, settings, runtime identity, and relevant execution events are confirmed identical.
+
+## Current artifact coverage
+
+| Artifact | Observed coverage | Comparison limit |
+|---|---|---|
+| `data/MT5/XAUUSD_ROBUST_FINAL_journal.csv` | 1,936 rows, 52 columns; July 29–August 3, 2026. All 27 `g_*` fields and five compound JSON containers are populated only on the single `MULTI_ZONE_TICK_GAP` row. | Other journal events have no shared-state snapshot. The report has no tick ordinal or raw Bid/Ask columns. |
+| `data/MT5/XAUUSD_ROBUST_FINAL_summary.csv` | 346 rows, 23 columns; signals, QA, portfolio-risk and primary-trade event summaries. | Event-oriented fields; no full state snapshot or complete market input stream. |
+| `data/strategy_results.parquet` | 18,157,826 tick rows, 328 columns; July 29–August 28, 2026. Includes tick prices, trend/reference state, per-zone engagement flags and flattened pullback parent/offset state. | No execution requests, orders, positions, account state or full per-event shared-state snapshot. |
+| `data/strategy_results_signals.parquet` | 1,844 rows, 14 columns. | Signal rows only; not execution evidence. |
+| `data/strategy_results_windows.parquet` | 207 rows, 16 columns. | Pullback-window lifecycle fields only. |
+
+Python provenance records `configuration: null`, zone-file hash, code hashes and output hashes, but no tick/candle input hash. The MT5 and Python files share `XAUUSD!` / `opofinance` and overlapping dates, but the Python run extends beyond the journal. Match a common interval only after input and runtime settings are verified. The `data/MT5 - Copy` files are byte-size-identical duplicates of the MT5 reports and are not separate evidence.
+
 ## Findings
 
-The current Python port replaces the prior daily-reset signal path with `MarketState` and updates `ExecutionReplay`. The CSV covers all 143 MQ5 declarations exactly once: 21 ABSENT, 122 PARTIAL. No row claims proven full parity. PARTIAL now includes implemented source transitions with native execution evidence outstanding; it never means proven exact parity. Read/write columns remain function review anchors rather than an exhaustive alias-sensitive index.
+The current Python port replaces the prior daily-reset signal path with `MarketState` and updates `ExecutionReplay`. The CSV covers all 147 scoped MQ5 declarations exactly once: 25 ABSENT, 122 PARTIAL. No row claims proven full parity. PARTIAL now includes implemented source transitions with native execution evidence outstanding; it never means proven exact parity. Read/write columns remain function review anchors rather than an exhaustive alias-sensitive index.
 
 Shared state snapshots use MQ5 field names for zones, cycles, requests, positions, trend/reference and accounting. Reversal usage is an enum separate from fill count; side/bar stamps precede gates. PB fill ends the cycle; requested anchor, actual fill, immutable R0, sticky stage and SL retry state are separate. `TREND_DOWN=-1` now matches MQ5. CSV loading now skips invalid/disabled rows using the visible MT5 date, priority and positive-bound rules; notes remain in the input frame. Explicit session windows update active/cutoff/carry state. EA input validation now matches visible initialization boundaries, including mode-conditional risk/daily-loss/QA restrictions. Native numeric parsing/rounding, malformed CSV field counts, identity, callbacks, session acquisition, release controls and journal/visual-only state remain outside proven equivalence.
 
-See [the current divergence report](todo/MT5-Python.Divergence.md) for implementation and acceptance gaps. MQ5 SHA-256 remains `b8bbf960e443c2fa8f2acab297b63d36f5a88473add5caf78eb403536f9ac923`; no native compile or matching run is claimed.
+See [the current divergence report](todo/MT5-Python.Divergence.md) for implementation and acceptance gaps. MQ5 SHA-256: `1d77e5dc794f727570945fde903bc8a83c1a9cf19d992a6f193a611bf6d0cb42`; no native compile or matching run is claimed.
 
 ## Prior inventory disposition
 

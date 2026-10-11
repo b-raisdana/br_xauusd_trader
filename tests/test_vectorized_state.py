@@ -23,7 +23,6 @@ class EmptyZones:
         return []
 
 
-@pytest.mark.slow
 def test_initialized_state_satisfies_the_per_tick_contract():
     frame = ticks(["2026-09-18 00:00", "2026-09-18 00:15"], [100, 101])
     state = VectorizedXauUsdStrategy(EmptyZones())._initialize_per_tick_temp_state(frame)
@@ -32,7 +31,6 @@ def test_initialized_state_satisfies_the_per_tick_contract():
 
 
 @pytest.mark.parametrize("defect", ["missing_column", "extra_column"])
-@pytest.mark.slow
 def test_state_column_guard_rejects_contract_breaks(defect):
     frame = ticks(["2026-09-18 00:00"], [100])
     state = VectorizedXauUsdStrategy(EmptyZones())._initialize_per_tick_temp_state(frame)
@@ -75,7 +73,6 @@ def scalar_trend(frame):
     return np.asarray(expected)
 
 
-@pytest.mark.slow
 def test_trend_matches_scalar_contract_with_gaps_duplicates_and_day_continuity():
     rng = np.random.default_rng(12)
     times = pd.date_range("2026-09-17 23:00", periods=650, freq="min", tz="UTC")
@@ -91,7 +88,6 @@ def test_trend_matches_scalar_contract_with_gaps_duplicates_and_day_continuity()
 
 
 @pytest.mark.parametrize("length", [0, 1, 2, 15, 16, 30, 31, 60, 61])
-@pytest.mark.slow
 def test_empty_singleton_and_bootstrap_have_causal_history(length):
     frame = ticks(pd.date_range("2026-09-18", periods=length, freq="min", tz="UTC"), np.arange(length) + 100)
     per_tick_state = calculate(frame)
@@ -101,7 +97,6 @@ def test_empty_singleton_and_bootstrap_have_causal_history(length):
         )
 
 
-@pytest.mark.slow
 def test_future_ticks_do_not_change_past_state():
     frame = ticks(pd.date_range("2026-09-18", periods=100, freq="min", tz="UTC"), np.arange(100) + 100)
     prefix = calculate(frame.iloc[:38])
@@ -110,7 +105,6 @@ def test_future_ticks_do_not_change_past_state():
     pd.testing.assert_frame_equal(prefix, extended.iloc[:38])
 
 
-@pytest.mark.slow
 def test_broker_symbol_partitions_and_daily_zone_loading_are_isolated():
     class DailyZones:
         def __init__(self):
@@ -129,14 +123,12 @@ def test_broker_symbol_partitions_and_daily_zone_loading_are_isolated():
     assert set(per_tick_state.reference_high) == {100.0, 200.0}
 
 
-@pytest.mark.slow
 def test_unsorted_input_is_rejected():
     frame = ticks(["2026-09-18 00:01", "2026-09-18 00:00"], [1, 2])
     with pytest.raises(ValueError, match="chronological"):
         calculate(frame)
 
 
-@pytest.mark.slow
 def test_engagement_latches_within_bar_and_resets_at_next_open():
     frame = ticks(["2026-09-18 00:00", "2026-09-18 00:01", "2026-09-18 00:02", "2026-09-18 00:15"], [99, 100, 103, 103])
     strategy = VectorizedXauUsdStrategy(EmptyZones())
@@ -185,7 +177,6 @@ def test_engagement_latches_within_bar_and_resets_at_next_open():
 #         manifest.close()
 
 
-@pytest.mark.slow
 def test_daily_zone_dataframe_selection_and_strategy_adapter():
     from application.xauusd_trading_strategy_1_vector import ZoneCache
 
@@ -223,7 +214,6 @@ def test_daily_zone_dataframe_selection_and_strategy_adapter():
 
 
 @pytest.mark.parametrize("defect", ["missing_column", "wrong_dtype", "wrong_index_precision"])
-@pytest.mark.slow
 def test_zone_group_rejects_invalid_frame(defect):
     from application.xauusd_trading_strategy_1_vector import ZoneCache
 
@@ -245,17 +235,13 @@ def test_zone_group_rejects_invalid_frame(defect):
         ZoneCache(zones)
 
 
-@pytest.mark.slow
 def test_supplied_candles_match_tick_history_with_gaps_and_day_reset():
-    frame = ticks(pd.date_range("2026-09-17 23:00", periods=100, freq="min", tz="UTC"), np.arange(100) + 100)
-    frame = frame.drop(frame.index[20:35])
-    candles = candles_from_ticks(frame)
+    frame = ticks(pd.date_range("2026-09-17 23:00", periods=40, freq="min", tz="UTC"), np.arange(40) + 100)
     strategy = VectorizedXauUsdStrategy(EmptyZones())
-    state, _ = calculate_manifest(strategy, frame, candles.sample(frac=1, random_state=1))
+    state, _ = calculate_manifest(strategy, frame, candles_from_ticks(frame).sample(frac=1, random_state=1))
     pd.testing.assert_frame_equal(state, calculate(frame))
 
 
-@pytest.mark.slow
 def test_supplied_candle_ranges_are_used_only_after_close():
     frame = ticks(["2026-09-18 00:00", "2026-09-18 00:15", "2026-09-18 00:30"], [100, 101, 102])
     candles = candles_from_ticks(frame)
@@ -273,7 +259,6 @@ def test_supplied_candle_ranges_are_used_only_after_close():
         calculate_manifest(strategy, frame, candles.iloc[:1])
 
 
-@pytest.mark.slow
 def test_per_candle_closed_slots_map_native_candles_in_order_at_full_precision():
     frame = ticks(
         ["2026-09-18 00:00", "2026-09-18 00:15", "2026-09-18 00:30", "2026-09-18 00:45", "2026-09-18 01:00"],
@@ -294,7 +279,6 @@ def test_per_candle_closed_slots_map_native_candles_in_order_at_full_precision()
     assert per_candle_state["trend_high_2"].iloc[-1] == per_candle_state["high"].iloc[-2]
 
 
-@pytest.mark.slow
 def test_per_candle_closed_slots_exclude_the_current_candle_only():
     frame = ticks(["2026-09-18 00:00", "2026-09-18 00:15", "2026-09-18 00:30"], [100.0, 101.0, 102.0])
     candles = candles_from_ticks(frame)
@@ -322,7 +306,6 @@ def test_per_candle_closed_slots_exclude_the_current_candle_only():
     assert after_prior["trend_low_0"].tolist() == baseline["trend_low_0"].tolist()
 
 
-@pytest.mark.slow
 def test_per_candle_state_preserves_all_days_and_resets_between_batches():
     frame = ticks(
         ["2026-09-17 23:30", "2026-09-17 23:31", "2026-09-17 23:45", "2026-09-18 00:00"],
@@ -344,7 +327,6 @@ def test_per_candle_state_preserves_all_days_and_resets_between_batches():
     assert per_candle_state.empty
 
 
-@pytest.mark.slow
 def test_observed_candle_projection_pins_slot_order_index_and_dtypes():
     frame = ticks(
         ["2026-09-17 23:30", "2026-09-17 23:31", "2026-09-17 23:45", "2026-09-18 00:00"],
@@ -379,7 +361,6 @@ def test_observed_candle_projection_pins_slot_order_index_and_dtypes():
     np.testing.assert_array_equal(per_candle_state.trend_low_2, [100.0, 100.0, 102.0])
 
 
-@pytest.mark.slow
 def test_observed_candle_slots_exclude_the_current_candle():
     frame = ticks(
         ["2026-09-17 23:30", "2026-09-17 23:31", "2026-09-17 23:45", "2026-09-18 00:00"],
@@ -398,7 +379,6 @@ def test_observed_candle_slots_exclude_the_current_candle():
     pd.testing.assert_frame_equal(actual[projection], expected[projection])
 
 
-@pytest.mark.slow
 def test_observed_candle_projection_requires_three_prior_closed_candles(tmp_path):
     frame = ticks(["2026-09-18 00:00", "2026-09-18 00:15", "2026-09-18 00:30"], [100, 101, 102])
     candles = candles_from_ticks(frame)

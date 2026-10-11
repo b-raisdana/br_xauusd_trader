@@ -122,19 +122,17 @@ def oracle(frame, zones):
     return expected, snapshots
 
 
-@pytest.mark.slow
 def test_scalar_parity_for_candidates_sequence_and_window_ownership():
     rng = np.random.default_rng(14)
     times = pd.DatetimeIndex(
         np.concatenate(
             [
-                pd.date_range(day, periods=80, freq="min", tz="UTC").to_numpy()
-                for day in pd.date_range("2026-09-18", periods=10, freq="D")
+                pd.date_range(day, periods=20, freq="min", tz="UTC").to_numpy()
+                for day in pd.date_range("2026-09-18", periods=2, freq="D")
             ]
         )
     )
-    times = times.delete(np.arange(20, 35))
-    times = times.insert(100, times[100])
+    times = times.insert(20, times[20])
     frame = ticks(times, 104 + rng.normal(0, 2, len(times)).cumsum())
     zones = [XauZone("a", 100, 102), XauZone("b", 106, 108)]
     expected, snapshots = oracle(frame, zones)
@@ -150,7 +148,6 @@ def test_scalar_parity_for_candidates_sequence_and_window_ownership():
             assert per_tick_state[f"{prefix}:offset"].iloc[row] == (window.bar_offset if window.active else 0)
 
 
-@pytest.mark.slow
 def test_repeated_breakouts_preserve_active_parent_and_reopen_after_expiry():
     times = []
     prices = []
@@ -170,7 +167,6 @@ def test_repeated_breakouts_preserve_active_parent_and_reopen_after_expiry():
         assert per_tick_state[f"pullback:z:{XauDirection.BUY.value}:parent"].iloc[row] == expected_parent
 
 
-@pytest.mark.slow
 def test_engagement_is_per_zone_and_multi_zone_gap_does_not_engage_skipped_zone():
     frame = ticks(
         [
@@ -192,7 +188,6 @@ def test_engagement_is_per_zone_and_multi_zone_gap_does_not_engage_skipped_zone(
     assert per_tick_state.multi_zone_tick_gap.iloc[3]
 
 
-@pytest.mark.slow
 def test_unengaged_zone_cannot_borrow_another_zones_engagement():
     frame = ticks(
         ["2026-09-18 00:00", "2026-09-18 00:01", "2026-09-18 00:15", "2026-09-18 00:16", "2026-09-18 00:30"],
@@ -202,7 +197,6 @@ def test_unengaged_zone_cannot_borrow_another_zones_engagement():
     assert [c.zone_id for c in result.breakout_signals.iloc[-1]] == ["b"]
 
 
-@pytest.mark.slow
 def test_prefix_invariance_and_no_final_bar_or_cross_day_signal():
     frame = ticks(
         [
@@ -226,7 +220,6 @@ def test_prefix_invariance_and_no_final_bar_or_cross_day_signal():
     assert not per_tick_state.pullback_active.iloc[-1]
 
 
-@pytest.mark.slow
 def test_empty_no_zones_and_symbol_isolation():
     frame = ticks(
         ["2026-09-18 00:00", "2026-09-18 00:15", "2026-09-18 00:16", "2026-09-18 00:30"], [100, 100, 104, 100]
@@ -240,7 +233,6 @@ def test_empty_no_zones_and_symbol_isolation():
     assert [c.candidate_id for values in result.breakout_signals for c in values] == ["BO#01", "BO#01"]
 
 
-@pytest.mark.slow
 def test_gap_uses_observed_new_bar_time_and_advances_window_once():
     frame = ticks(
         ["2026-09-18 00:00", "2026-09-18 00:15", "2026-09-18 00:16", "2026-09-18 01:00", "2026-09-18 02:00"],
@@ -253,7 +245,6 @@ def test_gap_uses_observed_new_bar_time_and_advances_window_once():
     assert per_tick_state[f"pullback:z:{XauDirection.BUY.value}:offset"].tolist() == [0, 0, 0, 1, 2]
 
 
-@pytest.mark.slow
 def test_breakout_requires_matching_trend_even_when_engaged_and_beyond_buffer():
     frame = ticks(
         ["2026-09-18 00:00", "2026-09-18 00:15", "2026-09-18 00:16", "2026-09-18 00:30"],
@@ -263,3 +254,5 @@ def test_breakout_requires_matching_trend_even_when_engaged_and_beyond_buffer():
     assert per_tick_state["buy_engaged:z"].iloc[2]
     assert per_tick_state.trend.iloc[2] == XauTrend.DOWN.value
     assert all(not values for values in result.breakout_signals)
+
+

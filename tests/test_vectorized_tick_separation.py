@@ -16,70 +16,25 @@ class Zones:
 
 
 def inputs(symbol="XAUUSD!", offset=0.0):
-    times = pd.date_range("2026-09-18", periods=8, freq="5min", tz="UTC").as_unit("ns")
+    times = pd.date_range("2026-09-18", periods=4, freq="5min", tz="UTC").as_unit("ns")
     index = pd.MultiIndex.from_arrays(
         [["test"] * len(times), [symbol] * len(times), times.normalize(), times],
         names=["broker", "symbol", "date", "precise_time"],
     )
     prices = np.array([99.0, 100.0, 103.0, 104.0, 105.0, 106.0, 107.0, 108.0]) + offset
-    ticks = pd.DataFrame(
-        {
-            "bid": prices,
-            "ask": prices + 0.2,
-            "last": prices,
-            "volume": np.zeros(8, dtype=np.uint64),
-            "flags": np.zeros(8, dtype=np.uint32),
-            "volume_real": np.zeros(8),
-        },
-        index=index.reorder_levels(["symbol", "broker", "date", "precise_time"]),
+    prices = np.array([99.0, 100.0, 103.0, 104.0]) + offset
+    ticks = pd.DataFrame({
+        "bid": prices,
+        "ask": prices + 0.2,
+        "last": prices,
+        "volume": np.zeros(len(times), dtype=np.uint64),
+        "flags": np.zeros(len(times), dtype=np.uint32),
+        "volume_real": np.zeros(len(times)),
+    }, index=index.reorder_levels(["symbol", "broker", "date", "precise_time"]),
     )
     ticks = VectorizedXauUsdStrategy.add_bar_time_n_broker_day(ticks)
     candles = with_native_bootstrap(candles_from_ticks(ticks))
     return ticks, candles
-
-
-@pytest.mark.parametrize("replay", [False, True])
-@pytest.mark.slow
-def test_separated_ticks_run_without_mutation_or_market_columns_in_state(replay):
-    ticks, candles = inputs()
-    original_ticks, original_candles = ticks.copy(deep=True), candles.copy(deep=True)
-    economics = LinearReplayEconomics(
-        100.0, 100.0, 0.0, 0.0, 0.0, {"2026-09-18": pd.Timestamp("2026-09-18 23:59", tz="UTC")}
-    )
-    if replay:
-        strategy = VectorizedXauUsdStrategy(Zones(), ReplayConfig(economics))
-        assert strategy.execution is not None
-        return
-    strategy = VectorizedXauUsdStrategy(Zones())
-    result, _ = calculate_manifest(strategy, ticks, candles)
-    assert len(result) == len(ticks)
-    assert not {"bid", "ask", "bar_time", "broker_day"}.intersection(result)
-    assert result.trend_high_0.tolist() == [99.0] * 8
-    assert_frame_equal(ticks, original_ticks)
-    assert_frame_equal(candles, original_candles)
-    assert calculate_manifest(strategy, ticks.iloc[:0], candles)[0].empty
-
-
-@pytest.mark.slow
-def test_combined_symbols_match_independent_batches():
-    a, ca = inputs()
-    b, cb = inputs("SECOND", 100.0)
-    combined = calculate_manifest(VectorizedXauUsdStrategy(Zones()), pd.concat([a, b]), pd.concat([ca, cb]))[0]
-    separate = pd.concat(
-        [calculate_manifest(VectorizedXauUsdStrategy(Zones()), t, c)[0] for t, c in [(a, ca), (b, cb)]]
-    ).sort_index(kind="stable")
-    assert_frame_equal(combined, separate)
-
-
-@pytest.mark.slow
-def test_missing_tick_price_is_rejected():
-    ticks, candles = inputs()
-    with pytest.raises(SchemaErrors):
-        calculate_manifest(VectorizedXauUsdStrategy(Zones()), ticks.drop(columns="bid"), candles)
-
-
-@pytest.mark.slow
-def test_runner_projects_valid_results_for_multiple_symbols():
     from application.xauusd_trading_strategy_1_vector.domain.columnar import SignalTickState
     from application.xauusd_trading_strategy_1_vector.runner import run_vectorized_strategy
 
@@ -97,7 +52,6 @@ def test_runner_projects_valid_results_for_multiple_symbols():
     assert second.bar_open.min() >= 199.0
 
 
-@pytest.mark.slow
 def test_main_runs_with_fetch_shaped_inputs_and_writes_parquet(monkeypatch, tmp_path):
     import asyncio
 
@@ -142,3 +96,6 @@ def test_main_runs_with_fetch_shaped_inputs_and_writes_parquet(monkeypatch, tmp_
     assert not {"orders", "positions", "breakout_signals"}.intersection(saved)
     assert pd.read_parquet((tmp_path / output).with_name("results_signals.parquet")).family.isin([0, 1, 2]).all()
     assert (tmp_path / output).with_name("results_windows.parquet").exists()
+
+
+

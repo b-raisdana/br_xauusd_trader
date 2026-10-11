@@ -1,3 +1,5 @@
+import pytest
+import pytest
 """Independent phase-driver comparisons against every exposed replay output."""
 
 from copy import deepcopy
@@ -282,6 +284,8 @@ def differential(cfg, prices, times, signals=None, openings=None, partitions=Non
 @pytest.mark.parametrize("side", [XauDirection.BUY, XauDirection.SELL])
 @pytest.mark.parametrize("risk_mode", ["off", "net", "gross"])
 @pytest.mark.parametrize("session_mode", ["carry", "pullback", "all"])
+@pytest.mark.slow
+@pytest.mark.slow
 def test_market_lifecycle_all_risk_and_session_modes(side, risk_mode, session_mode):
     cfg = config(inputs=config().inputs.model_copy(update={"risk_mode": risk_mode, "session_mode": session_mode}))
     prices = [103.0, 109.2, 108.0, 96.0] if side == XauDirection.BUY else [99.0, 93.0, 94.0, 106.0]
@@ -290,6 +294,8 @@ def test_market_lifecycle_all_risk_and_session_modes(side, risk_mode, session_mo
 
 
 @pytest.mark.parametrize("operation", ["SUBMIT", "CLOSE", "CANCEL", "MODIFY"])
+@pytest.mark.slow
+@pytest.mark.slow
 def test_batch_broker_rejections_preserve_failure_semantics(operation):
     cfg = config()
     economics = RejectedOperations(cfg.economics, {operation})
@@ -305,6 +311,8 @@ def test_batch_broker_rejections_preserve_failure_semantics(operation):
 
 
 @pytest.mark.parametrize("priority", [0, 1])
+@pytest.mark.slow
+@pytest.mark.slow
 def test_pending_feedback_expiry_and_partition_inside_bar(priority):
     times = pd.DatetimeIndex(
         [
@@ -328,6 +336,8 @@ def test_pending_feedback_expiry_and_partition_inside_bar(priority):
     )
 
 
+@pytest.mark.slow
+@pytest.mark.slow
 def test_daily_loss_reset_restart_and_duplicate_candidates():
     times = pd.DatetimeIndex(["2026-09-24 00:00", "2026-09-24 00:00", "2026-09-24 00:15", "2026-09-25 00:00"], tz="UTC")
     signals = {0: [candidate(name="A"), candidate(name="B")], 3: [candidate(bar="2026-09-25 00:00:00+00:00")]}
@@ -336,12 +346,16 @@ def test_daily_loss_reset_restart_and_duplicate_candidates():
 
 
 @pytest.mark.parametrize("value", [1.005, 1.015, 2.675, 97.095, 103.105, 1.0049999999999999, -1.005])
+@pytest.mark.slow
+@pytest.mark.slow
 def test_decimal_boundary(value):
     from application.xauusd_trading_strategy_1_vector.domain.robust import normalize_price
 
     assert decimal_price(value, 2) == normalize_price(value, 2)
 
 
+@pytest.mark.slow
+@pytest.mark.slow
 def test_empty_and_repeated_partition_contract():
     streams, zones, candidates, windows = frames([103.0], pd.DatetimeIndex(["2026-09-24"], tz="UTC"), {}, {})
     engine = VectorizedExecutionReplay(config(), "test")
@@ -351,6 +365,8 @@ def test_empty_and_repeated_partition_contract():
         engine.run(streams, zones, candidates, windows)
 
 
+@pytest.mark.slow
+@pytest.mark.slow
 def test_scalar_callbacks_are_rejected_before_execution():
     cfg = config()
 
@@ -364,6 +380,8 @@ def test_scalar_callbacks_are_rejected_before_execution():
 
 
 @pytest.mark.parametrize("mode", ["carry", "pullback", "all"])
+@pytest.mark.slow
+@pytest.mark.slow
 def test_session_cutoff_boundaries_with_pending_and_open_positions(mode):
     cfg = config(inputs=config().inputs.model_copy(update={"session_mode": mode, "one_order_per_candle": False}))
     times = pd.DatetimeIndex(
@@ -382,6 +400,8 @@ def test_session_cutoff_boundaries_with_pending_and_open_positions(mode):
     )
 
 
+@pytest.mark.slow
+@pytest.mark.slow
 def test_pending_can_fill_then_stop_on_the_same_wide_spread_tick():
     times = pd.date_range("2026-09-24", periods=2, freq="min", tz="UTC")
     _, tables = differential(config(), [101.8, 96.0], times, openings={0: [window()]}, asks=[101.9, 103.0])
@@ -390,6 +410,8 @@ def test_pending_can_fill_then_stop_on_the_same_wide_spread_tick():
     assert last.reason.tolist() == ["", "SL"]
 
 
+@pytest.mark.slow
+@pytest.mark.slow
 def test_fill_time_position_cap_uses_insertion_order():
     cfg = config(inputs=config().inputs.model_copy(update={"max_positions": 1, "one_order_per_candle": False}))
     second = deepcopy(window())
@@ -400,6 +422,8 @@ def test_fill_time_position_cap_uses_insertion_order():
     assert "POSITION_CAP" in tables[4].reason.tolist()
 
 
+@pytest.mark.slow
+@pytest.mark.slow
 def test_close_loss_cancels_pending_risk_before_later_admission():
     cfg = config(inputs=config().inputs.model_copy(update={"risk_percent": 6.0, "one_order_per_candle": False}))
     second = deepcopy(window())
@@ -410,6 +434,8 @@ def test_close_loss_cancels_pending_risk_before_later_admission():
     assert "PORTFOLIO_RISK" in tables[4].reason.tolist()
 
 
+@pytest.mark.slow
+@pytest.mark.slow
 def test_margin_rejection_consumes_attempt_and_reversal_fill_limit():
     from dataclasses import replace
 
@@ -425,9 +451,13 @@ def test_margin_rejection_consumes_attempt_and_reversal_fill_limit():
     assert len(tables[1]) == 2
 
 
+@pytest.mark.slow
+@pytest.mark.slow
 def test_qa_discovery_records_would_lock_without_locking():
     cfg = config(inputs=config().inputs.model_copy(update={"qa_discovery": True, "qa_capital": 200.0}))
     times = pd.date_range("2026-09-24", periods=2, freq="min", tz="UTC")
     engine, _ = differential(cfg, [103.0, 50.0], times, signals={0: [candidate()]})
     assert engine.accounts.daily_would_trigger_logged.iloc[-1]
     assert not engine.accounts.daily_loss_locked.iloc[-1]
+
+

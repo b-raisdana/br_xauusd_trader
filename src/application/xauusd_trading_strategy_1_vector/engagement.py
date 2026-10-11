@@ -21,7 +21,7 @@ from domain.xau_usd.models import XauZone
 from helper.importer import pt
 
 
-@pandera_validate(allow_pandas_dataframe=True)
+@pandera_validate
 def count_directional_crosses_vectorized(
     zones: List[XauZone],
     previous_bid: pt.Series[float],

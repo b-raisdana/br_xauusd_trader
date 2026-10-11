@@ -1,91 +1,46 @@
 ---
 name: pytest
-description: Use whenever writing, running, or debugging a pytest test in this repo (app/tests/). Covers how to actually execute tests here (use the active Python environment on PATH), plus repo conventions for markers, fixtures, and structure. Load test-strategy first to pick the right test type before writing it.
+description: Use whenever writing, running, or debugging a pytest test in this repo. Covers how to execute tests here (use the active Python environment on PATH), plus repo conventions for markers, fixtures, and structure. Load test-strategy first to pick the right test type before writing it.
 ---
 
 # pytest (this repo)
 
-Companion to [test-strategy](../test-strategy/SKILL.md) (which type to write) — this skill covers mechanics: layout, running, fixtures, naming.
+## Running tests
 
-## Running tests — read this first
+Fast gate: `pytest -m "unit and not slow"` (< 10s target). Slow subset: `pytest -m slow`. Full run: `pytest`.
 
-The project's deps are installed in the active Python environment — use whatever Python is on PATH. Don't `pip install` into a throwaway venv on Windows, that hits meson/build-from-source errors for nothing:
-```bash
-# Runs in the active Python environment on PATH (no WSL wrapper needed).
-# Make sure the project env that has pre-commit/ruff/pytest is active first.
-pytest -m unit
-```
+Pytest config (pyproject.toml): markers unit (fast isolated unit tests) and slow (slow tests excluded from fast unit gate). ddopts = "-q -n auto" (parallel by default). 	estpaths = ["tests"], pythonpath = ["src", "."].
 
-TensorFlow's CUDA/cuDNN registration warnings on import are harmless noise, not a failure signal — check the actual pytest summary line. Ask the user before assuming network access for a genuinely new dependency; the dep set is already installed in the active environment.
+Conftest: 	ests/conftest.py auto-marks any unmarked test with unit. Autouse fixture _bound_strategy_configs wraps core_vectors.use() and strategy_config.use() for all tests.
 
-**Data cache lives in-repo.** Cached OHLCV under `data/` (`Config.path_of_data`) needs no override — it defaults to `<repo_root>/data`. `DLF_DATA_ROOT` still exists as a generic override but is unused by default now. Only `e2e`/`perf` tests touch real `data/` at all (see [test-strategy](../test-strategy/SKILL.md) fixture/data policy); unit/characterization/regression/smoke never read it. Full rationale: [docs/infrastructure.md § environments](../../../docs/infrastructure.md#environments).
-Fast gate (every commit): `pytest -m unit`. Full run (nightly/manual, includes integration, `e2e`, and `perf`): `pytest`. Live broker OHLCV fetches are integration tests, never pre-commit tests. The fast gate is wired into `.pre-commit-config.yaml` alongside the `mypy`/`ruff`/`xenon` incremental ratchet ([infrastructure.md § incremental ratchet](../../../docs/infrastructure.md#incremental-ratchet-mypyruffxenon-scope)) — local/per-commit only, bypassable with `--no-verify`. No CI workflow exists yet; promote the same fast-gate command to a required check when one lands.
+TensorFlow warnings are harmless noise; check actual pytest summary.
 
-## Performance budget
+## Marking slow tests
 
-- Unit tests (pre-commit): each individual test must complete in under 500 ms. Any test exceeding this budget belongs in `integration/`.
-- Integration tests (pre-push): each individual test must complete in under 5 s. Any test exceeding this budget belongs in `e2e/` or `perf/`.
+Only mark a test as @pytest.mark.slow if it is forced to run on huge data or has another concrete limitation that makes it long-running. Do not mark tests slow as a shortcut to hit time budgets; prefer optimizing data sizes or implementation first.
 
-## Repo config
+## Performance
 
-`pytest.ini` (repo root): `testpaths = app/tests`, `pythonpath = app` (so `from Config import app_config` style absolute imports resolve without a `src.`/`app.` prefix, matching how the app itself imports), `--import-mode=importlib`, `--strict-markers`. Registered markers: `unit`, `characterization`, `integration`, `regression`, `smoke`, `e2e`, `perf` — `--strict-markers` makes an unregistered marker an authoring error, not a silently-ignored typo; add a new one to `pytest.ini` only if a genuinely new type is needed (check [test-strategy](../test-strategy/SKILL.md) first, this should be rare).
+- Target: fast gate -m "unit and not slow" runs in < 10s.
+- addopts includes -n auto (pytest-xdist). Parallelism is not sufficient alone for the full legacy set.
 
-## Directory layout
+## Layout
 
-```
-pytest.ini                      # repo root: markers, testpaths, pythonpath
-app/
-  tests/
-    conftest.py                 # shared fixtures (synthetic OHLC builders, etc.)
-    unit/<mirrors app/ package path>/test_<module>.py
-    characterization/<mirrors app/ package path>/test_<module>_characterization.py
-    integration/<mirrors app/ package path>/test_<flow>.py
-    regression/test_<invariant>.py
-    smoke/test_<surface>.py
-    e2e/test_<pipeline>.py
-    perf/test_<budget>.py
-```
+Tests live under 	ests/ (mirrored structure), not colocated with source.
 
-One tree under `app/tests/`, split by type first then mirroring the source package path — not colocated `test_*.py` next to source, and not one flat folder. Type is the axis test selection runs on (`-m unit`, skip `e2e` by default), so it has to be the top split; mirroring source under that keeps a test's home discoverable from its target's path. Only create a subfolder when it has a test in it — don't pre-scaffold empty type folders.
+## Structure
 
-A new test goes at `app/tests/<type>/<mirrors the app/ package path of what's under test>/test_<module>.py` — e.g. a characterization test for `app/ai_modelling/dataset_generator/profit_loss/profit_loss_adder.py` goes in `app/tests/characterization/dataset_generator/profit_loss/test_profit_loss_adder_characterization.py`.
-
-`app/ai_modelling/dataset_generator/test_normalization.py` (pre-existing) is not a pytest test — no `assert`s, prints/shows plots for manual inspection. Leave it in place as an analysis script; don't migrate it into `app/tests/` as-is. If it grows real assertions later, split the assertions into `app/tests/integration/dataset_generator/test_normalization.py` and keep the plotting script separate.
-
-## Structure: Arrange-Act-Assert
-
-```python
-def test_max_profit_n_loss_flat_candles_zero_distance(flat_ohlc):
-    # Arrange
-    ohlc = flat_ohlc(n=5)
-    # Act
-    result = max_profit_n_loss(ohlc, position_max_bars=2, action_delay=1, rolling_window=3)
-    # Assert
-    assert result["max_high_distance"].dropna().eq(0).all()
-```
-
-One assertion focus per test — if two behaviors need separate reasoning to debug a failure, they're two tests, not one with multiple unrelated asserts.
+Follow Arrange-Act-Assert. One assertion focus per test when practical.
 
 ## Fixtures
 
-Shared synthetic-data builders go in `app/tests/conftest.py` as factory fixtures (a fixture that returns a function, so each test controls size/shape), not fixed DataFrames — e.g. `flat_ohlc(n)`, `trending_ohlc(n, direction)`. Keep fixtures small (5-30 rows) and deterministic.
+Use small deterministic synthetic data (5-30 rows) in unit tests. Factory fixtures returning functions are preferred.
 
-Fixture/data policy by type:
+## Parametrize
 
-- Unit/characterization/regression/smoke: synthetic in-memory DataFrames only — small (5-30 candles), deterministic, no disk/network reads. Real cached OHLCV under `data/` is large and non-deterministic across cache refreshes, which would make failures un-diagnosable.
-- Integration: still synthetic by default; real cached data only when the test's actual point is the I/O/repository layer itself (rare — most of `app/`'s logic is transform, not storage).
-- E2E: the one place real (or a small pinned real-data snapshot) OHLCV is acceptable, because the point is proving the full chain, not isolating a bug.
+Prefer @pytest.mark.parametrize over copy-pasted near-duplicates.
 
-## Naming
+## Notes
 
-`test_<unit>_<state_under_test>_<expected_result>` where the state/expected fit on one line; for characterization tests, `test_<function>_<fixture_name>` is fine since the point is pinning a value, not describing a behavior claim.
+The repo's fast gate for the current optimized subset is pytest -m "unit and not slow". The slow marker is registered in pyproject.toml.
 
-## Parametrize over copy-pasted near-duplicates
-
-```python
-@pytest.mark.parametrize("action_delay,expected_open", [(1, 105), (2, 106)])
-def test_worst_long_open_by_action_delay(flat_ohlc, action_delay, expected_open):
-    ...
-```
-
-Reach for this the moment two test functions differ only in literals.

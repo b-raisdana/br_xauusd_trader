@@ -14,7 +14,7 @@ import numpy as np
 from numba import njit
 
 
-@njit(cache=False)
+@njit(cache=True)
 def scan(
     kernel: ReplayKernel,
     ticks: NDArray[np.int64],

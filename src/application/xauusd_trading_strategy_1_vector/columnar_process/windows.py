@@ -144,7 +144,7 @@ def _windows(
                 state.pullback_bar_offset.ge(offset.where(active_mask, 0)), offset.where(active_mask, 0)
             ).astype("int64")
             state["pullback_penetration_latched"] |= latched
-            state[f"{prefix}:parent"] = matched.parent_breakout_id.where(active_mask, "").astype("str")
+            state[f"{prefix}:parent"] = matched.parent_breakout_id.where(active_mask, "")
             state[f"{prefix}:offset"] = offset.where(active_mask, 0).astype("int64")
             latches.append(latched.groupby(matched.window_id, sort=False).max())
             newly_latched = hit & active_mask & ~matched.penetration_latched.fillna(False).astype(bool)

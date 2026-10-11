@@ -99,7 +99,6 @@ def _windows(
             state_columns[f"{prefix}:offset"] = pd.Series(0, index=state.index, dtype="int64")
     state = pd.concat([state, pd.DataFrame(state_columns, index=state.index)], axis=1)
     latches = []
-    bar_ids = data.bar_time.astype("str")
     for zone in zones:
         for direction in XauDirection:
             prefix = f"pullback:{zone.id}:{direction.value}"
@@ -158,10 +157,11 @@ def _windows(
                         zone.id,
                         int(direction),
                         int(XauSignalFamily.PULLBACK),
-                        matched.parent_breakout_id + ":PB",
-                        bar_ids,
+                        matched.parent_breakout_id,
+                        data.bar_time,
                         matched.zone_high if buy else matched.zone_low,
                         matched.parent_breakout_id,
+                        candidate_suffix=":PB",
                     ).assign(_signal_order=matched.window_id.loc[latched])
                 )
     # Opening snapshots are taken after the opening tick's penetration check.

@@ -35,6 +35,7 @@ def _signal_rows(
     bar_id: str | pd.Series,
     entry: float | pd.Series,
     parent: str | pd.Series = "",
+    candidate_suffix: str = "",
 ) -> pd.DataFrame:
     selected = data.loc[mask, ["stream_tick", "signal_time"]]
     for name, value in (
@@ -43,7 +44,13 @@ def _signal_rows(
         ("entry_price", entry),
         ("parent_breakout_id", parent),
     ):
-        selected[name] = value.loc[mask] if isinstance(value, pd.Series) else value
+        if isinstance(value, pd.Series):
+            value = value.loc[mask]
+            if pd.api.types.is_datetime64_any_dtype(value.dtype):
+                value = value.astype("str")
+        selected[name] = value
+    if candidate_suffix:
+        selected["candidate_id"] = selected["candidate_id"] + candidate_suffix
     selected["zone_id"] = zone_id
     selected["direction"] = direction
     selected["family"] = family

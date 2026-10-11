@@ -123,7 +123,6 @@ def process_columns(
     signals = []
     old = {s.zone.id: s for s in market.zones}
     final_zones = []
-    bar_ids = data.bar_time.astype("str")
     for zone in zones:
         prior = old.get(zone.id, XauDailyZoneSignalState(zone))
         current = deepcopy(prior) if data.day.iloc[-1] == market.broker_day else XauDailyZoneSignalState(deepcopy(zone))
@@ -164,9 +163,10 @@ def process_columns(
                         zone.id,
                         int(direction),
                         int(XauSignalFamily.REVERSAL),
-                        bar_ids + f":R:{zone.id}:{direction.value}",
-                        bar_ids,
+                        data.bar_time,
+                        data.bar_time,
                         data.ask if buy else data.bid,
+                        candidate_suffix=f":R:{zone.id}:{direction.value}",
                     )
                 )
         final_zones.append(current)

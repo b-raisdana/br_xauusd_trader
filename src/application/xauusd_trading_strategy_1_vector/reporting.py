@@ -13,12 +13,15 @@ from application.xauusd_trading_strategy_1_vector.domain.schema import (
     PositionTrackingResult,
     PullbackFeedback,
     VectorizedTick,
+    trend_schema_columns,
 )
 from br_pre_commit import pandera_validate
 from config import app_config
 from domain.xau_usd.models import XauPullbackWindowState, XauSignalCandidate
 from helper.importer import pt
 from infrastructure.result_processing.io import ResultFilesManifest
+
+_PRIMITIVE_STATE_COLUMNS = list(trend_schema_columns(SignalTickState))
 
 
 def _json_default(
@@ -37,6 +40,9 @@ def _json_default(
 def _native_market_rows(
     ticks: pt.DataFrame[VectorizedTick], state: pt.DataFrame[SignalTickState]
 ) -> pt.DataFrame[NativeStrategyResult]:
+    # Per-zone engagement/pullback audit columns are persisted in the daily
+    # signal_state artifacts; the final export keeps the primitive schema only.
+    state = state[_PRIMITIVE_STATE_COLUMNS]
     if ticks.index.equals(state.index):
         return pd.concat([ticks, state], axis=1)
     keys = list(ticks.index.names)

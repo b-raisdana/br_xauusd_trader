@@ -291,7 +291,7 @@ halve the runtime.
 | P1-2 zstd on `_write_columnar` + `_write_row_groups` | done | `d9fefe2` |
 | P2-1 production mode | default short-circuit already in code; perf runs use it | — |
 | P2-2 decouple write submission | not needed as designed: `_submit_write` only blocks on a re-submission of the **same** `(category, day)` key, so different days already write concurrently (4 workers) | — |
-| P2-3 drop redundant `.astype("str")` in `_windows` | pending | — |
+| P2-3 drop redundant `.astype("str")` in `_windows` | done — `parent_breakout_id` is already `str` (all 24 pullback `:parent` columns verify as `str`); the `.where(active_mask, "")` stays (per-tick state needs a value); the `.astype("int64")` on `offset` (line 148) stays (float64 NaN rows from the merge make it load-bearing) | this session |
 
 ### Single-day verification (ticks.26-07-29, 902,975 ticks, 12 zones)
 

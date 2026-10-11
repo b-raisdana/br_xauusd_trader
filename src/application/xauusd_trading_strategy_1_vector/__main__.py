@@ -84,7 +84,7 @@ def cli(
     asyncio.run(
         main(
             symbol=symbol,
-            zones=zones,
+            zones_file=zones,
             output_file=output,
             backtest=not no_backtest,
             execution_config_path=execution_config,

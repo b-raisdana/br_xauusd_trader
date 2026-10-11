@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from dataclasses import asdict, is_dataclass
 from datetime import date, datetime
 from pathlib import Path
 
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 from br_py_log_n_profile import log_e, log_exception
 
 from application.xauusd_trading_strategy_1_vector.domain.columnar import NativeStrategyResult, SignalTickState
@@ -22,6 +25,20 @@ from helper.importer import pt
 from infrastructure.result_processing.io import ResultFilesManifest
 
 _PRIMITIVE_STATE_COLUMNS = list(trend_schema_columns(SignalTickState))
+
+
+def _write_row_groups(frames: Iterable[pd.DataFrame], output_path: Path) -> None:
+    """Write one parquet file with a row group per frame, avoiding a full concat."""
+    writer: pq.ParquetWriter | None = None
+    try:
+        for frame in frames:
+            table = pa.Table.from_pandas(frame.reset_index(), preserve_index=False)
+            if writer is None:
+                writer = pq.ParquetWriter(output_path, table.schema, compression="zstd")
+            writer.write_table(table)
+    finally:
+        if writer is not None:
+            writer.close()
 
 
 def _json_default(
@@ -80,16 +97,16 @@ def save_results_to_file(
     days = manifest.successful_days("signal_state")
     if days:
         output_file.parent.mkdir(parents=True, exist_ok=True)
-        result = pd.concat(
-            [
+        _write_row_groups(
+            (
                 _native_market_rows(
                     manifest.read_daily_ticks(day),
                     manifest.get_cached_frame("signal_state", day) or manifest.read_daily_signal_state(day),
                 )
                 for day in days
-            ]
+            ),
+            output_file,
         )
-        result.reset_index().to_parquet(output_file, index=False)
         signals = pd.concat(
             [manifest.get_cached_frame("signals", day) or manifest.read_daily_signals(day) for day in days]
         )

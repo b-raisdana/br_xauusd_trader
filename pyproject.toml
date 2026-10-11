@@ -62,7 +62,7 @@ packages = ["src/xauusd", "src/infrastructure", "src/helper", "src/presentation"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
-markers = ["unit: fast isolated unit tests"]
+markers = ["unit: fast isolated unit tests", "slow: slow tests excluded from fast unit gate"]
 addopts = "-q -n auto"
 
 [tool.ruff]

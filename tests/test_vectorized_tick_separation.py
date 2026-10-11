@@ -39,6 +39,7 @@ def inputs(symbol="XAUUSD!", offset=0.0):
 
 
 @pytest.mark.parametrize("replay", [False, True])
+@pytest.mark.slow
 def test_separated_ticks_run_without_mutation_or_market_columns_in_state(replay):
     ticks, candles = inputs()
     original_ticks, original_candles = ticks.copy(deep=True), candles.copy(deep=True)
@@ -59,6 +60,7 @@ def test_separated_ticks_run_without_mutation_or_market_columns_in_state(replay)
     assert calculate_manifest(strategy, ticks.iloc[:0], candles)[0].empty
 
 
+@pytest.mark.slow
 def test_combined_symbols_match_independent_batches():
     a, ca = inputs()
     b, cb = inputs("SECOND", 100.0)
@@ -69,12 +71,14 @@ def test_combined_symbols_match_independent_batches():
     assert_frame_equal(combined, separate)
 
 
+@pytest.mark.slow
 def test_missing_tick_price_is_rejected():
     ticks, candles = inputs()
     with pytest.raises(SchemaErrors):
         calculate_manifest(VectorizedXauUsdStrategy(Zones()), ticks.drop(columns="bid"), candles)
 
 
+@pytest.mark.slow
 def test_runner_projects_valid_results_for_multiple_symbols():
     from application.xauusd_trading_strategy_1_vector.domain.columnar import SignalTickState
     from application.xauusd_trading_strategy_1_vector.runner import run_vectorized_strategy
@@ -93,6 +97,7 @@ def test_runner_projects_valid_results_for_multiple_symbols():
     assert second.bar_open.min() >= 199.0
 
 
+@pytest.mark.slow
 def test_main_runs_with_fetch_shaped_inputs_and_writes_parquet(monkeypatch, tmp_path):
     import asyncio
 

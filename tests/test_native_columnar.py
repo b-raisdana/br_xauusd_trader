@@ -131,6 +131,7 @@ def data(seed=1, bars=20, ticks_per_bar=12):
 #         pd.testing.assert_frame_equal(market.windows[expected_windows.columns], expected_windows, check_dtype=False)
 
 
+@pytest.mark.slow
 def test_chunked_stream_including_duplicate_timestamps_matches_whole():
     ticks, candles = data()
     ticks = pd.concat([ticks.iloc[:5], ticks.iloc[4:]])
@@ -146,6 +147,7 @@ def test_chunked_stream_including_duplicate_timestamps_matches_whole():
         pd.testing.assert_frame_equal(actual, getattr(whole, name))
 
 
+@pytest.mark.slow
 def test_pullback_signal_emits_once_per_window_after_penetration_latches():
     ticks, candles = data(seed=1)
     result = process_columns(ticks, candles, ColumnarMarket(RobustInputs()), ZONES)
@@ -203,6 +205,7 @@ def test_pullback_signal_emits_once_per_window_after_penetration_latches():
 #     assert market.zones == scalar.state.zones
 
 
+@pytest.mark.slow
 def test_empty_input_has_valid_primitive_outputs():
     ticks, candles = data()
     result = process_columns(ticks.iloc[:0], candles.iloc[:0], ColumnarMarket(RobustInputs()), [])
@@ -212,6 +215,7 @@ def test_empty_input_has_valid_primitive_outputs():
 
 
 @pytest.mark.parametrize("column,value", [("bid", None), ("bid", "invalid")])
+@pytest.mark.slow
 def test_invalid_inputs_rejected(column, value):
     ticks, candles = data()
     bad = ticks.drop(columns=column) if value is None else ticks.assign(**{column: value})
@@ -219,6 +223,7 @@ def test_invalid_inputs_rejected(column, value):
         process_columns(bad, candles, ColumnarMarket(RobustInputs()), ZONES)
 
 
+@pytest.mark.slow
 def test_output_contract_rejects_missing_column_and_wrong_timestamp_precision():
     ticks, candles = data()
     state = process_columns(ticks, candles, ColumnarMarket(RobustInputs()), ZONES).ticks
@@ -242,6 +247,7 @@ def test_output_contract_rejects_missing_column_and_wrong_timestamp_precision():
 #     process_columns(ticks, candles, ColumnarMarket(RobustInputs()), ZONES)
 
 
+@pytest.mark.slow
 def test_native_algorithm_has_no_row_callbacks_or_array_conversion():
     forbidden = {"iterrows", "itertuples", "apply", "map", "to_numpy", "step"}
     for path in Path("src/application/xauusd_trading_strategy_1_vector").glob("columnar*.py"):
@@ -267,6 +273,7 @@ def test_native_algorithm_has_no_row_callbacks_or_array_conversion():
 #     pd.testing.assert_frame_equal(result.signals.reset_index(drop=True)[signals.columns], signals, check_dtype=False)
 
 
+@pytest.mark.slow
 def test_columnar_persistence_uses_no_python_row_serialization(tmp_path, monkeypatch):
     from infrastructure.result_processing.io import ResultFilesManifest
 
@@ -318,6 +325,7 @@ def test_columnar_persistence_uses_no_python_row_serialization(tmp_path, monkeyp
 #         manifest.close()
 
 
+@pytest.mark.slow
 def test_export_preserves_interleaved_streams_with_duplicate_ticks(tmp_path, monkeypatch):
     from test_vectorized_tick_separation import inputs
 
@@ -345,6 +353,7 @@ def test_export_preserves_interleaved_streams_with_duplicate_ticks(tmp_path, mon
     assert actual.stream_tick.tolist() == ticks.groupby(level=["broker", "symbol"], sort=False).cumcount().tolist()
 
 
+@pytest.mark.slow
 def test_native_export_rejects_missing_state_rows():
     from application.xauusd_trading_strategy_1_vector.reporting import _native_market_rows
 

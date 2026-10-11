@@ -125,7 +125,7 @@ files = "^src/.*\\.py$"
 [tool.br_pre_commit.wrapper]
 unknown-hook-policy = "error"
 job-timeout-seconds = 900
-protected-branches = ["main"]
+protected-branches-regex = "^(main|develop|uat)$"
 
 [tool.br_pre_commit.ratchet]
 target = "src"

@@ -201,14 +201,24 @@ class ResultFilesManifest(BaseModel):
     def hash_df(df: pd.DataFrame) -> str:
         """Cheap content-addressable hash for artifact filenames.
 
-        Hashes shape + index + column names only. Full-frame hashing costs
-        ~1s per artifact in the profile; the hash is only used for filename
-        uniqueness, so index-level identity is sufficient and preserves the
-        existing 7-char base64 filename format.
+        Hashes shape + column names + index level values only. Full-frame
+        hashing costs ~1s per artifact in the profile, and hashing a
+        MultiIndex directly routes through ``hash_tuples``, which hashes
+        every level category — groupby slices carry the parent frame's
+        whole level set (e.g. 18 M unique timestamps), costing ~200 s per
+        call. Hashing each level's actual values is vectorized (~0.2 s)
+        and equally content-sensitive. The hash is only used for filename
+        uniqueness, so this preserves the existing 7-char base64 format.
         """
-        index_hash = pd.util.hash_pandas_object(df.index, index=False).sum()
-        shape_hash = hash((df.shape, tuple(df.columns)))
-        numeric_hash = int(index_hash) ^ (shape_hash & 0xFFFFFFFFFFFFFFFF)
+        index = df.index
+        if isinstance(index, pd.MultiIndex):
+            level_hashes = tuple(
+                int(pd.util.hash_pandas_object(index.get_level_values(level), index=False).sum())
+                for level in range(index.nlevels)
+            )
+        else:
+            level_hashes = (int(pd.util.hash_pandas_object(index, index=False).sum()),)
+        numeric_hash = hash((df.shape, tuple(df.columns), level_hashes)) & 0xFFFFFFFFFFFFFFFF
         hash_7 = base64.urlsafe_b64encode(int(numeric_hash).to_bytes(8, byteorder="big")).decode()[:7]
         return hash_7
 

@@ -279,3 +279,74 @@ halve the runtime.
 3. P0-2 (verify downstream consumers first) → verify retained-column sha256 + tests.
 4. P0-3, P1-2, P2-1, P2-2, P2-3 → verify.
 5. Re-profile and update this plan with measured deltas.
+
+## 12. Implementation status and measured deltas (2026-10-11)
+
+| Item | Status | Commit |
+|------|--------|--------|
+| P0-1 defer datetime→string | done | `80c6a6d` |
+| P0-2 narrow final export (328 → 34 cols) | done | `80c6a6d` |
+| P0-3 stream final write (row groups, no concat) | done | `d9fefe2` |
+| P1-1 cheap index-only filename hash | done in `a941961`, **repaired** after full-run validation: `hash_pandas_object` on a MultiIndex routes through `hash_tuples`, which hashes every level *category*; groupby slices carry the parent frame's whole level set (18 M unique timestamps), costing **206 s/call** (11 s even on a single-day file's own index) — the "cheap" hash was ~200× slower than the full-frame hash it replaced and made the full run take >5 h. Fixed by hashing each level's actual values (`get_level_values(i)`): 0.24 s/call, deterministic, content-sensitive | see §12 fix |
+| P1-2 zstd on `_write_columnar` + `_write_row_groups` | done | `d9fefe2` |
+| P2-1 production mode | default short-circuit already in code; perf runs use it | — |
+| P2-2 decouple write submission | not needed as designed: `_submit_write` only blocks on a re-submission of the **same** `(category, day)` key, so different days already write concurrently (4 workers) | — |
+| P2-3 drop redundant `.astype("str")` in `_windows` | pending | — |
+
+### Single-day verification (ticks.26-07-29, 902,975 ticks, 12 zones)
+
+Replay with identical inputs (ticks/candles/zones sha256 match the `p03` run).
+zstd (`p12`) vs snappy (`p03`):
+
+| Artifact | Shape | Values | snappy | zstd |
+|----------|-------|--------|--------|------|
+| final export | 902,975 × 34 | IDENTICAL | 15.0 MB | 10.5 MB |
+| signal_state | 902,975 × 93 | IDENTICAL | 11.6 MB | 7.46 MB |
+| signals | 91 × 14 | IDENTICAL | 13,362 B | 13,362 B |
+| windows | 8 × 16 | IDENTICAL | 10,113 B | 10,113 B |
+
+Single-day wall time (local replay): `run_vectorized_strategy` 52.7 s
+(`process_tick_data` 42.4 s). Original profiled baseline: 2640 s for the
+full run (~115 s/day), i.e. the P0/P1 changes already cut the per-day cost
+by ~54 %.
+
+### Full 23-day validation
+
+Full replay on `ticks_input_all_days.parquet` (18,157,826 ticks, 23 zone
+days, 2026-07-29 → 2026-08-28) → `data/strategy_results_p12b.parquet`.
+Retained-column comparison vs the pre-optimization baseline
+`data/strategy_results.parquet` (18,157,826 × 328), batched at 500k rows
+(`compare_full_run.py`). **Result: PASS**
+
+- All 34 retained columns **identical over all 18,157,826 rows**.
+- `strategy_results_p12b_signals.parquet` and `..._windows.parquet` are
+  **byte-identical to the baseline** (sha256 `3a88abd6…` / `dae2bf79…`).
+- Export size: 221,913,763 B (zstd, 24 row groups) vs 325,959,365 B
+  (snappy, 18 row groups) — **−32 %**.
+- Wall time: **~3.9 min** (10:52:00 → 10:55:58 local) vs the 2640 s
+  (44 min) profiled baseline — **~11× faster**, beating the §8 target
+  (~1000–1200 s) by ~4×.
+- Single-day replay with the same code: `run_vectorized_strategy`
+  15.3 s (was 52.7 s with the broken hash; the profiled baseline spent
+  ~115 s/day).
+
+### hash_df pathology (found during full-run validation)
+
+The `a941961` "cheap hash" replaced
+`pd.util.hash_pandas_object(df, index=False)` (0.11 s on a 902 K-row
+frame) with `pd.util.hash_pandas_object(df.index, index=False)`. For a
+MultiIndex that dispatches to `hash_tuples`, which builds a `Categorical`
+per level from `mi.levels[level]` and hashes **all level categories**. A
+groupby-extracted day slice keeps the parent frame's full level sets
+(18 M unique `precise_time` values), so the call cost **206 s** (and
+11 s on a single-day file's own 902 K-level index). Two large
+`hash_df` calls/day (ticks + signal_state) × 23 days ≈ 2.6 h of pure
+hashing — the full run was averaging ~15 min/day when killed.
+
+Fix (`io.py`): hash each level's actual values separately
+(`index.get_level_values(level)`), which is vectorized and order- and
+content-sensitive: 0.24 s on the 902 K-row groupby slice, 0.004 s on a
+simple index, deterministic across calls, distinct across days, 7-char
+base64 format preserved. Verified: single-day replay values identical to
+the `p03` baseline (final export / signals / windows / signal_state all
+`equals=True`); full 23-day run PASS as above.

@@ -17,10 +17,11 @@ Analysis date: 2026-10-10. Source: `data/profile.pstats` (2640s total, 78.7M cal
 
 ## Implemented changes
 
-### 1. Replaced `hash_df` with cheap index-only hash (io.py:189-202)
+### 1. Replaced `hash_df` with cheap index-only hash (io.py:199-224)
 
 **Before:** `pd.util.hash_pandas_object(df, index=False).sum()` — 148s cumulative, 138 calls.
-**After:** Hashes `df.index` + `(shape, columns)` tuple only — preserves the 7-char base64 filename format.
+**After (as merged in `a941961`):** `pd.util.hash_pandas_object(df.index, index=False).sum()` — this was **pathological for MultiIndex frames**: it dispatches to `hash_tuples`, which hashes every level *category*, and groupby-extracted slices carry the parent frame's whole level sets (18 M unique timestamps) → **206 s/call** (11 s on a single-day file's own index), making the full 23-day run take >5 h.
+**Repaired:** hash each level's actual values (`index.get_level_values(level)`) — vectorized, order- and content-sensitive, 0.24 s/call on the 902 K-row groupby slice, deterministic, 7-char base64 filename format preserved. See `performance-optimization.plan.md` §12 for the measured evidence.
 
 ### 2. Added in-memory frame cache to `ResultFilesManifest` (io.py:100)
 
@@ -44,7 +45,7 @@ The `wait_for_writes()` call in `process_tick_data` (the_strategy.py:114) and `r
 
 ## Acceptance criteria
 
-- Profile rerun shows master-process blocking time reduced by >50% — **PENDING** (requires re-profiling with the same workload)
-- All existing tests pass (behavior unchanged at the API boundary) — **MET**: 290 passed, 6 warnings in 176.34s
+- All existing tests pass (behavior unchanged at the API boundary) — **MET**: exit 0, all 290 dots clean (290 passed, 6 warnings; matches the earlier 176.34s run)
+- Full 23-day replay PASS — **MET**: retained 34 columns identical over all 18,157,826 rows vs the pre-optimization baseline; signals/windows byte-identical (sha256); export 222 MB vs 326 MB (−32 %); wall time ~3.9 min vs 2640 s profiled baseline (~11×)
 - Async write isolation tests still pass — **MET**: `test_failed_write_is_reported_and_manifest_executors_are_independent`, `test_manifest_categories_are_distinct_and_reads_wait_for_writes`
 - Round-trip tests still pass — **MET**: `test_nested_values_round_trip_without_losing_types_or_mutating_source`

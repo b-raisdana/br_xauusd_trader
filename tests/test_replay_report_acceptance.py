@@ -7,7 +7,7 @@ from pandera.errors import SchemaError, SchemaErrors
 
 from application.xauusd_trading_strategy_1_vector.backtest import save_backtest_report, save_backtest_trades
 from application.xauusd_trading_strategy_1_vector.domain.execution_schema import StreamEvents
-from application.xauusd_trading_strategy_1_vector.replay_portfolio import report_from_events
+from application.xauusd_trading_strategy_1_vector.replay_portfolio import _portfolio_arrays, report_from_events
 
 
 def _make_stream_events(rows):
@@ -79,6 +79,8 @@ def inputs(stream_count=2, same_tick=False, open_trade=False):
 
 @pytest.mark.parametrize("streams", [1, 2])
 @pytest.mark.parametrize("same_tick", [False, True])
+@pytest.mark.integration
+@pytest.mark.slow
 def test_leveraged_report_preserves_fills_costs_streams_and_real_time(streams, same_tick, tmp_path):
     ticks, fills, closes = inputs(streams, same_tick)
     portfolio = report_from_events(ticks, fills, closes, 200.0)
@@ -101,16 +103,24 @@ def test_leveraged_report_preserves_fills_costs_streams_and_real_time(streams, s
     assert saved.pnl.tolist() == pytest.approx(closes.realized_pnl.tolist())
 
 
-def test_zero_fill_report_and_open_position_marks():
+def test_zero_fill_report_returns_flat_equity_without_vectorbt():
     ticks, fills, closes = inputs(1)
     empty = report_from_events(ticks, fills.iloc[:0], closes.iloc[:0], 200.0)
     assert empty.trades.records.empty
     assert empty.value().tolist() == [200.0, 200.0]
     assert empty.total_return() == 0
+
+
+def test_open_position_mark_uses_executable_quote_side():
     ticks, fills, closes = inputs(1, open_trade=True)
-    opened = report_from_events(ticks, fills, closes, 200.0)
-    assert opened.value().iloc[-1] == pytest.approx(200.5)
-    assert opened.trades.records.exit_time.isna().all()
+    market = ticks.reset_index()
+    trades = fills.merge(closes, on=["stream_id", "position_id"], how="left", suffixes=("_entry", "_exit"))
+    prices, fees, closed, long, sizes = _portfolio_arrays(trades, market)
+    assert prices[:, 0].tolist() == [2500.2, 2501.0]
+    assert fees[:, 0].tolist() == [0.3, 0.0]
+    assert not closed[0]
+    assert long[0]
+    assert sizes.tolist() == [1.0]
 
 
 def test_report_rejects_wrong_economics_or_event_identity():

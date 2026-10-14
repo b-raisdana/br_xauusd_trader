@@ -62,8 +62,12 @@ packages = ["src/xauusd", "src/infrastructure", "src/helper", "src/presentation"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
-markers = ["unit: fast isolated unit tests", "slow: slow tests excluded from fast unit gate"]
-addopts = "-q -n auto"
+markers = [
+    "unit: fast isolated logic tests run in pre-commit",
+    "integration: tests that cross compiled or external runtime boundaries",
+    "slow: tests excluded from the fast pre-commit gate",
+]
+addopts = "-q -n auto --dist=load --strict-markers"
 
 [tool.ruff]
 target-version = "py312"
@@ -125,7 +129,7 @@ files = "^src/.*\\.py$"
 [tool.br_pre_commit.wrapper]
 unknown-hook-policy = "error"
 job-timeout-seconds = 900
-protected-branches = ["main"]
+protected-branches-regex = "^(main|develop|uat)$"
 
 [tool.br_pre_commit.ratchet]
 target = "src"

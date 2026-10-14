@@ -11,6 +11,8 @@ from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrateg
 from domain.xau_usd.enums import XauDirection, XauSignalFamily, XauTrend
 from domain.xau_usd.models import XauPullbackWindowState, XauSignalCandidate, XauZone
 
+pytestmark = [pytest.mark.integration, pytest.mark.slow]
+
 
 class Zones:
     def __init__(self, zones):
@@ -254,5 +256,3 @@ def test_breakout_requires_matching_trend_even_when_engaged_and_beyond_buffer():
     assert per_tick_state["buy_engaged:z"].iloc[2]
     assert per_tick_state.trend.iloc[2] == XauTrend.DOWN.value
     assert all(not values for values in result.breakout_signals)
-
-

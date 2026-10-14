@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pandas as pd
 from br_py_log_n_profile import log_w, profile_it
@@ -37,10 +39,13 @@ from .domain.columnar import ColumnarMarket, ColumnarResult
 from .domain.replay import ReplayConfig
 from .domain.robust import RobustInputs
 from .engagement import update_zone_engagement
+from .execution_replay_factory import _new_vectorized_execution_replay
 from .signals import generate_breakout_signals, generate_pullback_signals, generate_reversal_signals
 from .trend import compute_bar_time, update_trend
-from .vectorized_replay import VectorizedExecutionReplay
 from .zone_cache import ZoneCache
+
+if TYPE_CHECKING:
+    from .vectorized_replay import VectorizedExecutionReplay
 
 _STATE_COLUMNS = frozenset(trend_schema_columns(PerTickState))
 
@@ -176,7 +181,7 @@ class VectorizedXauUsdStrategy:
                 result.signals.loc[:, list(CandidateEvents.to_schema().columns)].reset_index(drop=True)
             )
             if stream_id not in self._execution_replays:
-                self._execution_replays[stream_id] = VectorizedExecutionReplay(self.execution, stream_id)
+                self._execution_replays[stream_id] = _new_vectorized_execution_replay(self.execution, stream_id)
             replay = self._execution_replays[stream_id]
             orders, fills, closes, positions, events, rejections = replay.run(
                 streams, zones, candidates, result.windows, stream_candles

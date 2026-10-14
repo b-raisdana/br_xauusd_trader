@@ -1,5 +1,3 @@
-import pytest
-import pytest
 """Independent phase-driver comparisons against every exposed replay output."""
 
 from copy import deepcopy
@@ -18,6 +16,8 @@ from application.xauusd_trading_strategy_1_vector.execution_batch.kernel import 
 from application.xauusd_trading_strategy_1_vector.replay import ExecutionReplay
 from application.xauusd_trading_strategy_1_vector.vectorized_replay import VectorizedExecutionReplay
 from domain.xau_usd.enums import XauDirection, XauSignalFamily
+
+pytestmark = [pytest.mark.integration, pytest.mark.slow]
 
 
 class RejectedOperations:
@@ -452,12 +452,9 @@ def test_margin_rejection_consumes_attempt_and_reversal_fill_limit():
 
 
 @pytest.mark.slow
-@pytest.mark.slow
 def test_qa_discovery_records_would_lock_without_locking():
     cfg = config(inputs=config().inputs.model_copy(update={"qa_discovery": True, "qa_capital": 200.0}))
     times = pd.date_range("2026-09-24", periods=2, freq="min", tz="UTC")
     engine, _ = differential(cfg, [103.0, 50.0], times, signals={0: [candidate()]})
     assert engine.accounts.daily_would_trigger_logged.iloc[-1]
     assert not engine.accounts.daily_loss_locked.iloc[-1]
-
-

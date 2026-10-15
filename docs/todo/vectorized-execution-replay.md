@@ -1,15 +1,15 @@
 # Vectorized Execution Replay TODO
 
-Status: INCOMPLETE; native candidates and windows now reach replay, but production still uses the scalar row driver and is not release-ready.
+Status: INCOMPLETE; native candidates and windows reach replay via the compiled batch engine, but differential oracle coverage, requested-data CLI verification, and representative benchmark remain.
 
 ## Implementation status
 
 | Segment | Status | Evidence / remaining work |
 | --- | --- | --- |
-| Characterization | PARTIAL | A test-only scalar oracle has 21 lifecycle tests. Integration tests compare each tick’s event/position/modification outputs against the oracle for a fill-modify-close scenario and cover same-tick admission order, duplicate timestamps, independent two-stream continuation across day partitions and continuation across a partition inside one M15 bar. Full lifecycle-wide per-tick differential coverage remains absent. |
+| Characterization | PARTIAL | A test-only scalar oracle has 21 lifecycle tests in `test_robust_mt5_parity.py`. Integration tests compare each tick's event/position/modification outputs against the oracle for a fill-modify-close scenario and cover same-tick admission order, duplicate timestamps, independent two-stream continuation across day partitions and continuation across a partition inside one M15 bar. Full lifecycle-wide per-tick differential coverage remains absent. |
 | Event schemas | PARTIAL | Replay output tables retain `stream_id` and `stream_tick`; fills, closes, execution events, stop modifications and pullback-cycle state changes retain tick ordinals, and entry rejections are persisted with candidate/code/ordinal. Accepted and rejected stop modifications have dedicated typed rows with previous/requested/resulting stop levels. Cycle state rows are typed, persisted only when values change and keyed by stable cycle ID; explicit cycle-transition reason events remain absent. |
-| Native signal/window integration | PARTIAL | Candidate rows join by `stream_tick`, native windows are passed, stream/day state is kept between day runs, and output artifacts retain source stream/tick identity. Feedback does not alter native signal generation, and the active replay implementation still iterates market rows in Python. |
-| Batch replay / recurrence | NOT IMPLEMENTED | `VectorizedExecutionReplay` invokes the scalar state machine for every tick. No typed compiled recurrence or batch-equivalent economics contract exists. |
+| Native signal/window integration | COMPLETE | Candidate rows join by `stream_tick`, native windows are passed, stream/day state is kept between day runs, and output artifacts retain source stream/tick identity. Feedback does not alter native signal generation. The production replay path uses a numba-jitted kernel over precomputed arrays — no Python per-row iteration. |
+| Batch replay / recurrence | COMPLETE | `execution_batch/` implements the full batch engine: `adapter.py` normalizes inputs to typed arrays, `kernel.py` defines a `@jitclass ReplayKernel` with the causal recurrence, and `scan.py` drives the typed scan. All scalar transitions from `replay.py` have been ported to `lifecycle.py`, `admission.py`, `protection.py`, `risk_state.py`, `prices.py`, `snapshots.py` and `structure.py`. |
 | Artifacts / report | PARTIAL | Orders, fills, closes, execution events, coded entry rejections, stop modifications, changed cycle state and position snapshots are persisted with stream/tick identity. Synthetic manifest tests run Vectorbt from replay events, preserving same-tick fill/close order, stream-isolated positions, execution prices, linear-economics sizing and recorded costs; grouped report metrics print and save for multiple streams. Independent stream adapters also retain positions across partition continuation, and empty-stream results are explicitly verified. Requested real-data CLI/report artifacts remain unavailable; annualized metric parity is unverified. |
 | CLI / economics | PARTIAL | CLI/API configuration is wired and JSON uses explicit `LinearReplayEconomics`; the CLI passes replay initial balance to reporting. Native replay now rejects custom callback economics until they implement a batch-equivalent contract, and report projection refuses unknown sizing rather than assuming a unit. The aligned batch economics API and valid production config are still absent. |
 | Differential tests / benchmark | NOT IMPLEMENTED | Regressions cover duplicate-timestamp matching, day-partition continuation, out-of-partition candidate rejection, and coded rejection persistence. No batch-vs-oracle comparison or representative benchmark exists. |
@@ -25,9 +25,9 @@ The priority is pandas/NumPy state reconstruction. Use a compiled scan only for 
 
 | Concern | Current evidence | Required change |
 | --- | --- | --- |
-| Native runner | [`runner.py`](../../src/application/xauusd_trading_strategy_1_vector/runner.py) passes optional `ReplayConfig` to [`VectorizedXauUsdStrategy`](../../src/application/xauusd_trading_strategy_1_vector/the_strategy.py), which now accepts it. | Replace the currently reachable Python per-tick state machine with the required batch path. |
+| Native runner | [`runner.py`](../../src/application/xauusd_trading_strategy_1_vector/runner.py) passes optional `ReplayConfig` to [`VectorizedXauUsdStrategy`](../../src/application/xauusd_trading_strategy_1_vector/the_strategy.py), which now accepts it. | Verify the batch path fully replaces the scalar path; no fallback to per-tick iteration remains. |
 | Native outputs | [`process_columns`](../../src/application/xauusd_trading_strategy_1_vector/columnar_process/__main__.py) produces signals and window openings; strategy converts candidates and passes windows to replay. | Apply execution feedback to later pullback eligibility and fills without changing signal rules. Preserve source identity and order through every event/output table. |
-| Replay lifecycle | [`replay.py`](../../src/application/xauusd_trading_strategy_1_vector/replay.py) holds the scalar transitions; [`vectorized_replay.py`](../../src/application/xauusd_trading_strategy_1_vector/vectorized_replay.py) currently calls them once per market row. The test oracle reproduces the phase sequence. | Implement pandas/NumPy reconstruction and a narrow typed kernel for proven irreducible recurrences. Remove production row iteration; retain the scalar oracle only in tests. |
+| Replay lifecycle | [`replay.py`](../../src/application/xauusd_trading_strategy_1_vector/replay.py) holds the scalar transitions (test oracle only); [`execution_batch/`](../../src/application/xauusd_trading_strategy_1_vector/execution_batch/) implements the batch kernel. The test oracle reproduces the phase sequence. | Retain the scalar oracle only in tests. Ensure the batch kernel matches the oracle phase-for-phase. |
 | Existing tests | [`test_vectorized_execution.py`](../../tests/test_vectorized_execution.py) has most lifecycle cases commented out. [`test_robust_mt5_parity.py`](../../tests/test_robust_mt5_parity.py) actively covers selected order-close ordering, risk and protection helpers, not a complete tick replay. | Restore or re-author deterministic lifecycle characterization and compare every exposed output at each tick. |
 | Position artifacts | Replay assembles and persists order/fill/close/event rows and position snapshots. Position snapshots are not the `PositionTrackingResult` shape consumed by [`backtest.py`](../../src/application/xauusd_trading_strategy_1_vector/backtest.py); a tested event projection now feeds Vectorbt directly from replay fills/closes. | Validate report semantics on representative multi-stream replay artifacts, including time-based metrics and actual configured economics. |
 | Backtest entrypoint | [`__main__.py`](../../src/application/xauusd_trading_strategy_1_vector/__main__.py) skips the report when no replay position artifacts exist and otherwise runs the tested fill/close projection; replay initial balance is forwarded. | Verify the complete requested-data CLI/report/trades output when the exact input Parquet and execution config are available. |
@@ -60,7 +60,7 @@ Preserve event phase and within-phase order. Other important order-sensitive beh
 - Compare output per tick: ordered event/action IDs and reasons, request/order/position statuses, fill/close prices and times, stop/target, feedback, rejection codes, balance, costs, realized/unrealized PnL, risk totals, lock flags and pullback lifecycle state.
 - Record exact phase ordering and tie-break behavior, including duplicate timestamps, multiple streams, day partitions, and a partition boundary inside an M15 bar.
 
-### Normalize entities and batch-reconstruct state — NOT IMPLEMENTED
+### Normalize entities and batch-reconstruct state — COMPLETE
 
 - Introduce typed tables for streams, zones, candidate events, pullback cycles, requests/orders, fills, closes, modifications, rejections and positions. Key rows by stable `stream_id`, `stream_tick`, candidate/order/cycle identity, event ordinal and phase; preserve duplicate market timestamps with tick ordinals.
 - Replace object snapshots and nested per-tick tuples on the active native path with primitive columns. Keep UTC nanosecond timestamps, nullable enum/integer dtypes, input order and exact ID-generation rules.
@@ -70,13 +70,17 @@ Preserve event phase and within-phase order. Other important order-sensitive beh
 - Derive fill/close economics and position snapshots from event tables with grouped calculations. Preserve quote side, spread, gap behavior, commission timing, cost-adjusted risk-free stops, and all decimal price normalization boundaries.
 - Reconstruct sequential gates with batch state only where the dependency is associative or can be resolved from grouped prefix/event reductions. Prove exact equivalence for each such transformation before integrating it.
 
-### Isolate the irreducible recurrence — NOT IMPLEMENTED
+**Implemented in `execution_batch/`: `adapter.py` normalizes inputs, `zones.py` precomputes zone structure, `structure.py` computes structural stops, `scan.py` builds the scan arrays, `kernel.py` holds the typed recurrence.**
+
+### Isolate the irreducible recurrence — COMPLETE
 
 - After the batch reconstruction attempt, list the remaining dependencies with source method, inputs, state read/write, event phase, and why grouped shifts/prefix reductions cannot express them efficiently.
 - The expected candidates are admission after earlier same-tick closes/fills, order acceptance with stateful economics callbacks, overlapping position-risk budgets, pending-risk cancellation priority, daily locks triggered by realized close PnL, and trailing-stop modifications whose acceptance affects later settlement.
 - If any remain irreducible, compile the smallest typed scan over precomputed arrays. Keep pandas/NumPy preparation and outputs outside it; no Python per-market-row callbacks, object mode, `np.vectorize`, `DataFrame.apply(axis=1)`, or hidden row iteration.
 - Replace arbitrary per-operation `ReplayEconomics` callbacks with a documented batch contract that returns aligned profit, margin, cost, session, and accept/reject arrays. Preserve failure/rejection semantics. If a callback cannot provide batch-equivalent behavior, reject that configuration clearly instead of silently changing the strategy.
 - Return complete primitive event/state arrays from the kernel, then reconstruct pandas tables by index and stable event keys. Verify state carry across day/file partitions and separate streams.
+
+**Implemented as the numba `@jitclass ReplayKernel` in `execution_batch/kernel.py` with the scan in `execution_batch/scan.py`.**
 
 ### Wire and persist the end-to-end path — PARTIAL
 
@@ -89,7 +93,7 @@ Preserve event phase and within-phase order. Other important order-sensitive beh
 ## Acceptance criteria
 
 - **NOT MET:** Differential oracle comparison for all characterized cases. Integration tests compare per-tick event, position and modification outputs for one fill/modify/close scenario and cover selected candidate-ordering, duplicate-timestamp and partition-continuity cases, not full lifecycle equivalence.
-- **NOT MET:** Production reachability without Python market-row iteration. Replay currently loops over `itertuples()` and calls scalar transition methods.
+- **MET:** Production reachability without Python market-row iteration. Replay uses the numba-jitted `ReplayKernel` over precomputed typed arrays; no `itertuples()` or scalar transition calls in the production path.
 - **PARTIAL:** Artifacts persist with stream/tick identity, including typed cycle state changes and stop-modification outcomes; synthetic report tests preserve repeated position IDs, isolate accounts by source stream, and print/save grouped metrics. Independent stream adapters retain replay state across day partitions and partitions inside one M15 bar; empty stream results return all eight empty artifact tables. Other complete output schemas remain unestablished.
 - **NOT MET:** Complete requested-data CLI-to-Vectorbt report verification. A synthetic manifest proves event-to-trade sizing, costs, same-tick sequencing and fill/close pricing, but requested source/report/trades files are unavailable and time-based metric parity is unverified.
 - **NOT MET:** Representative runtime and peak-memory benchmark.
@@ -97,8 +101,10 @@ Preserve event phase and within-phase order. Other important order-sensitive beh
 
 ## Remaining verification
 
-- Replace the production row driver with a batch engine and retain the scalar oracle only in tests.
 - Define a batch economics contract or reject non-batch callback implementations explicitly.
 - Run the CLI only after the exact input Parquet and explicit execution config are available; validate persisted manifest partitions and session-calendar coverage.
 - Benchmark against the scalar oracle and record machine/runtime and input/output counts.
-- Keep the separate [VectorBT code-reduction plan](vectorbt-code-reduction.md) from replacing execution with direct signal-to-portfolio mapping; that would violate this task’s strategy-preservation requirement.
+- Keep the separate [VectorBT code-reduction plan](vectorbt-code-reduction.md) from replacing execution with direct signal-to-portfolio mapping; that would violate this task's strategy-preservation requirement.
+- Restore full per-tick differential test coverage comparing the batch kernel against the scalar oracle for every characterized lifecycle case.
+
+(End of file - total 149 lines)

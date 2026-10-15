@@ -6,8 +6,6 @@ at Xenon rank B (low nesting, few branches per function).
 
 from __future__ import annotations
 
-from typing import List
-
 import numpy as np
 import pandas as pd
 from br_py_log_n_profile import profile_it
@@ -21,9 +19,9 @@ from domain.xau_usd.models import XauZone
 from helper.importer import pt
 
 
-@pandera_validate(allow_pandas_dataframe=True)
+@pandera_validate
 def count_directional_crosses_vectorized(
-    zones: List[XauZone],
+    zones: list[XauZone],
     previous_bid: pt.Series[float],
     current_bid: pt.Series[float],
 ) -> pt.Series[int]:
@@ -47,7 +45,7 @@ def count_directional_crosses_vectorized(
 def update_zone_engagement(
     ticks: pt.DataFrame[VectorizedTick],
     per_tick_state: pt.DataFrame[PerTickState],  # EngagementInput],
-    zones: List[XauZone],
+    zones: list[XauZone],
 ) -> pt.DataFrame[PerTickState]:
     """Update buy/sell engagement based on bid movement across zone boundaries.
 

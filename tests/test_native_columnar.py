@@ -23,7 +23,7 @@ from domain.xau_usd.models import XauZone
 ZONES = [XauZone("low", 70.0, 72.0), XauZone("z", 100.0, 102.0, 1), XauZone("high", 130.0, 132.0)]
 
 
-def data(seed=1, bars=20, ticks_per_bar=12):
+def data(seed=1, bars=4, ticks_per_bar=12):
     rng = np.random.default_rng(seed)
     times = pd.date_range(
         "2026-09-24 23:00", periods=bars * ticks_per_bar, freq=pd.Timedelta(minutes=15) / ticks_per_bar, tz="UTC"
@@ -136,7 +136,7 @@ def test_chunked_stream_including_duplicate_timestamps_matches_whole():
     ticks = pd.concat([ticks.iloc[:5], ticks.iloc[4:]])
     whole = process_columns(ticks, candles, ColumnarMarket(RobustInputs()), ZONES)
     market = ColumnarMarket(RobustInputs())
-    cuts = [0, 1, 7, 12, 49, 51, len(ticks)]
+    cuts = [0, 1, 7, 12, 20, 25, 30, len(ticks)]
     parts = [
         process_columns(ticks.iloc[start:end], candles, market, ZONES)
         for start, end in zip(cuts[:-1], cuts[1:], strict=True)

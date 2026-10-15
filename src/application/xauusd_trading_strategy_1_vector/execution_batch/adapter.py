@@ -57,20 +57,20 @@ class BatchReplay:
 
         return normalize_zones(self, zones)
 
-    @pandera_validate(allow_pandas_dataframe=True)
+    @pandera_validate
     def run(
         self,
         streams: pt.DataFrame[StreamEvents],
         zones: pt.DataFrame[ZoneEvents],
         candidates: pt.DataFrame[CandidateEvents],
-        windows: pd.DataFrame | None = None,
-        candles: pd.DataFrame | None = None,
+        windows: pt.DataFrame[ReplayWindows] | None = None,
+        candles: pt.DataFrame[CompletedCandles] | None = None,
     ) -> ReplayTables:
-        streams = StreamEvents.validate(streams).reset_index(drop=True)
-        zones = ZoneEvents.validate(zones).reset_index(drop=True)
-        candidates = CandidateEvents.validate(candidates).reset_index(drop=True)
-        if candles is not None:
-            candles = CompletedCandles.validate(candles.reset_index()).reset_index(drop=True)
+        # streams = StreamEvents.validate(streams).reset_index(drop=True)
+        # zones = ZoneEvents.validate(zones).reset_index(drop=True)
+        # candidates = CandidateEvents.validate(candidates).reset_index(drop=True)
+        # if candles is not None:
+        #     candles = CompletedCandles.validate(candles.reset_index()).reset_index(drop=True)
         if len(streams) and (not streams.stream_id.eq(self.stream_id).all() or streams.stream_tick.duplicated().any()):
             raise ValueError("Replay requires unique tick identity in one stream")
         if len(streams) and (
@@ -105,7 +105,7 @@ class BatchReplay:
                 }
             )
         # Normalize windows to match ReplayWindows schema (columns and dtypes)
-        windows = ReplayWindows.validate(windows).reset_index(drop=True)
+        # windows = ReplayWindows.validate(windows).reset_index(drop=True)
         wpos = positions.get_indexer(windows.stream_tick) if len(windows) else np.empty(0, dtype=np.int64)
         if (wpos < 0).any():
             raise ValueError("Window events reference stream ticks outside this replay partition")

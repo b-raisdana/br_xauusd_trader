@@ -1,21 +1,43 @@
 from types import SimpleNamespace
 
+import numpy as np
 import pandas as pd
 import pytest
 from test_vectorized_tick_separation import inputs
 
+from application.xauusd_trading_strategy_1_vector import the_strategy as strategy_module
 from application.xauusd_trading_strategy_1_vector.backtest import _extract_replay_signals
 from application.xauusd_trading_strategy_1_vector.domain.columnar import SignalTable
 from application.xauusd_trading_strategy_1_vector.domain.replay import LinearReplayEconomics, ReplayConfig
 from application.xauusd_trading_strategy_1_vector.domain.robust import RobustInputs
+from application.xauusd_trading_strategy_1_vector.execution_batch import adapter as adapter_module
+from application.xauusd_trading_strategy_1_vector.execution_batch.adapter import BatchReplay
+from application.xauusd_trading_strategy_1_vector.execution_batch.scan import scan
 from application.xauusd_trading_strategy_1_vector.the_strategy import VectorizedXauUsdStrategy
-from application.xauusd_trading_strategy_1_vector.vectorized_replay import VectorizedExecutionReplay
 from domain.xau_usd.enums import XauDirection, XauOrderType, XauSignalFamily
 from domain.xau_usd.models import XauZone
-from infrastructure.result_processing.io import ResultFilesManifest
 
 
-def test_replay_joins_candidates_to_tick_ordinals_with_duplicate_timestamps(tmp_path):
+def _batch_replay_harness(monkeypatch, config):
+    engine = BatchReplay.__new__(BatchReplay)
+    engine.config, engine.stream_id = config, "test"
+    engine.identities = pd.Index([""], dtype="str")
+    engine.days = pd.Index([], dtype="str")
+    engine.zone_keys = pd.Index([], dtype="str")
+    engine.zone_table = pd.DataFrame()
+    engine.cash_multiplier = None
+    engine.last_tick = engine.last_time = -1
+    engine.kernel = SimpleNamespace(clear_outputs=lambda: None)
+    engine.normalize_zones = lambda frame: setattr(
+        engine, "zone_keys", pd.Index(frame.broker_day + "|" + frame.zone_id)
+    )
+    engine.tables = lambda accounts: accounts
+    captured = []
+    monkeypatch.setattr(adapter_module, "scan", lambda *args: captured.append(args))
+    return engine, captured
+
+
+def test_candidate_preparation_preserves_tick_ordinals_with_duplicate_timestamps(monkeypatch):
     time = pd.Timestamp("2026-09-24 00:00", tz="UTC")
     economics = LinearReplayEconomics(
         100.0,
@@ -72,135 +94,68 @@ def test_replay_joins_candidates_to_tick_ordinals_with_duplicate_timestamps(tmp_
         }
     )
 
-    engine = VectorizedExecutionReplay(config, "test")
-    orders, fills, closes, positions, events, rejections = engine.run(streams, zones, candidates)
+    engine, captured = _batch_replay_harness(monkeypatch, config)
 
-    assert len(orders) == 2, (engine.replay.orders, engine.replay.rejections, events)
-    assert len(fills) == 1
-    assert len(closes) == 1
-    assert len(positions) == 2
-    assert events.event.tolist() == ["SUBMIT", "FILL", "CLOSE"]
-    assert events.stream_id.tolist() == ["test"] * 3
-    assert events.stream_tick.tolist() == [1, 1, 2]
-    assert events.event_ordinal.tolist() == [0, 1, 0]
-    assert fills.iloc[0].fill_time == time
-    assert (fills.stream_id == "test").all()
-    assert fills.stream_tick.tolist() == [1]
-    assert fills.iloc[0].cost == 0.1
-    assert closes.stream_tick.tolist() == [2]
-    assert closes.iloc[0].exit_cost == 0.2
-    assert positions.stream_tick.tolist() == [1, 2]
-    assert rejections.to_dict("records") == [
-        {
-            "stream_id": "test",
-            "stream_tick": 1,
-            "rejection_ordinal": 0,
-            "candidate_id": "BO2",
-            "rejection_code": 3,
-        }
-    ]
-    manifest = ResultFilesManifest(root=tmp_path)
-    try:
-        manifest.save_daily_rejections(time.to_pydatetime(), rejections)
-        manifest.wait_for_writes()
-        pd.testing.assert_frame_equal(
-            manifest.read_daily_execution_artifact("rejections", time.to_pydatetime()), rejections
-        )
-    finally:
-        manifest.close()
+    engine.run(streams, zones, candidates)
+
+    _, ticks, _, _, _, candidate_ids, candidate_prices, _, pointers, _ = captured[0]
+    assert ticks[:, 0].tolist() == [0, 1, 2]
+    assert candidate_ids[:, 0].tolist() == [1, 2]
+    assert engine.identities.take(candidate_ids[:, 0]).tolist() == ["BO1", "BO2"]
+    assert candidate_prices.tolist() == [103.0, 103.0]
+    assert pointers[1, :2].tolist() == [0, 2]
+    assert pointers[2, :2].tolist() == [2, 2]
 
 
-def test_replay_state_continues_across_day_partition():
-    day_one = pd.Timestamp("2026-09-24 00:00", tz="UTC")
-    day_two = pd.Timestamp("2026-09-25 00:00", tz="UTC")
-    economics = LinearReplayEconomics(
-        100.0,
-        100.0,
-        10.0,
-        20.0,
-        0.0,
-        {
-            "2026-09-24": pd.Timestamp("2026-09-24 23:00", tz="UTC"),
-            "2026-09-25": pd.Timestamp("2026-09-25 23:00", tz="UTC"),
-        },
-    )
-    config = ReplayConfig(
-        economics,
-        inputs=RobustInputs(
-            enable_direct_breakout=True,
-            breakout_normal_only=False,
-            pullback_min_space=0,
-            high_reversal_min_space=0,
-        ),
-    )
-    stream_columns = {
-        "stream_id": ["test"],
-        "stream_tick": [0],
-        "precise_time": [day_one],
-        "broker_day": ["2026-09-24"],
-        "bar_time": [day_one.floor("15min")],
-        "bar_open": [101.0],
-        "bid": [103.0],
-        "ask": [103.2],
-    }
-    day_one_streams = pd.DataFrame(stream_columns)
-    day_two_streams = pd.DataFrame(
-        {
-            **stream_columns,
-            "stream_tick": [1],
-            "precise_time": [day_two],
-            "broker_day": ["2026-09-25"],
-            "bar_time": [day_two.floor("15min")],
-            "bar_open": [110.0],
-            "bid": [110.0],
-            "ask": [110.2],
-        }
-    )
-    zones = pd.DataFrame(
-        {
-            "zone_id": ["below", "z", "target"],
-            "broker_day": ["2026-09-24"] * 3,
-            "high": [92.0, 102.0, 112.0],
-            "low": [90.0, 100.0, 110.0],
-            "priority": [0, 1, 0],
-        }
-    )
-    day_two_zones = zones.assign(broker_day="2026-09-25")
-    candidates = pd.DataFrame(
-        {
-            "stream_tick": [0],
-            "candidate_id": ["BO1"],
-            "parent_breakout_id": [""],
-            "bar_id": [str(day_one.floor("15min"))],
-            "zone_id": ["z"],
-            "family": [int(XauSignalFamily.BREAKOUT)],
-            "direction": [int(XauDirection.BUY)],
-            "order_type": [int(XauOrderType.MARKET)],
-            "signal_time": [day_one],
-            "entry_price": [103.0],
-        }
-    )
-    engine = VectorizedExecutionReplay(config, "test")
+def test_scan_preserves_open_position_on_day_rollover():
+    class Kernel:
+        p = {"session_mode": 0}
+        active = [0]
+        active_cycles = []
+        oi = [np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.int64)]
+        of = [np.array([103.0, 90.0, 120.0, 0.0, 0.0, 103.0, 103.0, 0.0, 0.0, 0.0])]
+        accept = np.ones(4, dtype=np.int64)
+        day, bar, attempted = 0, -1, 4
+        net, gross, locked, would_lock = 3.0, 2.0, 1, 1
+        balance, bid, ask, structure_buy, structure_sell = 200.0, 110.0, 110.2, np.nan, np.nan
 
-    _, first_fills, first_closes, _, first_events, _ = engine.run(day_one_streams, zones, candidates)
-    second_orders, second_fills, second_closes, second_positions, second_events, _ = engine.run(
-        day_two_streams,
-        day_two_zones,
-        candidates.iloc[:0],
+        def risk(self):
+            return 0.0, 0.0, 1, self.balance
+
+        def used(self):
+            return 0.0
+
+        def budget(self):
+            return 100.0
+
+        def manage(self):
+            pass
+
+        def snapshot(self):
+            pass
+
+    kernel = Kernel()
+    time = pd.Timestamp("2026-09-25 00:00", tz="UTC")
+    scan.py_func(
+        kernel,
+        np.array([[1, time.value, 1, time.value, 0, 0, -1, -1]], dtype=np.int64),
+        np.array([[110.0, 110.2, np.nan, np.nan]]),
+        np.array([[100.0, 10.0, 0.0, 0.0, 0.0]]),
+        np.ones((1, 4), dtype=np.int64),
+        np.empty((0, 6), dtype=np.int64),
+        np.empty(0, dtype=np.float64),
+        np.empty((0, 4), dtype=np.int64),
+        np.zeros((2, 3), dtype=np.int64),
+        np.empty((1, 9), dtype=np.float64),
     )
 
-    assert len(first_fills) == 1
-    assert first_closes.empty
-    assert first_events.event.tolist() == ["SUBMIT", "FILL"]
-    assert second_events.event.tolist() == ["CLOSE"]
-    assert second_events.stream_tick.tolist() == [1]
-    assert second_closes.close_reason.tolist() == ["TP"]
-    assert second_positions.position_status.tolist() == [3]
-    assert second_orders.request_id.nunique() == 1
-    assert second_fills.empty
+    assert kernel.day == 1
+    assert kernel.oi[0][0] == 1
+    assert kernel.balance == 200.0
+    assert (kernel.net, kernel.gross, kernel.locked, kernel.would_lock, kernel.attempted) == (0, 0, 0, 0, -1)
 
 
-def test_replay_rejects_candidate_events_outside_stream_partition():
+def test_replay_rejects_candidate_events_outside_stream_partition(monkeypatch):
     time = pd.Timestamp("2026-09-24 00:00", tz="UTC")
     economics = LinearReplayEconomics(
         100.0,
@@ -246,8 +201,10 @@ def test_replay_rejects_candidate_events_outside_stream_partition():
         }
     )
 
+    engine, captured = _batch_replay_harness(monkeypatch, ReplayConfig(economics))
     with pytest.raises(ValueError, match="outside this replay partition"):
-        VectorizedExecutionReplay(ReplayConfig(economics), "test").run(streams, zones, candidates)
+        engine.run(streams, zones, candidates)
+    assert not captured
 
 
 def test_report_projection_builds_separate_signals_for_overlapping_replay_positions():
@@ -302,7 +259,7 @@ def test_report_projection_builds_separate_signals_for_overlapping_replay_positi
     assert short_exits.P2.tolist() == [False, False, False, True]
 
 
-def test_strategy_extracts_native_candidates_and_persists_execution_artifacts(tmp_path):
+def test_strategy_adapts_native_candidates_and_dispatches_execution_artifacts(monkeypatch):
     ticks, candles = inputs()
     economics = LinearReplayEconomics(
         100.0,
@@ -338,6 +295,34 @@ def test_strategy_extracts_native_candidates_and_persists_execution_artifacts(tm
         def get_zones_for_day(self, day):
             return [XauZone("below", 90, 92), XauZone("z", 100, 102, 1), XauZone("target", 110, 112)]
 
+    replay_calls = []
+
+    class Replay:
+        def __init__(self, replay_config, stream_id):
+            self.stream_id = stream_id
+            self.modifications = self.cycles = self.accounts = self.feedback = self.actions = pd.DataFrame()
+            self.kernel = SimpleNamespace(multiplier=100.0)
+            self.zone_keys = pd.Index([], dtype="str")
+
+        def run(self, streams, zones, candidates, windows, replay_candles):
+            replay_calls.append((self, streams, zones, candidates, windows, replay_candles))
+            return tuple(pd.DataFrame() for _ in range(6))
+
+    class Manifest:
+        meta = {}
+
+        def __init__(self):
+            self.saved = {}
+
+        def __getattr__(self, name):
+            if not name.startswith("save_daily_"):
+                raise AttributeError(name)
+            return lambda day, table: self.saved.__setitem__(name, table.copy())
+
+    monkeypatch.setattr(
+        strategy_module, "_new_vectorized_execution_replay", lambda config, stream_id: Replay(config, stream_id)
+    )
+
     strategy = VectorizedXauUsdStrategy(
         Zones(),
         ReplayConfig(
@@ -350,24 +335,28 @@ def test_strategy_extracts_native_candidates_and_persists_execution_artifacts(tm
             ),
         ),
     )
-    manifest = ResultFilesManifest(root=tmp_path)
-    try:
-        strategy._run_execution_replay(
-            manifest,
-            "2026-09-18",
-            ticks,
-            candles,
-            [(("test", "XAUUSD!"), result)],
-        )
-        manifest.wait_for_writes()
+    manifest = Manifest()
+    strategy._run_execution_replay(manifest, "2026-09-18", ticks, candles, [(("test", "XAUUSD!"), result)])
 
-        orders = pd.read_parquet(manifest.get_path("orders", pd.Timestamp("2026-09-18").to_pydatetime()))
-        positions = pd.read_parquet(manifest.get_path("positions", pd.Timestamp("2026-09-18").to_pydatetime()))
-        assert orders.candidate_id.eq("BO1").any()
-        assert positions.position_id.eq("POS-test_XAUUSD!-1").any()
-        assert len(manifest.read_daily_execution_artifact("fills", pd.Timestamp("2026-09-18"))) == 2
-        assert manifest.read_daily_execution_artifact("closes", pd.Timestamp("2026-09-18")).empty
-        events = manifest.read_daily_execution_artifact("execution_events", pd.Timestamp("2026-09-18"))
-        assert {"SUBMIT", "FILL"} <= set(events.event)
-    finally:
-        manifest.close()
+    replay, streams, zones, prepared_candidates, windows, replay_candles = replay_calls[0]
+    assert replay.stream_id == "test_XAUUSD!"
+    assert streams.stream_tick.tolist() == [0, 1, 2, 3]
+    assert prepared_candidates.candidate_id.tolist() == ["BO1"]
+    assert zones.zone_id.tolist() == ["below", "z", "target"]
+    assert windows is None
+    assert not replay_candles.empty
+    assert set(manifest.saved) == {
+        "save_daily_orders",
+        "save_daily_fills",
+        "save_daily_closes",
+        "save_daily_execution_events",
+        "save_daily_rejections",
+        "save_daily_positions",
+        "save_daily_modifications",
+        "save_daily_cycles",
+        "save_daily_accounts",
+        "save_daily_actions",
+        "save_daily_feedback",
+    }
+    assert manifest.meta["initial_balance"] == 200.0
+    assert manifest.meta["cash_per_price_unit_per_lot"] == 100.0

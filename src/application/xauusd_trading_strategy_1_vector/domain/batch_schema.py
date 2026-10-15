@@ -25,17 +25,17 @@ class StreamTimes(pa.DataFrameModel):
 class CompletedCandles(pa.DataFrameModel):
     """Completed M15 prices, with bar_time in a column or named index level."""
 
-    bar_time: Series[Annotated[pd.DatetimeTZDtype, "ns", "UTC"]] = pa.Field(nullable=True)
     high: Series[float]
     low: Series[float]
 
     @pa.dataframe_check
     def valid_bar_times(cls, frame) -> bool:
         if "bar_time" in frame.columns:
-            return True
-        if "bar_time" not in frame.index.names:
+            times = frame["bar_time"]
+        elif "bar_time" in frame.index.names:
+            times = frame.index.get_level_values("bar_time")
+        else:
             return False
-        times = frame.index.get_level_values("bar_time")
         return times.dtype == pd.DatetimeTZDtype("ns", "UTC") and not times.isna().any()
 
 

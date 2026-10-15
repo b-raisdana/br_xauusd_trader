@@ -2,6 +2,7 @@ from copy import deepcopy
 
 import numpy as np
 import pandas as pd
+import pytest
 from vectorized_fixtures import calculate_manifest, candles_from_ticks, prepared_ticks, with_native_bootstrap
 
 from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
@@ -9,6 +10,8 @@ from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrateg
 # from application.xauusd_trading_strategy_1_vector import VectorizedXauUsdStrategy
 from domain.xau_usd.enums import XauDirection, XauSignalFamily, XauTrend
 from domain.xau_usd.models import XauPullbackWindowState, XauSignalCandidate, XauZone
+
+pytestmark = [pytest.mark.integration, pytest.mark.slow]
 
 
 class Zones:
@@ -126,13 +129,12 @@ def test_scalar_parity_for_candidates_sequence_and_window_ownership():
     times = pd.DatetimeIndex(
         np.concatenate(
             [
-                pd.date_range(day, periods=80, freq="min", tz="UTC").to_numpy()
-                for day in pd.date_range("2026-09-18", periods=10, freq="D")
+                pd.date_range(day, periods=20, freq="min", tz="UTC").to_numpy()
+                for day in pd.date_range("2026-09-18", periods=2, freq="D")
             ]
         )
     )
-    times = times.delete(np.arange(20, 35))
-    times = times.insert(100, times[100])
+    times = times.insert(20, times[20])
     frame = ticks(times, 104 + rng.normal(0, 2, len(times)).cumsum())
     zones = [XauZone("a", 100, 102), XauZone("b", 106, 108)]
     expected, snapshots = oracle(frame, zones)

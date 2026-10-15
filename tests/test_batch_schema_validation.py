@@ -5,10 +5,9 @@ import pandas as pd
 import pytest
 from pandera.errors import SchemaError, SchemaErrors
 from test_batch_execution_replay import frames
-from test_oracle_scalar_replay import config
 
+from application.xauusd_trading_strategy_1_vector.execution_batch.adapter import BatchReplay
 from application.xauusd_trading_strategy_1_vector.execution_batch.structure import structural_stops
-from application.xauusd_trading_strategy_1_vector.vectorized_replay import VectorizedExecutionReplay
 
 
 def test_structure_requires_utc_stream_times():
@@ -36,7 +35,8 @@ def test_structure_requires_candle_time_identity():
 
 def test_replay_rejects_incomplete_nonempty_windows_before_execution():
     streams, zones, candidates, _ = frames([103.0], pd.DatetimeIndex(["2026-09-24"], tz="UTC"), {}, {})
-    engine = VectorizedExecutionReplay(config(), "test")
+    engine = BatchReplay.__new__(BatchReplay)
+    engine.last_tick = -1
     with pytest.raises((SchemaError, SchemaErrors)):
         engine.run(streams, zones, candidates, pd.DataFrame({"stream_tick": [0]}))
     assert engine.last_tick == -1

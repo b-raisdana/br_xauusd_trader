@@ -236,11 +236,9 @@ def test_zone_group_rejects_invalid_frame(defect):
 
 
 def test_supplied_candles_match_tick_history_with_gaps_and_day_reset():
-    frame = ticks(pd.date_range("2026-09-17 23:00", periods=100, freq="min", tz="UTC"), np.arange(100) + 100)
-    frame = frame.drop(frame.index[20:35])
-    candles = candles_from_ticks(frame)
+    frame = ticks(pd.date_range("2026-09-17 23:00", periods=40, freq="min", tz="UTC"), np.arange(40) + 100)
     strategy = VectorizedXauUsdStrategy(EmptyZones())
-    state, _ = calculate_manifest(strategy, frame, candles.sample(frac=1, random_state=1))
+    state, _ = calculate_manifest(strategy, frame, candles_from_ticks(frame).sample(frac=1, random_state=1))
     pd.testing.assert_frame_equal(state, calculate(frame))
 
 

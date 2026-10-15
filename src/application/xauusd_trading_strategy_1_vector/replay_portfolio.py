@@ -124,6 +124,42 @@ class ReplayPortfolio:
         return stats
 
 
+def _portfolio_arrays(
+    trades: pd.DataFrame, market: pd.DataFrame
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Project joined replay trades to the compact arrays consumed by Vectorbt."""
+    prices = np.empty((2, len(trades)), dtype=float)
+    prices[0] = trades.fill_price
+    closed = trades.close_time.notna().to_numpy()
+    fees = np.zeros((2, len(trades)))
+    fees[0] = trades.cost
+    fees[1, closed] = trades.loc[closed, "exit_cost"]
+    last_quotes = market.groupby("stream_id", sort=False).last()
+    long = trades.position_direction_entry.eq(0).to_numpy()
+    marks = np.where(long, trades.stream_id.map(last_quotes.bid), trades.stream_id.map(last_quotes.ask))
+    prices[1] = trades.close_price.where(trades.close_time.notna(), pd.Series(marks, index=trades.index))
+    sizes = trades.vectorbt_size.to_numpy(dtype=float)
+    return prices, fees, closed, long, sizes
+
+
+def _validate_recorded_pnl(trades: pd.DataFrame) -> None:
+    """Reject mismatched recorded PnL before starting the Vectorbt simulation."""
+    closed = trades.close_time.notna()
+    if not closed.any() or "realized_pnl" not in trades:
+        return
+    sign = np.where(trades.position_direction_entry.eq(0), 1.0, -1.0)
+    expected = (
+        sign[closed]
+        * (trades.loc[closed, "close_price"].to_numpy() - trades.loc[closed, "fill_price"].to_numpy())
+        * trades.loc[closed, "vectorbt_size"].to_numpy()
+        - trades.loc[closed, "cost"].to_numpy()
+        - trades.loc[closed, "exit_cost"].to_numpy()
+    )
+    recorded = trades.loc[closed, "realized_pnl"].to_numpy()
+    if not np.allclose(recorded, expected, atol=1e-9, rtol=1e-10):
+        raise ValueError("Replay realized PnL differs from recorded execution economics")
+
+
 @pandera_validate
 def report_from_events(
     ticks: pt.DataFrame[StreamEvents],
@@ -136,8 +172,6 @@ def report_from_events(
     import os
 
     os.environ.setdefault("MPLBACKEND", "Agg")
-    import vectorbt as vbt
-
     logging.getLogger("numba").setLevel(logging.WARNING)
 
     market = ticks.reset_index()
@@ -218,20 +252,13 @@ def report_from_events(
         mismatch = trades.close_time.notna() & trades.position_direction_entry.ne(trades.position_direction_exit)
         if mismatch.any():
             raise ValueError("Replay position direction changed between fill and close")
-    prices = np.empty((2, len(trades)), dtype=float)
-    prices[0] = trades.fill_price
-    sizes = trades.vectorbt_size.to_numpy(dtype=float)
-    fees = np.zeros((2, len(trades)))
-    fees[0] = trades.cost
-    closed = trades.close_time.notna().to_numpy()
-    fees[1, closed] = trades.loc[closed, "exit_cost"]
-    last_quotes = market.groupby("stream_id", sort=False).last()
-    long = trades.position_direction_entry.eq(0).to_numpy()
-    marks = np.where(long, trades.stream_id.map(last_quotes.bid), trades.stream_id.map(last_quotes.ask))
-    prices[1] = trades.close_price.where(trades.close_time.notna(), pd.Series(marks, index=trades.index))
+    _validate_recorded_pnl(trades)
+    prices, fees, closed, long, sizes = _portfolio_arrays(trades, market)
     entry = np.vstack([np.ones(len(trades), dtype=bool), np.zeros(len(trades), dtype=bool)])
     exit_mask = np.vstack([np.zeros(len(trades), dtype=bool), closed])
     columns = pd.MultiIndex.from_frame(trades[["stream_id", "position_id"]])
+    import vectorbt as vbt
+
     portfolio = vbt.Portfolio.from_signals(
         close=pd.DataFrame(prices, columns=columns),
         entries=entry & long,
@@ -268,8 +295,6 @@ def report_from_events(
             if end < len(stream):
                 pnl = sign * (row.close_price - row.fill_price) * row.vectorbt_size - row.cost - row.exit_cost
                 amounts[end:] += pnl
-                if hasattr(row, "realized_pnl") and not np.isclose(row.realized_pnl, pnl, atol=1e-9, rtol=1e-10):
-                    raise ValueError("Replay realized PnL differs from recorded execution economics")
         marked = pd.Series(initial_cash + amounts, index=pd.DatetimeIndex(stream.precise_time))
         equity[stream_id] = marked.groupby(level=0, sort=False).last().reindex(times).ffill().fillna(initial_cash)
     return ReplayPortfolio(portfolio, equity, initial_cash, fills, closes)

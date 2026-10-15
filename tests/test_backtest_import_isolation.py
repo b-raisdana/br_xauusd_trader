@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 
-def test_strategy_startup_does_not_load_plotting_dependencies():
+def test_strategy_startup_does_not_load_optional_backends():
     repo = Path(__file__).resolve().parents[1]
     env = {**os.environ, "PYTHONPATH": str(repo / "src")}
     result = subprocess.run(
@@ -18,7 +18,7 @@ import application.xauusd_trading_strategy_1_vector as strategy
 import application.xauusd_trading_strategy_1_vector.__main__ as entrypoint
 from application.xauusd_trading_strategy_1_vector import backtest
 assert get_type_hints(backtest.run_vectorbt_backtest)["manifest"] is backtest.ResultFilesManifest
-assert not ({"vectorbt", "matplotlib", "matplotlib.pyplot"} & sys.modules.keys())
+assert not ({"numba", "pandas_ta", "vectorbt", "matplotlib", "matplotlib.pyplot"} & sys.modules.keys())
 """,
         ],
         cwd=repo,

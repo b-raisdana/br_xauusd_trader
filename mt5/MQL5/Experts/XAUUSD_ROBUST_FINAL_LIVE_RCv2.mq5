@@ -4,8 +4,8 @@
 //| Status: generated Live RC; approved Strategy body preserved.          |
 //+------------------------------------------------------------------+
 #property strict
-#property version "1.015"
-#define CODE_VERSION "1.015"
+#property version "1.016"
+#define CODE_VERSION "1.016"
 #property description "XAUUSD robust final - guarded broker Live RC"
 #property tester_file "ranges.csv"
 
@@ -509,11 +509,31 @@ void WriteSummary(string category, string event, string zone_id, string signal_t
     PrintFormat("SUMMARY_OPEN_FAILED file=%s err=%d", InpSummaryFile, GetLastError());
     return;
   }
+  // Get account/risk metrics
+  double account_balance = AccountInfoDouble(ACCOUNT_BALANCE);
+  double account_equity  = AccountInfoDouble(ACCOUNT_EQUITY);
+  double account_free    = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
+  double account_margin  = AccountInfoDouble(ACCOUNT_MARGIN);
+  double margin_level    = 0.0;
+  if (account_margin > 0.0)
+    margin_level = (account_equity / account_margin) * 100.0;
+  bool ok_risk = true;
+  double risk_budget    = PortfolioRiskBudgetCash();
+  double open_risk      = SumEAOpenCashRisk(ok_risk);
+  double pending_risk   = SumEAPendingCashRisk(ok_risk);
+  double risk_used      = open_risk + pending_risk;
+  double risk_remaining = risk_budget - risk_used;
+  if (risk_remaining < 0.0)
+    risk_remaining = 0.0;
+  double riskable_money = risk_budget; // policy-based riskable capital
   if (FileSize(h) == 0)
   {
     FileWrite(h, "server_time", "category", "event", "zone_id", "signal", "trend", "entry_type",
               "breakout_id", "parent_breakout_id", "requested_price", "fill_price", "sl", "tp", "r0", "position_ticket", "counted_in_pnl",
-              "net_pnl", "stacked_pullback", "reversal_ordinal", "gap_below", "gap_above", "nearest_gap", "note");
+              "net_pnl", "stacked_pullback", "reversal_ordinal", "gap_below", "gap_above", "nearest_gap",
+              "account_balance", "account_equity", "free_margin", "margin_used", "margin_level",
+              "riskable_money", "risk_budget", "risk_used", "risk_remaining", "open_risk", "pending_risk",
+              "daily_realized_net", "daily_realized_gross_loss", "note");
   }
   double gb, ga, gn;
   GetZoneGapContext(zone_id, gb, ga, gn);
@@ -523,7 +543,14 @@ void WriteSummary(string category, string event, string zone_id, string signal_t
             DoubleToString(requested_price, _Digits), DoubleToString(fill_price, _Digits),
             DoubleToString(sl, _Digits), DoubleToString(tp, _Digits), DoubleToString(r0, _Digits),
             StringFormat("%I64u", position_ticket), counted_in_pnl ? "true" : "false",
-            DoubleToString(net_pnl, 2), stacked_pullback ? "true" : "false", IntegerToString(reversal_ordinal), GapText(gb), GapText(ga), GapText(gn), Sanitize(note));
+            DoubleToString(net_pnl, 2), stacked_pullback ? "true" : "false", IntegerToString(reversal_ordinal),
+            GapText(gb), GapText(ga), GapText(gn),
+            DoubleToString(account_balance, 2), DoubleToString(account_equity, 2), DoubleToString(account_free, 2),
+            DoubleToString(account_margin, 2), DoubleToString(margin_level, 2),
+            DoubleToString(riskable_money, 2), DoubleToString(risk_budget, 2), DoubleToString(risk_used, 2),
+            DoubleToString(risk_remaining, 2), DoubleToString(open_risk, 2), DoubleToString(pending_risk, 2),
+            DoubleToString(g_daily_realized_net, 2), DoubleToString(g_daily_realized_gross_loss, 2),
+            Sanitize(note));
   FileClose(h);
 }
 
@@ -576,7 +603,9 @@ string WriteJournal(string rule_id, string event, string zone_id, string signal_
               "g_day_key", "g_day_valid", "g_bar_time", "g_prev_bid", "g_ref_high", "g_ref_low", "g_trend",
               "g_event_seq", "g_breakout_seq", "g_initial_deposit", "g_daily_realized_net", "g_daily_realized_gross_loss",
               "g_daily_stop", "g_daily_would_trigger_logged", "g_visual_prefix", "g_session_preclose_active", "g_restart_lock",
-              "g_last_new_order_bar", "g_session_cutoff_key", "g_session_active_window_key", "g_session_active_from", "g_session_active_to");
+              "g_last_new_order_bar", "g_session_cutoff_key", "g_session_active_window_key", "g_session_active_from", "g_session_active_to",
+              "account_balance", "account_equity", "free_margin", "margin_used", "margin_level",
+              "riskable_money", "risk_budget", "risk_used", "risk_remaining", "open_risk", "pending_risk");
   }
   double gb, ga, gn;
   GetZoneGapContext(zone_id, gb, ga, gn);
@@ -590,11 +619,11 @@ string WriteJournal(string rule_id, string event, string zone_id, string signal_
   string snapshot_session_active_from = "", snapshot_session_active_to = "";
   if (event == "MULTI_ZONE_TICK_GAP")
   {
-    raw_zones = JsonRawZones();
-    zones = JsonZones();
-    cycles = JsonCycles();
-    requests = JsonRequests();
-    positions = JsonPositions();
+    raw_zones = Sanitize(JsonRawZones());
+    zones = Sanitize(JsonZones());
+    cycles = Sanitize(JsonCycles());
+    requests = Sanitize(JsonRequests());
+    positions = Sanitize(JsonPositions());
     snapshot_day_key = g_day_key;
     snapshot_day_valid = JsonBool(g_day_valid);
     snapshot_bar_time = StringFormat("%I64d", (long)g_bar_time);
@@ -618,6 +647,23 @@ string WriteJournal(string rule_id, string event, string zone_id, string signal_
     snapshot_session_active_from = StringFormat("%I64d", (long)g_session_active_from);
     snapshot_session_active_to = StringFormat("%I64d", (long)g_session_active_to);
   }
+  // always write current account/risk
+  double account_balance = AccountInfoDouble(ACCOUNT_BALANCE);
+  double account_equity  = AccountInfoDouble(ACCOUNT_EQUITY);
+  double account_free    = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
+  double account_margin  = AccountInfoDouble(ACCOUNT_MARGIN);
+  double margin_level    = 0.0;
+  if (account_margin > 0.0)
+    margin_level = (account_equity / account_margin) * 100.0;
+  bool ok_risk = true;
+  double risk_budget    = PortfolioRiskBudgetCash();
+  double open_risk      = SumEAOpenCashRisk(ok_risk);
+  double pending_risk   = SumEAPendingCashRisk(ok_risk);
+  double risk_used      = open_risk + pending_risk;
+  double risk_remaining = risk_budget - risk_used;
+  if (risk_remaining < 0.0)
+    risk_remaining = 0.0;
+  double riskable_money = risk_budget;
   FileSeek(h, 0, SEEK_END);
   FileWrite(h, eid, ServerTimeMs(), "2.10-ROBUST-FINAL", _Symbol, AccountInfoString(ACCOUNT_SERVER), ModelToString(),
             rule_id, event, zone_id, TrendToString(g_trend), signal_type, entry_type,
@@ -630,7 +676,9 @@ string WriteJournal(string rule_id, string event, string zone_id, string signal_
             snapshot_ref_high, snapshot_ref_low, snapshot_trend, snapshot_event_seq, snapshot_breakout_seq, snapshot_initial_deposit,
             snapshot_daily_realized_net, snapshot_daily_realized_gross_loss, snapshot_daily_stop, snapshot_daily_would_trigger_logged,
             snapshot_visual_prefix, snapshot_session_preclose_active, snapshot_restart_lock, snapshot_last_new_order_bar,
-            snapshot_session_cutoff_key, snapshot_session_active_window_key, snapshot_session_active_from, snapshot_session_active_to);
+            snapshot_session_cutoff_key, snapshot_session_active_window_key, snapshot_session_active_from, snapshot_session_active_to,
+            DoubleToString(account_balance,2), DoubleToString(account_equity,2), DoubleToString(account_free,2), DoubleToString(account_margin,2), DoubleToString(margin_level,2),
+            DoubleToString(riskable_money,2), DoubleToString(risk_budget,2), DoubleToString(risk_used,2), DoubleToString(risk_remaining,2), DoubleToString(open_risk,2), DoubleToString(pending_risk,2));
   FileClose(h);
   return eid;
 }

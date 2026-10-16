@@ -1,7 +1,7 @@
 [project]
 name = "xauusd-mvp"
 version = "2.0.0"
-description = "XAUUSD trading system MVP: strategy engine + cTrader Open API client"
+description = "XAUUSD trading system MVP: strategy engine"
 requires-python = ">=3.12"
 dependencies = [
     "pandas-ta",
@@ -49,9 +49,6 @@ dev = [
     "pytest-xdist>=3.6",
 ]
 
-[project.scripts]
-ctrader-cli = "presentation.ctrader.ctrader_cli:app"
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -89,7 +86,6 @@ check_untyped_defs = true
 
 [[tool.mypy.overrides]]
 module = [
-    "ctrader_open_api.*",
     "google.protobuf.*",
     "google.protobuf.descriptor",
     "MetaTrader5",

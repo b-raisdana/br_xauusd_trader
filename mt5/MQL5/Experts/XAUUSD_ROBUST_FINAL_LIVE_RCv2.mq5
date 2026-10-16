@@ -4,8 +4,8 @@
 //| Status: generated Live RC; approved Strategy body preserved.          |
 //+------------------------------------------------------------------+
 #property strict
-#property version "1.016"
-#define CODE_VERSION "1.016"
+#property version "1.017"
+#define CODE_VERSION "1.017"
 #property description "XAUUSD robust final - guarded broker Live RC"
 #property tester_file "ranges.csv"
 
@@ -511,17 +511,17 @@ void WriteSummary(string category, string event, string zone_id, string signal_t
   }
   // Get account/risk metrics
   double account_balance = AccountInfoDouble(ACCOUNT_BALANCE);
-  double account_equity  = AccountInfoDouble(ACCOUNT_EQUITY);
-  double account_free    = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
-  double account_margin  = AccountInfoDouble(ACCOUNT_MARGIN);
-  double margin_level    = 0.0;
+  double account_equity = AccountInfoDouble(ACCOUNT_EQUITY);
+  double account_free = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
+  double account_margin = AccountInfoDouble(ACCOUNT_MARGIN);
+  double margin_level = 0.0;
   if (account_margin > 0.0)
     margin_level = (account_equity / account_margin) * 100.0;
   bool ok_risk = true;
-  double risk_budget    = PortfolioRiskBudgetCash();
-  double open_risk      = SumEAOpenCashRisk(ok_risk);
-  double pending_risk   = SumEAPendingCashRisk(ok_risk);
-  double risk_used      = open_risk + pending_risk;
+  double risk_budget = PortfolioRiskBudgetCash();
+  double open_risk = SumEAOpenCashRisk(ok_risk);
+  double pending_risk = SumEAPendingCashRisk(ok_risk);
+  double risk_used = open_risk + pending_risk;
   double risk_remaining = risk_budget - risk_used;
   if (risk_remaining < 0.0)
     risk_remaining = 0.0;
@@ -649,17 +649,17 @@ string WriteJournal(string rule_id, string event, string zone_id, string signal_
   }
   // always write current account/risk
   double account_balance = AccountInfoDouble(ACCOUNT_BALANCE);
-  double account_equity  = AccountInfoDouble(ACCOUNT_EQUITY);
-  double account_free    = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
-  double account_margin  = AccountInfoDouble(ACCOUNT_MARGIN);
-  double margin_level    = 0.0;
+  double account_equity = AccountInfoDouble(ACCOUNT_EQUITY);
+  double account_free = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
+  double account_margin = AccountInfoDouble(ACCOUNT_MARGIN);
+  double margin_level = 0.0;
   if (account_margin > 0.0)
     margin_level = (account_equity / account_margin) * 100.0;
   bool ok_risk = true;
-  double risk_budget    = PortfolioRiskBudgetCash();
-  double open_risk      = SumEAOpenCashRisk(ok_risk);
-  double pending_risk   = SumEAPendingCashRisk(ok_risk);
-  double risk_used      = open_risk + pending_risk;
+  double risk_budget = PortfolioRiskBudgetCash();
+  double open_risk = SumEAOpenCashRisk(ok_risk);
+  double pending_risk = SumEAPendingCashRisk(ok_risk);
+  double risk_used = open_risk + pending_risk;
   double risk_remaining = risk_budget - risk_used;
   if (risk_remaining < 0.0)
     risk_remaining = 0.0;
@@ -677,8 +677,8 @@ string WriteJournal(string rule_id, string event, string zone_id, string signal_
             snapshot_daily_realized_net, snapshot_daily_realized_gross_loss, snapshot_daily_stop, snapshot_daily_would_trigger_logged,
             snapshot_visual_prefix, snapshot_session_preclose_active, snapshot_restart_lock, snapshot_last_new_order_bar,
             snapshot_session_cutoff_key, snapshot_session_active_window_key, snapshot_session_active_from, snapshot_session_active_to,
-            DoubleToString(account_balance,2), DoubleToString(account_equity,2), DoubleToString(account_free,2), DoubleToString(account_margin,2), DoubleToString(margin_level,2),
-            DoubleToString(riskable_money,2), DoubleToString(risk_budget,2), DoubleToString(risk_used,2), DoubleToString(risk_remaining,2), DoubleToString(open_risk,2), DoubleToString(pending_risk,2));
+            DoubleToString(account_balance, 2), DoubleToString(account_equity, 2), DoubleToString(account_free, 2), DoubleToString(account_margin, 2), DoubleToString(margin_level, 2),
+            DoubleToString(riskable_money, 2), DoubleToString(risk_budget, 2), DoubleToString(risk_used, 2), DoubleToString(risk_remaining, 2), DoubleToString(open_risk, 2), DoubleToString(pending_risk, 2));
   FileClose(h);
   return eid;
 }

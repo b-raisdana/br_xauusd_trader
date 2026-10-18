@@ -141,3 +141,7 @@ exclude-dir = "archive_not_used_trash"
 # logs/pre-commit/full_backup/. Patch filtering for tracked/untracked files is
 # handled by .gitignore; this regex only controls the full-vs-patch split.
 full_backup_exclude_dir_regex = '^(data|logs|archive_not_used_trash)$'
+
+[tool.br_pre_commit.sync_skills]
+agents = ["agents", "claude", "kiro"]
+github-git-commit = false

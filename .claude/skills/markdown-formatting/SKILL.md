@@ -23,4 +23,4 @@ No numbering at any level — not the `#` title, not `##`/`###` sections, nothin
 
 Default to `-` bullets. Use `1.`/`2.`/... only when the sequence itself carries meaning the reader must follow — sequential steps, a ranked/priority order, a chronology. If reordering the items wouldn't change their meaning, they're not a numbered list.
 
-Example: [PROMPT.md § Selection algorithm](../../../docs/ML_Forecasting_System_Design/designsets/PROMPT.md#selection-algorithm) numbers its steps because each depends on the previous one running first; the same file's requirement tables use bullets/table rows since those topics have no required order.
+Use numbered lists only for ordered procedures; use bullets or tables for independent facts.

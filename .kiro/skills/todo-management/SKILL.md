@@ -7,7 +7,7 @@ description: Use when creating, updating, or completing TODO documentation. All 
 
 ## Skill synchronization
 
-Skills are synchronized across agent environments via the pre-commit hook. Do not edit local copies independently — apply changes to `.kilo/skills/` and let pre-commit propagate them.
+Skills are synchronized across agent environments via the pre-commit hook. Do not edit local copies independently — apply changes to `.agents/skills/` and let pre-commit propagate them.
 
 ## Location
 

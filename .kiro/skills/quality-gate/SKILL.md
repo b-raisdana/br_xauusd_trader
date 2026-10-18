@@ -18,4 +18,4 @@ During rapid MVP execution, run affected targeted checks after each implementati
 
 Fix failures caused by the work.
 Do not disable checks to get a green result.
-Update `TEST_STATUS.md` with evidence.
+Record evidence in the relevant task/report and link it from `docs/CURRENT_STATE.md`; update Test Status if that register exists.

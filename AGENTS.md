@@ -8,7 +8,7 @@ Read [current state](docs/CURRENT_STATE.md), inspect `git status --short` and th
 
 - Current explicit Project Leader instructions take precedence. Confirmed trading/risk rules override code; escalate unresolved contradictions. Never turn hypotheses or archived behavior into confirmed rules.
 - No consolidated RULES/DECISIONS register currently exists. Consult behavioral documents and the [acceptance tracker](docs/todo/MT5-Python.Divergence.md); code describes behavior but does not prove native parity. If confirmed Rules/Decisions are introduced, they outrank current state, TODOs, README and code, in that order. Experiments and historical evidence never activate rules.
-- Project Leader owns scope, scientific acceptance and trading/risk approval. Codex owns implementation, tests, debugging, environment and state synchronization. [ChatGPT Work](CHATGPT_WORK.md) owns research/handoffs and does not modify implementation by default.
+- Project Leader owns scope, scientific acceptance and trading/risk approval. Codex owns implementation, tests, debugging, environment and state synchronization. ChatGPT Work owns research/handoffs and does not modify implementation by default.
 - `archive_not_used_trash/` and `mt5/archive.zip` are regression/reference inputs, never active specifications.
 
 ## Execute and verify
@@ -16,7 +16,7 @@ Read [current state](docs/CURRENT_STATE.md), inspect `git status --short` and th
 - Preserve unrelated changes and secrets. Inspect code before editing; choose safe reversible defaults. Correctness > speed > elegance; avoid speculative abstractions and dependencies.
 - Complete coherent batches of implementation, tests and documentation. Checkpoints and status questions do not end the authorized objective; continue related safe work without routine approval.
 - Use targeted tests during a batch and the appropriate full gate at a major boundary. Never disable checks, weaken assertions or claim PASS without evidence. Reuse unchanged expensive evidence for reporting.
-- Update current state and relevant work under `docs/todo/`. Read task-specific skills only when applicable. Edit shared skills under `.kilo/skills/`; mirrors exist for tool discovery and must remain identical.
+- Update current state and relevant work under `docs/todo/`. Read task-specific skills only when applicable. Edit shared skills under `.agents/skills/`; mirrors exist for tool discovery and must remain identical.
 - Use narrow `rg` searches; explicitly name archive/mirror paths when needed. Do not load entire logs, datasets, notebooks or handoffs for routine recovery.
 - Keep Git history/origin. Batch local checkpoints when authorized by the active session; do not create commits, branches, pushes or PRs without explicit authorization. Remote CI is manual, not a routine local gate.
 

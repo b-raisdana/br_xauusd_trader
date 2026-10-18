@@ -5,7 +5,7 @@ description: Use whenever writing, running, or debugging pytest tests in this re
 
 # Pytest
 
-Load [test-strategy](../../../.agents/skills/test-strategy/SKILL.md) first when choosing what behavior and test type to add. This skill covers test execution and runtime boundaries.
+Load [test-strategy](../test-strategy/SKILL.md) first when choosing what behavior and test type to add. This skill covers test execution and runtime boundaries.
 
 ## Commands and selection
 
@@ -13,7 +13,7 @@ Load [test-strategy](../../../.agents/skills/test-strategy/SKILL.md) first when 
 - `python -m pytest -q -m unit` is the pre-commit gate. `.pre-commit-config.yaml` runs this command for source, test, and pytest-config changes.
 - `python -m pytest` runs the complete suite. `.github/workflows/ci-python.yml` runs it in the manually dispatched CI workflow, including slow integration tests.
 - `-n auto --dist=load` is configured globally. xdist starts one worker per detected CPU; work is load-balanced across workers. Do not add a second parallelization layer inside tests.
-- On the current 32-logical-CPU Windows host, the 83-test unit gate took 12.97 s with `-n auto`, down from 14.55 s before lazy optional-backend imports. An earlier worker-count check measured 12.22 s at `-n 8` and 16.08 s at `-n 4`; keep auto as the portable maximum-parallel default and remeasure after suite changes because process startup dominates small suites.
+- Measure worker counts in this checkout before tuning xdist. Timings from other checkouts are not evidence for this suite; startup and repeated imports can dominate small selections. Use `-n 0` for focused diagnosis.
 - An unmarked test is assigned `unit` by `tests/conftest.py`. Any explicit marker prevents that default, so mark slow tests explicitly.
 
 ## Runtime boundaries

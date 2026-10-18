@@ -7,7 +7,7 @@ description: Use when creating or updating README.md files or repository-level d
 
 ## Skill synchronization
 
-Skills are synchronized across agent environments via the pre-commit hook. Do not edit local copies independently — apply changes to `.kilo/skills/` and let pre-commit propagate them.
+Skills are synchronized across agent environments via the pre-commit hook. Do not edit local copies independently — apply changes to `.agents/skills/` and let pre-commit propagate them.
 
 ## Root README
 

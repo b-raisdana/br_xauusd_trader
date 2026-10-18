@@ -15,6 +15,15 @@ Python 3.14 is the locally detected tool environment; dependency resolution for 
 
 ## Discover and validate
 
+Choose the smallest relevant tier before running commands; this list is a command reference, not a requirement to run every command after each edit.
+
+| Change | First check | Boundary check |
+| --- | --- | --- |
+| Navigation, skills, repository tools | Repository checker and isolated `scripts/tests` | Changed-file hooks; inspect mirror equality without staging |
+| Python behavior | Affected test file, usually `-m unit -n 0` | Unit gate and changed-file hooks |
+| Compiled replay or report backend | Deterministic helper tests | Relevant marked integration tests; full suite at a major boundary |
+| EA or execution parity | Source-linked regression and input provenance | Native compile/tester and first-difference evidence |
+
 ```powershell
 rg --files src tests
 rg -n 'ReplayConfig' src/application tests
@@ -46,4 +55,16 @@ Use an editable installation or set `PYTHONPATH` to `src` for module discovery. 
 
 `.ignore` narrows default ripgrep discovery around archives, mirrored skills and machine state; it does not change Git ownership or test collection. Search retained references explicitly, e.g. `rg -n 'ExecutionReplay' archive_not_used_trash`. IDE indexes may need local exclusions; no global/editor settings are changed.
 
-Shared skill authoring starts in `.kilo/skills/`. Other agent directories are discovery mirrors, retained for compatibility. Stage canonical skill changes only when authorized; the sync hook propagates staged intent and refuses conflicting edits. Without staging, update matching mirrors together and run the read-only repository checker. Do not invoke sync mutation merely to inspect consistency.
+Shared skill authoring starts in `.agents/skills/`. Other agent directories are discovery mirrors, retained for compatibility. Stage canonical skill changes only when authorized; the sync hook propagates staged intent and refuses conflicting edits. Without staging, update matching mirrors together and run the read-only repository checker. Do not invoke sync mutation merely to inspect consistency.
+
+`[tool.br_pre_commit.sync_skills]` in `pyproject.toml` selects physical mirror destinations: `agents`, `claude`, `kiro`. `github-git-commit = false` disables the legacy GitHub-only commit-skill slot. Copilot, Kilo and Devin use `.agents/skills/` directly, so their deleted mirror paths must stay outside sync's staged-deletion classifier; otherwise removing a duplicate could delete the shared skill everywhere. This configuration requires the accompanying `br_pre_commit` changes; preserve both repositories' diffs together until explicitly authorized to commit.
+
+| Platform | Project skill location | Discovery evidence checked 2026-10-18 |
+| --- | --- | --- |
+| Copilot | `.agents/skills/` | [GitHub locations](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) |
+| Kilo | `.agents/skills/` | [Default compatibility discovery](https://kilo.ai/docs/customize/skills) |
+| Devin | `.agents/skills/` | [Recommended shared location](https://docs.devin.ai/product-guides/skills) |
+| Claude | `.claude/skills/` mirror | [Documented project location](https://code.claude.com/docs/en/skills) |
+| Kiro | `.kiro/skills/` mirror | [Documented workspace location](https://kiro.dev/docs/skills/) |
+
+Keep the repository checker and its isolated tests in the local preflight/CI path. The hook wrapper rejects unregistered hook IDs under the current error policy; adding new local hook IDs requires a matching wrapper classification change, not a policy bypass.

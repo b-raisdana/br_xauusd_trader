@@ -14,7 +14,7 @@ description: Use for non-trivial implementation, bug fixes, refactors or multi-s
 - Recover from docs/CURRENT_STATE.md, open TODO items and the latest diff before opening broader history.
 - Use narrow search and bounded file ranges; do not load whole large logs, datasets or documents when selected evidence is enough.
 - Parse verbose command output locally and retain only failures, counters, hashes and decisive lines in model context.
-- Reuse docs/FINAL_TEST_REPORT.md and structured evidence for status/reporting; do not rerun unchanged MT5 tests to produce another summary.
+- Reuse verification evidence linked from docs/CURRENT_STATE.md when inputs and code are unchanged; do not require an absent report or rerun MT5 tests merely for a summary.
 - Keep updates concise and avoid repeating stored project context.
 
 ## Execute
@@ -42,7 +42,7 @@ description: Use for non-trivial implementation, bug fixes, refactors or multi-s
 
 ## Close
 - synchronize docs;
-- create one coherent local Git checkpoint for a major verified batch;
-- during rapid MVP execution, defer routine push/PR/remote CI unless the Leader requests it or remote recovery materially requires it;
+- create a coherent local Git checkpoint only when explicitly authorized in the active session;
+- commits, branches, pushes, PRs and remote CI require explicit Leader authorization; otherwise leave a reviewable diff;
 - if the objective remains open, immediately continue the next safe batch;
 - report outcome/evidence/risk/Leader decision only.

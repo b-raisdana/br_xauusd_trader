@@ -5,13 +5,13 @@ description: Use when adding a genuinely relational table (metadata, config, job
 
 # SQLAlchemy + DuckDB, ORM style
 
-Trigger: a table that's genuinely relational (has real structure/relationships/queries-by-key), not a bulk time-series artifact. Example use case: a coverage ledger tracking which `(datastore_relative_path, timeframe, window)` tuples `duckdb_cache` has already generated (see [docs/todos/duckdb_cache_decorator.md](../../../docs/todos/duckdb_cache_decorator.md) § SQLAlchemy + DuckDB ORM) — optional, not required for that decorator's v1.
+Trigger: a table that's genuinely relational (has real structure/relationships/queries-by-key), not a bulk time-series artifact. Example use case: a small coverage ledger. This is an optional design example, not an implemented requirement of the current cache decorator.
 
 **Do not use this for bulk OHLCV/indicator/label rows.** Row-by-row ORM object mapping is a serious throughput regression against columnar Parquet/DuckDB bulk writes (project-decisions § vectorized-pandas-numpy, lib-first) — time-series data stays in Parquet, queried in bulk via `duckdb.connect().execute(...)`/`read_parquet(...)`, never inserted one `session.add(...)` at a time.
 
 ## Dependencies
 
-`sqlalchemy[asyncio]==2.0.52` is already in `requirements.txt`. Add `alembic` and `duckdb-engine` (the SQLAlchemy dialect for DuckDB, connection string `duckdb:///path/to/file.duckdb`) the first time this pattern is actually used — not preemptively.
+Dependency declarations belong in `pyproject.toml`. Confirm existing dependencies before adding SQLAlchemy, Alembic or a DuckDB dialect; add them only when this relational use case is implemented.
 
 ## Pandera is the source of truth for columns
 
@@ -37,7 +37,3 @@ Relationships/foreign keys are the one piece Pandera has no concept of — pass 
 ## Alembic
 
 Point `alembic/env.py`'s `target_metadata` at the same `MetaData` object the generator populated — it works exactly like a hand-written declarative `Base.metadata`. Caveat: Alembic diffs whatever `metadata` currently holds, not the Pandera class definitions directly — if a Pandera schema changes, re-run the `pandera_to_table` generator (rebuild `metadata`) *before* `alembic revision --autogenerate`, or the migration diff will be against stale table shapes.
-
-## Full worked example
-
-`docs/todos/upgrade_duckdb_cache_to_use_sqlalchemy_and_alembic.md` has the complete version: schema definition, generator, imperative mapping with relationships, engine setup (`create_engine("duckdb:///...", poolclass=NullPool)`), CRUD, joins/aggregation via `select(...)`, a Pandera-validate-then-`session.merge()` row loop for small batches, and a SQL-level `INSERT ... ON CONFLICT DO UPDATE` for larger upserts. Read it before implementing a new table with this pattern.

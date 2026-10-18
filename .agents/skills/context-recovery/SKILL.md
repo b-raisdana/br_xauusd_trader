@@ -6,8 +6,8 @@ description: Use at the start of a new chat/session, after context loss, or when
 # Context Recovery
 
 1. Read `docs/CURRENT_STATE.md`.
-2. Read `docs/PROJECT_BRIEF.md` and relevant confirmed Rules.
-3. Read active Decisions/Experiments/Test Status when present.
+2. Follow the task map in `docs/ARCHITECTURE.md`; read relevant confirmed rules if present.
+3. Read only relevant acceptance/TODO evidence linked from current state; optional Decisions/Experiments/Test Status need not exist.
 4. Inspect `git status`, recent `git log`, current branch and remote.
 5. Inspect relevant code/tests/results.
 6. Compare documented state with repository reality.

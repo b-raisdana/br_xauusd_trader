@@ -19,4 +19,4 @@ The generator accepts the configured boundary argument (normally `time_range_str
 
 Read the actual decorator/helper code for boundary alignment and cache identity before changing persistence. Application roots/settings belong to `src/config/config.py`; do not create a second configuration path. In development mode, integrity checking can fetch data in a background thread and abort on mismatch; avoid enabling it during an unrelated inspection.
 
-[Historical design notes](../../../archive_not_used_trash/datastore-design.reference.md) retain obsolete paths, conflicting explanations and speculative ORM examples for reference only. They do not activate migration work or override current code/contracts. [Project task map](../../../docs/ARCHITECTURE.md) and [runbook](../../../RUNBOOK.md) provide navigation and validation commands.
+[Project task map](../../../docs/ARCHITECTURE.md) and [runbook](../../../RUNBOOK.md) provide navigation and validation commands. Archived designs do not activate migration work or override current code/contracts.

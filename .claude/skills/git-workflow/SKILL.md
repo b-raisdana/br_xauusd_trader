@@ -5,9 +5,11 @@ description: Use for Git/GitHub setup, commits, synchronization, branches or pul
 
 # Git Workflow
 
+The root AGENTS.md authorization and protected-branch policy govern every workflow below. Obtain explicit authorization for commits, branches, pushes and PRs; otherwise leave verified changes unstaged. Never treat connectivity or a verified batch as permission.
+
 ## Solo Standard default
 - Keep `main` in a verified state.
-- Small coherent work may commit directly to `main` after gates pass.
+- Respect configured protected branches; passing gates does not authorize a direct commit to `main`.
 - Use a short-lived branch for risky, multi-commit or experimental changes.
 - Push verified checkpoints to private GitHub remote.
 - PR is optional for solo work unless change risk justifies review.
@@ -15,7 +17,7 @@ description: Use for Git/GitHub setup, commits, synchronization, branches or pul
 ## Rapid MVP mode
 - Keep local Git and the configured remote; they provide rollback and provenance at negligible runtime cost.
 - Batch local commits at major verified boundaries instead of committing each implementation slice.
-- Defer routine pushes, PRs and remote CI. Push only when the Leader requests it or a remote recovery/release checkpoint materially justifies it.
+- Defer routine pushes, PRs and remote CI. Push only when explicitly requested by the Leader.
 - Git optimization must not weaken required strategy, risk, execution, compile or final acceptance checks.
 
 ## Team/Advanced

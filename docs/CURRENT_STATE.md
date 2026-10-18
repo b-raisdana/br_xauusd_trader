@@ -10,4 +10,6 @@ Python produces columnar signals and optional compiled batch execution replay. M
 
 ## Agentic maintenance
 
+Shared skills originate in `.agents/skills/`; only Claude and Kiro need physical mirrors. Copilot, Kilo and Devin use the shared folder. Root sync settings and the accompanying uncommitted hook-submodule changes must travel together. Current checks and remaining prerequisites are recorded in the [maintenance tracker](todo/agentic-maintenance.md); the audit's 2026-10-17 counts describe its earlier baseline.
+
 The [audit and validation report](AGENTIC_AUDIT.md) records baseline, changes, evidence and limitations. This maintenance work changes navigation/tooling, not trading algorithms or live enablement. Preserve the pre-existing diagram relocation (`docs/diagrams/orders-fsm.drawio` → `docs/ORDER_and_POSITION_management.FSM.drawio`).

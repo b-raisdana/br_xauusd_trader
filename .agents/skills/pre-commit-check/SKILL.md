@@ -12,15 +12,15 @@ After modifying code, run the repo's pre-commit gate before final handoff unless
 ```bash
 # Runs in the active Python environment on PATH (no WSL wrapper needed).
 # Make sure the project env that has pre-commit/ruff/pytest is active first.
-pre-commit run
+python -m pre_commit run --files <explicit-changed-paths>
 ```
 
 Use `pre-commit run --all-files` only when the change is broad, touches shared configuration, or the user asks for a full check.
 
 ## Performance budgets
 
-- Unit tests (pre-commit): `pytest -m unit` must finish in under 500 ms total. Tests that cannot meet this budget belong in `integration/`.
-- Integration tests (pre-push): `pytest -m integration` must finish in under 5 s total. Tests that cannot meet this budget belong in `e2e/` or `perf/`.
+- Unit tests target under 500 ms per test; total duration includes imports and worker startup. See the pytest skill for compiled boundaries.
+- Integration tests target under 5 seconds per test when practical; retain slower compiled checks under integration/slow markers. CI is manually dispatched.
 
 ## Failure Handling
 
@@ -31,12 +31,12 @@ If a hook fails:
 - Fix failures caused by the current edits.
 - Do not clean up unrelated legacy violations unless they block proving the current change and the smallest practical fix is clear.
 - For pytest failures, use the `pytest` skill before debugging or rerunning tests.
-- For Python files under `app/`, remember the `optimization-review` skill still applies after functional edits; do that review before the final pre-commit gate when both skills trigger.
+- For Python files under `src/`, remember the `optimization-review` skill still applies after functional edits; do that review before the final pre-commit gate when both skills trigger.
 
 ### The incremental mypy/ruff/xenon/loc ratchet
 
-`scripts/git-hooks/incremental-precommit/ratchet_check.py` (README.md in that folder) blocks only
-when a vector's **project-wide** count regresses past `baseline*.json` AND **staged app Python
+`br_pre_commit/src/ratchet/` (README.md in that folder) blocks only
+when a vector's **project-wide** count regresses past `baseline*.json` AND **staged src Python
 files** report a nonzero count for that vector — never for pre-existing debt alone. When it blocks:
 
 - Added files (`git status` shows `A`) have no pre-existing version — every violation on them is

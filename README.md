@@ -1,18 +1,27 @@
 # XAUUSD EA and Python research pipeline
 
-Repository for an M15 XAUUSD price-action strategy using daily zones. MT5 strategy and Python signals/offline replay are separate implementations with documented behavioral differences.
+M15 XAUUSD price-action research using daily zones. Python columnar signals and optional compiled execution replay are separate from the MT5 EA; exact native runtime parity remains unproven.
 
-## Current source and status
+## Start
 
-- [MT5 source](mt5/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5) replaces the former MVP/include/generated set. [MT5 README](mt5/README.md) describes actual inputs and visible lifecycle.
-- **Build dependency missing:** `XauRobustLiveEnvelope.mqh`. Final platform callbacks/release guards cannot be verified from the supplied file. The live-RC filename is not deployment approval.
-- [Python package](src/application/xauusd_trading_strategy_1_vector/README.md) implements signals and optional execution replay. Its CLI supports explicit replay economics through `--execution-config`; default mode remains signals-only.
-- [Divergence report](docs/todo/MT5-Python.Divergence.md) records current flow, defaults and state differences.
-- [State glossary](docs/State-Variables.Glossary.md) explains the [143-row CSV](docs/State-Variables.Glossary.csv).
-- [Parity follow-up](docs/todo/MT5-Python.Divergence.md) defines remaining acceptance work. The 2026-09-30 source port has regression coverage; native compile and exact runtime parity remain pending.
+- [Agent contract](AGENTS.md): authority and safety.
+- [Current state](docs/CURRENT_STATE.md): recovery and active work.
+- [Architecture and task map](docs/ARCHITECTURE.md): ownership, contracts and tests.
+- [Runbook](RUNBOOK.md): setup, search and validation.
+- [Acceptance tracker](docs/todo/MT5-Python.Divergence.md): remaining native differences.
 
-## Working in this repository
+## Components
 
-Read [AGENTS.md](AGENTS.md), inspect the current working tree and follow the linked current evidence. Several former project-control documents have been removed; do not treat their old links or archived test claims as present acceptance evidence. The Project Leader owns scope and trading/risk approval; Codex owns implementation and verification; ChatGPT Work owns research discussion/documentation.
+| Location | Responsibility |
+| --- | --- |
+| [Python strategy](src/application/xauusd_trading_strategy_1_vector/README.md) | Columnar signals, optional compiled batch replay, orchestration |
+| `src/domain/` | Shared schemas, zone geometry and enums |
+| `src/infrastructure/` | MT5 data acquisition, cache and result persistence |
+| [MT5 EA](mt5/README.md) | Native strategy and release envelope under `MQL5/Experts/` |
+| `tests/` | Regression and marked compiled integration tests |
+| `br_pre_commit/` | Git submodule providing hooks and schema validation |
+| `docs/todo/` | Focused implementation and acceptance work |
 
-`src/` contains Python implementation; `mt5/` contains the supplied EA and its documentation; `docs/` contains the comparison/glossary; `docs/todo/` contains executable follow-up. `mt5/archive.zip` is historical reference and does not override the supplied current source.
+[Pipeline design](docs/TICKs_and_ZONEs_to_SIGNALs.md), [signal-to-order design](docs/SIGNALs_to_ORDERS.md), [order/position design](docs/ORDER_and_POSITION_management.md) and [state glossary](docs/State-Variables.Glossary.md) provide focused behavioral context. Persian translations are companion explanations; resolve discrepancies against source and acceptance evidence.
+
+Archives and local data are retained but excluded from default source search. No profitability or live-readiness claim follows from available source/tests.

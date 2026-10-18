@@ -1,10 +1,10 @@
 # MT5 / Python divergence and acceptance
 
-Updated 2026-10-15. Objective: identical signals, positions and corresponding temporary/internal state for identical ordered inputs. Reference: [XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5](../../mt5/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5), replacing the former MVP, Include and Generated source set. Python now ports visible strategy transitions; **exact native runtime parity is not yet established**. This file is the consolidated implementation comparison and remaining-gap tracker.
+Updated 2026-10-15. Objective: identical signals, positions and corresponding temporary/internal state for identical ordered inputs. Reference: [XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5](../../mt5/MQL5/Experts/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5), replacing the former MVP, Include and Generated source set. Python now ports visible strategy transitions; **exact native runtime parity is not yet established**. This file is the consolidated implementation comparison and remaining-gap tracker.
 
 ## Reference boundary
 
-`XauRobustLiveEnvelope.mqh` is missing from the repository and `mt5/archive.zip`. Final event handlers, release/account guards, emergency handling and reconciliation cannot be compiled or audited. `<Trade/Trade.mqh>` is a separate standard platform dependency. No successful native build, matching native trace, profitability or live readiness is claimed.
+`XauRobustLiveEnvelope.mqh` is present beside the EA under `mt5/MQL5/Experts/` and defines final handlers and release guards. Native compilation and runtime validation of these paths remain unproven by this audit. `<Trade/Trade.mqh>` is a separate standard platform dependency. No successful native build, matching native trace, profitability or live readiness is claimed.
 
 ## Current Python flow
 

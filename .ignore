@@ -1,0 +1,16 @@
+# Default ripgrep discovery only; explicit paths remain searchable.
+/archive_not_used_trash/
+/br_pre_commit/
+/.claude/
+/.copilot/
+/.devin/
+/.kiro/
+/.kilo/
+/.agentsroom/
+/.br-pre-commit/
+/.idea/
+/.vscode/
+/mt5/archive.zip
+*.ex5
+*.ico
+*.lnk

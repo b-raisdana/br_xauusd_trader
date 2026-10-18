@@ -1,12 +1,12 @@
 # XAUUSD robust MT5 strategy
 
-Current source: [XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5](XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5), property version `2.20`. It replaces the former MVP EA, project `include/` modules and generated vectors/zones. `archive.zip` is historical material.
-
-Last checked against the source on 2026-10-01.
+Current source: [EA](MQL5/Experts/XAUUSD_ROBUST_FINAL_LIVE_RCv2.mq5), property version `1.017`, with [release envelope](MQL5/Experts/XauRobustLiveEnvelope.mqh). `archive.zip` is historical material.
 
 ## Build boundary
 
-The source includes platform `<Trade/Trade.mqh>` and **`XauRobustLiveEnvelope.mqh`, missing from the working tree and archive.zip**. Only `ApprovedStrategyOnInit`, `ApprovedStrategyOnTick`, `ApprovedStrategyOnTradeTransaction` and `ApprovedStrategyOnDeinit` are defined here. Final platform event handlers and release functions belong to the missing dependency. A reproducible compile and complete release-guard audit require that matching file; no successful build or runtime validation is claimed.
+Both project sources are present. Native compilation also requires platform `<Trade/Trade.mqh>`. The envelope defines final event handlers and release guards. Presence does not establish a successful build, runtime parity or live approval; compile/tester evidence must identify source, envelope, settings and inputs together.
+
+The following lifecycle notes predate the current source and require revalidation; use the [acceptance tracker](../docs/todo/MT5-Python.Divergence.md) for remaining work.
 
 ## Input and output
 
@@ -51,12 +51,12 @@ Assignments take precedence over adjacent comments describing earlier selected s
 
 `g_raw_zones` holds inputs; `g_zones` holds daily geometry/engagement/quotas; `g_cycles` holds PB lifecycle; `g_requests` bridges requests to deals; `g_positions` holds position management. Scalars own day/bar/trend, accounting, session/restart and audit state. Restart discovery uses native history/exposure; exposure-free fresh start deliberately does not restore earlier quotas/losses.
 
-`EndCycle` deactivates after requesting deletion without checking success. The visible deal callback filters Magic, not explicitly symbol, and assumes a non-partial full-position lifecycle for realized accounting. Envelope reconciliation is unknown. Initialization journal text still says 2.10 despite property 2.20.
+`EndCycle` deactivates after requesting deletion without checking success. The visible deal callback filters Magic, not explicitly symbol, and assumes a non-partial full-position lifecycle for realized accounting. Envelope reconciliation requires native validation. Initialization journal text still says 2.10 despite property 2.20.
 
 ## Python comparison
 
 Python production uses `MarketState` with optional `ExecutionReplay`, configured through `--execution-config` or `ReplayConfig`. The visible source port includes continuous native-bar history, quota/risk/protection transitions, raw-zone row filtering, explicit containing-session windows and shared-state snapshots. Default Python mode is signals-only; candidate output is not evidence of native fills.
 
-Remaining differences and acceptance work live in [MT5-Python.Divergence.md](../docs/todo/MT5-Python.Divergence.md). [Glossary CSV](../docs/State-Variables.Glossary.csv) and [glossary notes](../docs/State-Variables.Glossary.md) cover 143 visible declarations. Native execution outcomes, callback order, identity, numeric edge cases, broker schedule acquisition and the missing envelope still prevent an exact-parity claim. Python tests and the former MVP tests do not prove equivalent native results.
+Remaining differences and acceptance work live in [MT5-Python.Divergence.md](../docs/todo/MT5-Python.Divergence.md). [Glossary CSV](../docs/State-Variables.Glossary.csv) and [glossary notes](../docs/State-Variables.Glossary.md) cover 143 visible declarations. Native execution outcomes, callback order, identity, numeric edge cases, broker schedule acquisition and envelope reconciliation still prevent an exact-parity claim. Python tests and the former MVP tests do not prove equivalent native results.
 
-The current source hash is `b8bbf960e443c2fa8f2acab297b63d36f5a88473add5caf78eb403536f9ac923` (SHA-256). Compile and runtime evidence must identify this file, its matching envelope, settings and inputs together.
+Compute SHA-256 from the actual EA and envelope when collecting new compile/runtime evidence; stale hashes are not acceptance evidence.

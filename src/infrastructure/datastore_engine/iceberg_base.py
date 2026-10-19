@@ -207,11 +207,11 @@ def iceberg_fetch_from_datastore(
     # defines and runs at import time -- confirmed live (unit tests exercise this exact call) and
     # against pyiceberg's own source (pyiceberg/expressions/__init__.py LiteralPredicate.__init__).
     row_filter: BooleanExpression = And(
-        GreaterThanOrEqual("date", start.isoformat()),  # type: ignore[call-arg,arg-type]
-        LessThanOrEqual("date", end.isoformat()),  # type: ignore[call-arg,arg-type]
+        GreaterThanOrEqual("date", start.isoformat()),
+        LessThanOrEqual("date", end.isoformat()),
     )
     if timeframes:
-        row_filter = And(row_filter, In("timeframe", timeframes))  # type: ignore[call-arg,arg-type]
+        row_filter = And(row_filter, In("timeframe", timeframes))
 
     try:
         rows = iceberg_table.scan(row_filter=row_filter, selected_fields=selected_fields).to_pandas()

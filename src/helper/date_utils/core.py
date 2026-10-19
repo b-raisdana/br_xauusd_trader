@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone, tzinfo
+from datetime import UTC, datetime, timedelta, tzinfo
 from functools import lru_cache
 
 import pandas as pd
@@ -88,7 +88,7 @@ def morning(date_time: datetime, tz: tzinfo = pytz.utc) -> datetime:
 
 def yesterday(reference: datetime | None = None) -> str:
     if reference is None:
-        reference = datetime.now(timezone.utc)
+        reference = datetime.now(UTC)
     start = pd.to_datetime(reference.replace(hour=0, minute=0, second=0, microsecond=0).date() - timedelta(days=1))
     end = start + timedelta(days=1) - EPSILON_TIME
     return time_range_to_string(start=start, end=end)

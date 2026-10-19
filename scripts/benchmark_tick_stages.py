@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import sys
 import time
+from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
-from typing import Annotated, Any, Callable
+from typing import Annotated, Any
 
 import numpy as np
 import pandas as pd
@@ -24,6 +26,7 @@ from application.xauusd_trading_strategy_1_vector.config.core_vectors import cor
 from application.xauusd_trading_strategy_1_vector.config.strategy_config import strategy_config  # noqa: E402
 from application.xauusd_trading_strategy_1_vector.the_strategy import VectorizedXauUsdStrategy  # noqa: E402
 from config import app_config  # noqa: E402
+from domain.xau_usd.models import XauZone  # noqa: E402
 
 app = typer.Typer(add_completion=False)
 
@@ -74,7 +77,7 @@ def candles_from_ticks(ticks: pd.DataFrame) -> pd.DataFrame:
 
 
 class NoZones:
-    def get_zones_for_day(self, day: object) -> list:
+    def get_zones_for_day(self, day: datetime | str) -> list[XauZone]:
         return []
 
 

@@ -71,8 +71,8 @@ def aggregate_multi_timeframe_ohlcv(
             _timeframe_ohlcv.insert(0, "timeframe", timeframe)
             _timeframe_ohlcv = _timeframe_ohlcv.set_index("timeframe", append=True)
             _timeframe_ohlcv = _timeframe_ohlcv.swaplevel()
-            multi_timeframe_ohlcv = concat(multi_timeframe_ohlcv, _timeframe_ohlcv)  # type: ignore[assignment]
-    multi_timeframe_ohlcv = trim_to_time_range(time_range_str, multi_timeframe_ohlcv)  # type: ignore[assignment]
+            multi_timeframe_ohlcv = concat(multi_timeframe_ohlcv, _timeframe_ohlcv)
+    multi_timeframe_ohlcv = trim_to_time_range(time_range_str, multi_timeframe_ohlcv)
     multi_timeframe_ohlcv = multi_timeframe_ohlcv.sort_index(level="date")
     # assert multi_timeframe_times_tester(multi_timeframe_ohlcv, time_range_str)
     return MultiTimeframeOHLCV.validate(multi_timeframe_ohlcv)

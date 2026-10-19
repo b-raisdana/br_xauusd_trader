@@ -311,11 +311,11 @@ def times_in_time_range(
     ):
         in_timeframe_start_date = in_timeframe_start_date + pd.to_timedelta(timeframe)
     if start < end:
-        return pd.date_range(start=in_timeframe_start_date, end=end, freq=timeframe_to_grouper_freq(timeframe))  # type: ignore[arg-type]
+        return pd.date_range(start=in_timeframe_start_date, end=end, freq=timeframe_to_grouper_freq(timeframe))
     return pd.DatetimeIndex([], tz=pytz.utc)
 
 
-def _fill_na_columns(df: pd.DataFrame, na_columns: pd.Series, source: pd.DataFrame) -> None:  # type: ignore[explicit-any]
+def _fill_na_columns(df: pd.DataFrame, na_columns: pd.Series, source: pd.DataFrame) -> None:
     for column, d_type in na_columns.items():
         if column not in source.columns:
             df[column] = pd.Series(dtype=d_type)

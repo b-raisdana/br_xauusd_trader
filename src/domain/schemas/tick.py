@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from pandera.typing import Series
 
+from br_pre_commit import pandera_validate
 from config import app_config
 from domain.schemas.common.base_dataframe import TickMultiBrokerSymbolTimeseries
 from helper.importer import pt
@@ -21,6 +22,7 @@ class Tick(TickMultiBrokerSymbolTimeseries):
     volume_real: Series[float]
 
     @classmethod
+    @pandera_validate(allow_pandas_dataframe=True)
     def from_ndarray(
         cls,
         data: np.ndarray,
@@ -28,7 +30,7 @@ class Tick(TickMultiBrokerSymbolTimeseries):
         symbol: str | None = None,
         broker: str | None = None,
         # date_index_freq: str = "1s",
-    ) -> pt.DataFrame["Tick"]:
+    ) -> pt.DataFrame[Tick]:
         broker = broker if broker else app_config.default_broker
         symbol = symbol if symbol else app_config.default_symbol
         df = pd.DataFrame(data)

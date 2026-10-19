@@ -12,7 +12,7 @@ from config import BASE_TIMEFRAME
 from infrastructure.datastore_engine.duckdb_cache_registry import DatastoreRegistry
 from infrastructure.datastore_engine.iceberg_base import iceberg_fetch_from_datastore
 
-Generator = Callable[..., pd.DataFrame]  # type: ignore[explicit-any]
+Generator = Callable[..., pd.DataFrame]
 
 PostFetch = Callable[[pd.DataFrame], pd.DataFrame]
 

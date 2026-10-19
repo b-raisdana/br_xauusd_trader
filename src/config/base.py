@@ -1,9 +1,10 @@
 import base64
 import hashlib
 from _contextvars import ContextVar
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, ClassVar, Iterator, Self
+from typing import Any, ClassVar, Self
 
 from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
@@ -12,7 +13,7 @@ from pydantic_settings import BaseSettings
 class BaseConfig(BaseSettings):
     id: str = ""
 
-    def get(self, key: str, default_value: Any = None) -> Any:  # type: ignore[no-any-return]
+    def get(self, key: str, default_value: Any = None) -> Any:
         return self.model_dump().get(key, default_value)
 
     def log(self, path_of_logs: Path | None = None):

@@ -63,7 +63,7 @@ def _first_label_on_or_after(ts: pd.Timestamp, timeframe: str) -> pd.Timestamp:
     return floored if floored == ts else floored + timeframe_to_period(timeframe)
 
 
-def _tf_gap_ranges(  # type: ignore[explicit-any]  # bare pd.Series, per repo convention
+def _tf_gap_ranges(  # bare pd.Series, per repo convention
     cached_ts: pd.Series,
     period: pd.Timedelta,
     expected_start: pd.Timestamp,
@@ -177,13 +177,13 @@ def find_gaped_ranges(
     return [time_range_to_string(start=start, end=end) for start, end in combined]
 
 
-def merge_to_ranges(indexes: pd.MultiIndex) -> list[tuple[object, pd.Timestamp, pd.Timestamp]]:
+def merge_to_ranges(indexes: pd.MultiIndex) -> list[tuple[str, pd.Timestamp, pd.Timestamp]]:
     """RETAINED (dead code, superseded 2026-08-30 by `_tf_gap_ranges`). Python loop over the
     whole missing-label array to collapse contiguous runs. Kept, not deleted, per project
     convention -- `_tf_gap_ranges` reproduces its `[timeframe, first_label, last_label]` output."""
     if indexes.empty:
         return []
-    ranges: list[tuple[object, pd.Timestamp, pd.Timestamp]] = []
+    ranges: list[tuple[str, pd.Timestamp, pd.Timestamp]] = []
     for timeframe, group in indexes.to_frame(index=False).groupby("timeframe"):
         timestamps = group["date"].sort_values().to_numpy()
         step = timeframe_to_period(str(timeframe))

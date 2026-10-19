@@ -18,6 +18,7 @@ repos:
     stages:
     - pre-commit
   - id: check-added-large-files
+    exclude: \.drawio\.svg$
     args:
     - --maxkb=1024
     stages:

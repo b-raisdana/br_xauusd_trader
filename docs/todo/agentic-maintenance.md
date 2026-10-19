@@ -1,26 +1,39 @@
 # Agentic maintenance follow-up
 
-## Completed
+Reviewed against the checkout on 2026-10-19. Only remaining work is listed; completed logging, navigation and skill cleanup are removed. The consumer already pins hook commit `f262014`, including configurable skill mirrors, so no hook-submodule checkpoint remains pending.
 
-- DONE: Require file loggers and captured agent command output under repository `logs/` in `AGENTS.md`. Source inspection confirms the application FileHandler uses `app_config.path_of_logs` (default `logs/`; explicit `DLF_LOGS_ROOT` overrides remain supported), and the hook wrapper writes reports/summaries under `logs/pre-commit/`. Existing root log captures remain untouched.
-- DONE: Make `.agents/skills/` the shared authoring location; remove Copilot/Kilo/Devin duplicates after documented discovery checks, retain Claude/Kiro mirrors, configure sync targets and disable the legacy GitHub commit-skill slot. Preserve staged work; no commit or push is authorized. Discovery sources and configuration contract: [runbook](../../RUNBOOK.md#search-and-skills).
-- DONE: Remove 26 empty shared-skill directories left under `.kilo/skills/`; preserve `kilo-only-todo-discipline/README.md`. Confirm the existing `agents = ["agents", "claude", "kiro"]` configuration excludes Kilo from both sync path classification and mirror destinations.
-- DONE: Remove 26 empty shared-skill directories under `.devin/skills/`, then remove the empty `skills/` and `.devin/` parents. No skill files or Devin-specific skills remained. Runtime assertions confirm the existing sync configuration excludes Devin from source classification and destination slots.
-- DONE: Repair deleted navigation links, stale persistence/optimization guidance, checkout-specific timing claims and Git-authorization conflicts. Check canonical skill links and actual sync-pattern matching; test configurable mirrors and retired-slot exclusion without mutating the real index.
+## Execution boundaries
 
-- DONE: Repair root recovery, source ownership, stale component entry points, packaging, CI prerequisites and mirrored-skill guidance; add scoped search and read-only repository checks. Evidence: [audit](../AGENTIC_AUDIT.md).
+This tracker covers reliable agent navigation, source guidance and verification commands. General environment reproducibility is tracked separately as [P2 setup work](environment-reproducibility.md). Sharing a venv alone does not establish a defect or justify P1; per-sidecar environments are optional and are not a prerequisite for this plan.
 
-## Remaining
+Implement each item as a separate coherent batch. Preserve unrelated changes, confirmed trading/risk rules and incremental ratchet protections. Keep command captures under `logs/agentic/`. No commits, branches, pushes, PRs or remote CI dispatch without explicit authorization. Native parity and live approval remain outside this maintenance plan.
 
-- P1: Save verified hook-submodule changes and root configuration together when Git actions are explicitly authorized. Acceptance: commit the hook implementation first, pin that commit in the consumer, preserve unrelated staged changes and run normal hooks. Until then, a clean checkout of the current pinned submodule does not implement the new mirror settings.
+## Remaining work
 
-- P1: Revalidate native lifecycle notes in `mt5/README.md` against the current EA/envelope, then update the focused design/glossary and translated material where behavior changed. Do not treat historical property versions, hashes or missing-envelope claims as current evidence. Acceptance: source-linked lifecycle claims and matching compile/tester provenance; exact runtime parity remains a separate acceptance gate.
-- P1: Establish reproducible dependency resolution on a clean Windows Python environment using `pyproject.toml`, including submodule initialization; add a lock only after confirming the complete declared dependency set resolves. Acceptance: fresh editable install, repository checker, unit collection and wheel build; no silent dependency removal or global environment changes.
-- P2: Triage broad existing lint/type errors separately from this navigation/tooling batch. Preserve behavior and incremental ratchet protections. Acceptance: reproduce violations on baseline, fix coherent groups with relevant regression coverage, and leave new checker/tests clean.
-- P2: Validate manually dispatched Windows CI on the remote only when explicitly authorized. Acceptance: dependency installation, submodule checkout and complete configured gates execute; local configuration checks alone do not prove hosted success.
+### P1: Revalidate MT5 lifecycle documentation against current sources
 
-## Verification
+- Scope: [MT5 README](../../mt5/README.md), focused lifecycle/design documents, [glossary notes](../State-Variables.Glossary.md), [CSV inventory](../State-Variables.Glossary.csv), translated material and [acceptance tracker](MT5-Python.Divergence.md). Use the current EA and release envelope together; archived behavior and Python implementations cannot establish native behavior.
+- Check defaults, callback precedence, state set/clear/enforcement/recovery, no-action paths and request-versus-fill semantics. Replace stale property versions, hashes, declaration counts and missing-envelope claims only where current source inspection supports the correction. Preserve unresolved contradictions as explicit gaps.
+- Acceptance for documentation: changed claims link to current source symbols/lines; affected tables, glossary entries and translations agree; unverified runtime claims remain marked. Refresh current authoring/configuration claims in the [agentic audit](../AGENTIC_AUDIT.md) where stale, without rewriting dated test evidence.
+- Native compile/tester evidence is a separate remaining gate in the acceptance tracker: record EA/envelope hashes, terminal/compiler build, inputs and test provenance together. Documentation completion does not require or establish exact runtime parity, and unavailable native tools must remain an explicit evidence gap.
 
-2026-10-19 Kilo cleanup: removed 26 empty shared-skill directories; only `kilo-only-todo-discipline` remains. Consumer runtime configuration/classification check PASS (Kilo excluded); repository checker PASS (zero issues); isolated tooling tests PASS (10); synchronization tests PASS (35). Existing sync settings already satisfy the requested exclusion and remain unchanged.
+### P2: Make interpreter selection and verification commands explicit
 
-2026-10-18: repository checker PASS (zero issues); isolated tooling tests PASS (10); synchronization tests PASS (35); consumer settings/import check PASS; targeted tooling Ruff/format/mypy PASS; changed-file hooks PASS in root and submodule, including unit gates and the submodule ratchet. The submodule gate initially exposed missing analyzer executables on process PATH and tests coupled to former default platform slots; adding the installed Scripts directory and explicit test configuration resolved both. Sync mutation was not invoked against the real index because pre-existing staged skill versions must remain intact; read-only mirror equality and isolated sync tests cover this batch. Native/runtime integration and hosted CI were not rerun; trading implementation is unchanged.
+- Scope: [runbook](../../RUNBOOK.md), agent verification instructions and IDE/terminal interpreter selection. Agents must identify the interpreter and checkout used for evidence rather than assume an activated prompt selects the intended code.
+- Check existing guidance first; add only missing instructions for reporting `sys.executable`, Python version and imported project location, invoking checks through the selected interpreter, and ensuring hook analyzer executables are available on process PATH. Preserve the existing shared environment.
+- Acceptance: repeatable commands identify the intended interpreter/checkout and run the relevant verification tier without environment mutation. If existing guidance already satisfies this requirement, close it with evidence. A demonstrated wrong import, dependency conflict or blocked required check can justify escalating the specific fault to P1.
+
+### P2: Repair existing lint/type debt in bounded batches
+
+- Scope: broad Ruff/mypy failures reported in the [audit](../AGENTIC_AUDIT.md); those historical counts must be reproduced before being treated as current. Keep navigation/tooling checks clean.
+- Capture baseline diagnostics with the same interpreter, configuration and analyzers used for the candidate changes. Group repairs by cause/component; preserve behavior and add regression coverage where behavior could change. Do not weaken assertions, suppress checks wholesale or regenerate ratchet baselines to conceal regressions.
+- Acceptance per batch: baseline-versus-candidate diagnostics identify the resolved group, relevant tests pass, changed-file hooks pass and no new violations appear. The overall item remains open until the broad Ruff check, format check and mypy commands configured in CI pass.
+
+### P2: Validate manually dispatched Windows CI
+
+- Prerequisites: [clean-install setup validation](environment-reproducibility.md) and broad lint/type gates above pass locally; the intended root revision and pinned submodule are available remotely through separately authorized Git actions. This hosted-validation prerequisite does not block unrelated agent maintenance. Remote dispatch requires explicit authorization.
+- Run the existing manual workflow without reducing configured checks. Acceptance: dependency installation, pinned submodule checkout, repository checker, isolated tooling tests, Ruff, formatting, mypy and the configured full pytest suite execute successfully. Record workflow URL, root/submodule revisions, interpreter and results; fix failures before claiming hosted success.
+
+## Review evidence
+
+2026-10-19: root and submodule working trees were clean before this documentation edit; root `a690a93` pins `br_pre_commit` at `f262014`, matching its checked-out HEAD. Current hook code implements configurable agent slots and the legacy GitHub-slot switch. Repository checker PASS (zero issues); isolated tooling tests PASS (10). Fresh dependency resolution, broad lint/type gates, native compile/tester and hosted CI were not rerun for this review. Earlier validation remains in the [audit](../AGENTIC_AUDIT.md) and is dated evidence, not a current full-gate result.

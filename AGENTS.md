@@ -18,6 +18,7 @@ Read [current state](docs/CURRENT_STATE.md), inspect `git status --short` and th
 - Use targeted tests during a batch and the appropriate full gate at a major boundary. Never disable checks, weaken assertions or claim PASS without evidence. Reuse unchanged expensive evidence for reporting.
 - Update current state and relevant work under `docs/todo/`. Read task-specific skills only when applicable. Edit shared skills under `.agents/skills/`; mirrors exist for tool discovery and must remain identical.
 - Use narrow `rg` searches; explicitly name archive/mirror paths when needed. Do not load entire logs, datasets, notebooks or handoffs for routine recovery.
+- Keep file logger destinations and captured command output under the repository's `./logs/` directory, including `br_pre_commit` logs. Create needed subdirectories before writing; use `./logs/agentic/` for agent check captures rather than root-level `.log` files.
 - Keep Git history/origin. Batch local checkpoints when authorized by the active session; do not create commits, branches, pushes or PRs without explicit authorization. Remote CI is manual, not a routine local gate.
 
 ## Approval and trading boundaries

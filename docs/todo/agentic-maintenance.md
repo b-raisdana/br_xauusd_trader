@@ -2,7 +2,9 @@
 
 ## Completed
 
+- DONE: Require file loggers and captured agent command output under repository `logs/` in `AGENTS.md`. Source inspection confirms the application FileHandler uses `app_config.path_of_logs` (default `logs/`; explicit `DLF_LOGS_ROOT` overrides remain supported), and the hook wrapper writes reports/summaries under `logs/pre-commit/`. Existing root log captures remain untouched.
 - DONE: Make `.agents/skills/` the shared authoring location; remove Copilot/Kilo/Devin duplicates after documented discovery checks, retain Claude/Kiro mirrors, configure sync targets and disable the legacy GitHub commit-skill slot. Preserve staged work; no commit or push is authorized. Discovery sources and configuration contract: [runbook](../../RUNBOOK.md#search-and-skills).
+- DONE: Remove 26 empty shared-skill directories left under `.kilo/skills/`; preserve `kilo-only-todo-discipline/README.md`. Confirm the existing `agents = ["agents", "claude", "kiro"]` configuration excludes Kilo from both sync path classification and mirror destinations.
 - DONE: Repair deleted navigation links, stale persistence/optimization guidance, checkout-specific timing claims and Git-authorization conflicts. Check canonical skill links and actual sync-pattern matching; test configurable mirrors and retired-slot exclusion without mutating the real index.
 
 - DONE: Repair root recovery, source ownership, stale component entry points, packaging, CI prerequisites and mirrored-skill guidance; add scoped search and read-only repository checks. Evidence: [audit](../AGENTIC_AUDIT.md).
@@ -17,5 +19,7 @@
 - P2: Validate manually dispatched Windows CI on the remote only when explicitly authorized. Acceptance: dependency installation, submodule checkout and complete configured gates execute; local configuration checks alone do not prove hosted success.
 
 ## Verification
+
+2026-10-19 Kilo cleanup: removed 26 empty shared-skill directories; only `kilo-only-todo-discipline` remains. Consumer runtime configuration/classification check PASS (Kilo excluded); repository checker PASS (zero issues); isolated tooling tests PASS (10); synchronization tests PASS (35). Existing sync settings already satisfy the requested exclusion and remain unchanged.
 
 2026-10-18: repository checker PASS (zero issues); isolated tooling tests PASS (10); synchronization tests PASS (35); consumer settings/import check PASS; targeted tooling Ruff/format/mypy PASS; changed-file hooks PASS in root and submodule, including unit gates and the submodule ratchet. The submodule gate initially exposed missing analyzer executables on process PATH and tests coupled to former default platform slots; adding the installed Scripts directory and explicit test configuration resolved both. Sync mutation was not invoked against the real index because pre-existing staged skill versions must remain intact; read-only mirror equality and isolated sync tests cover this batch. Native/runtime integration and hosted CI were not rerun; trading implementation is unchanged.

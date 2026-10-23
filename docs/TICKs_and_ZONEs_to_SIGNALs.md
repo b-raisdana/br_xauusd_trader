@@ -17,6 +17,7 @@ On each tick, the EA obtains a native `MqlTick`, runs session safety, processes 
 - The EA requires the M15 chart period. At startup it requires at least four M15 bars: the current bar and three closed reference bars.
 - `UpdateTrendReference` takes the high maximum and low minimum across the three closed M15 bars (`CopyRates(..., PERIOD_M15, 1, 3, ...)`). A failed copy leaves no refreshed reference; initialization fails if the initial refresh fails.
 - `UpdateTrendState` sets `TREND_UP` only when Bid is strictly above the reference high and `TREND_DOWN` only when Bid is strictly below the reference low. Inside or on either boundary, the previous trend persists. Thus an intrabar transition from up to down (or vice versa) is possible when Bid crosses the opposite reference boundary.
+- This is a rolling range-break state, not a candle-pattern or slope test: the three bars contribute only their highest high and lowest low; their bullish/bearish classes, order, and closes do not determine trend. After a new M15 bar is detected, the just-closed bar is evaluated with the existing trend snapshot first; then the reference range is refreshed from shifts 1..3, and the current tick's Bid may update trend against that new range.
 - Candle class is descriptive only: close above open is bullish, below open bearish, equal is doji. The signal conditions use the actual close, trend snapshot, zone engagement, and configured buffer; candle class is not an additional filter.
 - Broker day is derived from server time. Day change loads that day’s zones and resets daily realized counters, daily stop, sequence and some per-day context; it does not close already-open positions merely because the date changed.
 
@@ -55,6 +56,16 @@ The breakout first invalidates active reversal positions in the same zone with t
 ### Deferred pullback opportunity
 
 A valid breakout may create one active cycle per broker day, zone and direction. An existing active same-key cycle is left unchanged; it is not restarted by a repeated breakout. The cycle stores the broken zone bounds and breakout-bar time and begins at valid bar number 1. Its entry condition is observed later by `ManagePullbackCycles`: buy pullback penetration latches when `Bid <= zone_high - InpPullbackPenetrationUSD`; sell penetration latches when `Bid >= zone_low + InpPullbackPenetrationUSD` (default `$0.20`). There is no maximum penetration-distance check. Penetration only latches the condition; order eligibility and placement are covered in [Signals to Orders](SIGNALs_to_ORDERS.md).
+
+### How the three-bar trend affects reversals and pullbacks
+
+| Path | Trend's role | What trend does not do |
+|---|---|---|
+| Reversal touch | The current tick updates trend first. In `TREND_UP`, only an upward crossing of a zone's low proposes countertrend `R-S`; in `TREND_DOWN`, only a downward crossing of a zone's high proposes countertrend `R-B`. The same crossing in the other trend state does not propose that reversal. | Trend alone is insufficient: zone crossing, one-attempt slot, daily/session/restart gates, profile/quota, risk, and order checks still apply. A trend change can enable the opposite reversal direction later in the same M15 bar because each direction has its own slot. |
+| Breakout that can seed pullback | At the close decision, the saved trend snapshot must agree with breakout direction: up for buy, down for sell, alongside zone engagement and strict buffered close. A qualifying breakout may create a pullback cycle. | Candle color is not a filter, and current Bid crossing the three-bar range does not itself create a pullback. |
+| Existing pullback cycle | Trend confirmation was applied to its originating breakout. Later, `ManagePullbackCycles` checks cycle/day validity, session and daily stop, `MVPPullbackAllowed`, and the directional zone-edge penetration latch. | It does not re-check that current trend still agrees with the cycle direction. A trend flip alone does not invalidate or cancel the cycle. |
+
+In short, the three-bar range directly selects the eligible countertrend reversal side and direction-filters breakout creation. For pullbacks it is an upstream breakout filter only; the later pullback-entry condition is price penetration plus cycle and entry eligibility. The trend is persistent inside the range, so a previously set trend remains in force until Bid strictly breaks the opposite boundary (or the current boundary is broken again in its direction).
 
 ## Filters, confirmations, and invalidation rules
 

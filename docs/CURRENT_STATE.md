@@ -10,6 +10,8 @@ Python produces columnar signals and optional compiled batch execution replay. M
 
 The [Farsi signal-to-order FSM](SIGNALs_to_ORDERS.FSM.fa.drawio.svg) translates all 118 labels of the English diagram and retains editable Draw.io data. Graph structure and rendered layout were checked on 2026-10-19; this translation does not revalidate the original diagram's historical source claims.
 
+The project configures the local Draw.io MCP server in `.codex/config.toml` (`npx -y @drawio/mcp`). Codex loads project MCP settings only for trusted projects; restart or reload Codex after trusting this checkout. Use the server for `*.drawio.svg` files as embedded Draw.io graphs, keeping graph data and SVG rendering synchronized.
+
 ## Agentic maintenance
 
 File logging and agent command captures belong under repository `logs/`; see [execution contract](../AGENTS.md). Application logging defaults to `logs/`, and hook reports use `logs/pre-commit/`. The [maintenance tracker](todo/agentic-maintenance.md) records the source check.

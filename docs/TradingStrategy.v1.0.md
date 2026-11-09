@@ -137,7 +137,6 @@ use: class Tick(TickMultiBrokerSymbolTimeseries) defined in src\domain\schemas\t
 - Other times
   - 6 USD
 
-
 ### TP
 
 Next zone nearest band:
@@ -160,6 +159,7 @@ Next zone nearest band:
 ### Entry limit
 
 بازه تا جایی مورد قبول است که اعتبار SL-Distance < TP-Distance معتبر بماند.
+
 - Tolerance: TP - SL-Distance
 - نزدیکترین باند سطح مقابل - SL-Distance
 - Buy

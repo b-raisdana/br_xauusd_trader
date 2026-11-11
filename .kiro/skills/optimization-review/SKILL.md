@@ -7,6 +7,8 @@ description: Use after finishing a functional change to one or more Python files
 
 Goal: never let an optimization opportunity found while working in a file get lost, and never let a later "optimize this" edit silently change behavior. This skill only reviews and logs; it does not implement — implementation is a separate later change that goes through the normal edit + test + pre-commit flow.
 
+Strategy/data hot paths follow [pandas-only vectorization](../pandas-multi-column-assignment/SKILL.md) and [config, manifest and incremental-column rules](../project-decisions/SKILL.md). Reviews must not propose NumPy, Python iteration or alternate array/compiled kernels for these calculations. Parameter and trend-window optimization changes belong in the modeled component `config/`; never embed candidate numbers in calculation code.
+
 ## when to run this
 
 After a functional change to a Python file under `src/` is working (tests green), before moving on to the next file or ending the session — review that file once while it's fresh, not retroactively in a batch. Also run on demand as a standalone audit of a chosen file/module (no functional change required), including a batch audit of everything currently modified.
@@ -21,7 +23,7 @@ Check the modified file against each factor below. Every factor but the last thr
 
 | factor | what to look for | reference |
 | --- | --- | --- |
-| vectorization | Python-level loops over rows/samples/dates (`iterrows`, `apply(axis=1)`, manual `while`/`for` slicing) that could be array/DataFrame ops | [project-decisions](../project-decisions/SKILL.md) |
+| vectorization | Any Python iteration, NumPy, row callbacks or alternate kernels in strategy/data calculations; allowed calculations are vectorized pandas column operations, `shift` and `eval` | [project-decisions](../project-decisions/SKILL.md) |
 | redundant computation / caching | the same derived data (indicators, labels, any artifact) recomputed or re-fetched across calls with the same effective inputs | [duckdb-cache-persistence](../duckdb-cache-persistence/SKILL.md) |
 | concurrency / blocking I/O | sequential network/disk calls or independent CPU-bound work (symbols/timeframes/folds) that could run concurrently | measure independent work before adding concurrency |
 | library delegation | hand-rolled algorithm/transform where a well-maintained library already does it, usually faster | prefer existing mature dependencies |
@@ -30,7 +32,7 @@ Check the modified file against each factor below. Every factor but the last thr
 | complexity as an optimization blocker | a function ranked worse than xenon's `B` (the same threshold `.pre-commit-config.yaml`'s incremental ratchet blocks regressions on) is both a correctness risk and unsafe to optimize until untangled | [pre-commit-check](../pre-commit-check/SKILL.md) |
 | duplication / dead code / reuse | two parallel implementations of the same operation (a second read-or-generate flow, a copy-pasted near-duplicate function, a "v2" variant nothing imports), or code with zero external callers (confirm with a repo-wide grep before flagging) | [project-decisions](../project-decisions/SKILL.md) ("don't fork a second copy of a module"), [duckdb-cache-persistence](../duckdb-cache-persistence/SKILL.md) ("one cache per artifact type, not one per caller") |
 
-Log a finding for a real instance of a factor, not a hypothetical one — don't flag "could theoretically use `numba`" without a concrete bottleneck reason tied to this repo's actual data volumes.
+Log a finding for a real instance of a factor, not a hypothetical one. Do not recommend NumPy, Numba, Python iterators or row-wise callbacks for strategy calculations; use only the allowed pandas vectorized operations.
 
 ## priority
 

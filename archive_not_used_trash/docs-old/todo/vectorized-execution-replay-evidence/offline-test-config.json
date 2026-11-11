@@ -1,0 +1,21 @@
+{
+  "economics": {
+    "cash_per_price_unit_per_lot": 100,
+    "margin_per_lot": 2000,
+    "entry_cost_per_lot": 10,
+    "exit_cost_per_lot": 20,
+    "minimum_stop_distance": 0,
+    "sessions": {
+      "2026-07-29": "2026-07-29T23:59:59+00:00"
+    }
+  },
+  "initial_balance": 200,
+  "inputs": {
+    "risk_mode": "off",
+    "session_mode": "all",
+    "enable_direct_breakout": true,
+    "breakout_normal_only": false,
+    "one_order_per_candle": true,
+    "broker_timezone": "UTC"
+  }
+}

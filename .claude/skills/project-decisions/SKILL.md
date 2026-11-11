@@ -8,7 +8,9 @@ description: Use when choosing architecture, dependency, persistence, configurat
 - YAGNI: current need before hypothetical scale.
 - Separate deterministic trading/domain logic from external I/O where practical.
 - Prefer mature libraries when they reduce correctness risk.
-- Python data processing uses pandas DataFrames first and NumPy ndarrays second. Python per-tick/per-candle iteration, including previous-candle scans, row comprehensions and Python callbacks, is prohibited even for stateful replay. Use whole-frame pandas operations, then NumPy operations, then compiled Numba recurrence where causality requires it; Python iteration is reserved for non-market-row orchestration.
+- All project strategy/data calculations use complete vectorized pandas DataFrame/Series operations only: column operations, `shift` and `eval`. NumPy and Python iteration are prohibited, including `for`/`while`, comprehensions, row scans, `iterrows`, `apply(axis=1)`, callbacks and alternate array/compiled kernels.
+- Put every numeric strategy parameter and configurable column/window count in the component `config/`, validated by its canonical base settings model. Current values are defaults or optimization candidates; never hardcode them in calculations.
+- Pass large cross-module data by manifest references to disk artifacts, not by copying/materializing DataFrames. Temporary DataFrames contain only newly derived incremental columns; align/map them to existing data by index when consumed.
 - Avoid hidden mutable global state in strategy logic.
 - One authoritative config path per concern.
 - No hard-coded credentials or developer-specific absolute paths.

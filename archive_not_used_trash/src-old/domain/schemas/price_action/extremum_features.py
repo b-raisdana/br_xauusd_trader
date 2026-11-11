@@ -1,0 +1,14 @@
+import pandera.pandas as pa
+from pandera import typing as pt
+
+
+class BranchExtremumOHLC(pa.DataFrameModel):
+    class Config:
+        coerce = True
+
+    open: pt.Series[float]
+    high: pt.Series[float]
+    low: pt.Series[float]
+    close: pt.Series[float]
+    volume: pt.Series[float]
+    atr: pt.Series[float] = pa.Field(nullable=True)

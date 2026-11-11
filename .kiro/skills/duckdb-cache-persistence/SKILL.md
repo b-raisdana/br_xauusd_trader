@@ -17,6 +17,12 @@ The decorator is implemented in [duckdb_cache.py](../../../src/infrastructure/da
 
 Inspect the current signature, schema checks, frequency/boundary handling, `nan_means` and `post_fetch` before changing a caller. The implementation delegates storage to Iceberg helpers; do not assume the historical Parquet-only design still applies.
 
+## Cross-module manifest handoff
+
+Large DataFrame artifacts cross module boundaries by manifest reference to disk-resident data, not by copying the full frame. The manifest identifies the artifact and its schema, index and partition/path metadata. A manifest is a handoff contract, not a second cache/read-write mechanism: persisted DataFrames still use `@duckdb_cache(...)` and its owning storage API.
+
+Keep temporary DataFrames incremental: contain only newly derived columns, preserve their index, and align them with existing frames by index when needed. Do not copy the existing frame's columns into temporary intermediates. Strategy calculations also follow [pandas vectorization rules](../pandas-multi-column-assignment/SKILL.md).
+
 ## Migrating an existing caller
 
 Verify the decorated generator against the existing caller with focused regression coverage, then remove the old call site. Search imports and dynamic entry points before retiring any helper; archived code remains reference only. Do not create a parallel cache implementation.

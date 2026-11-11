@@ -7,7 +7,7 @@ description: Use when adding a genuinely relational table (metadata, config, job
 
 Trigger: a table that's genuinely relational (has real structure/relationships/queries-by-key), not a bulk time-series artifact. Example use case: a small coverage ledger. This is an optional design example, not an implemented requirement of the current cache decorator.
 
-**Do not use this for bulk OHLCV/indicator/label rows.** Row-by-row ORM object mapping is a serious throughput regression against columnar Parquet/DuckDB bulk writes (project-decisions § vectorized-pandas-numpy, lib-first) — time-series data stays in Parquet, queried in bulk via `duckdb.connect().execute(...)`/`read_parquet(...)`, never inserted one `session.add(...)` at a time.
+**Do not use this for bulk OHLCV/indicator/label rows.** Row-by-row ORM object mapping is a serious throughput regression against columnar Parquet/DuckDB bulk writes (project-decisions, columnar-storage and lib-first) — time-series data stays in Parquet, queried in bulk via `duckdb.connect().execute(...)`/`read_parquet(...)`, never inserted one `session.add(...)` at a time.
 
 ## Dependencies
 
@@ -24,7 +24,7 @@ def pandera_to_table(
 ) -> Table:
     schema = schema_cls.to_schema()
     columns = [
-        Column(name, PANDAS_TO_SQLA.get(np.dtype(col.dtype.type), String),
+        Column(name, PANDAS_TO_SQLA.get(col.dtype, String),
                ForeignKey(foreign_keys[name]) if name in (foreign_keys or {}) else None,
                primary_key=(name == primary_key), nullable=col.nullable)
         for name, col in schema.columns.items()

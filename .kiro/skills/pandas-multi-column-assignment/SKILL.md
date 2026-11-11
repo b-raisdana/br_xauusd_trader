@@ -5,7 +5,14 @@ description: When assigning multiple columns from a sequence of Series in a Data
 
 # Pandas multi-column assignment & runtime validation
 
-Trigger: assigning multiple new columns to a DataFrame from `Series` objects, or annotating/returning a validated DataFrame.
+Trigger: pandas strategy calculations, incremental temporary DataFrames, assigning multiple new columns from `Series`, or annotating/returning a validated DataFrame.
+
+## Strategy vectorization and temporary frames
+
+- Use complete vectorized pandas `DataFrame`/`Series` column operations, `shift` and `eval` only for strategy calculations. NumPy and Python iteration are prohibited: no `for`/`while`, comprehensions, row scans, `iterrows`, `apply(axis=1)`, callbacks or alternate array/compiled kernels.
+- Put every numeric parameter and configurable column/window count in the strategy component `config/`, validated against its canonical settings model; no calculation literals. Trend lookback/column count remains configurable for later optimization.
+- Build temporary DataFrames from newly derived columns only. Do not copy existing DataFrame columns into temporary frames; preserve their index and align/map by index at use time.
+- Pass large artifacts between modules through a manifest that identifies the disk-resident payload, schema and index/partition metadata; do not pass or copy the full in-memory DataFrame.
 
 ## Multi-column assignment
 
@@ -26,7 +33,7 @@ df[columns] = pd.concat([s1, s2, s3], axis=1).set_axis(columns, axis=1)
 
 - `pd.concat([...], axis=1)` builds a rows × columns object.
 - `set_axis(columns, axis=1)` pins the column names explicitly — never leave them positional.
-- Index alignment is preserved — prefer `concat` over `np.array(series)` unless index semantics are intentionally discarded.
+- Index alignment is preserved. NumPy conversion is prohibited in strategy calculations; keep the pandas index intact.
 
 For repeated dynamic assignments, define the column-name list once:
 

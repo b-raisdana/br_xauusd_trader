@@ -6,6 +6,7 @@ from .contracts import (
     StrategyContext,
     StrategySnapshot,
 )
+from .position_service import PositionStageService
 from .services import OrderStage, PositionStage, SignalStage, SnapshotIngress
 
 __all__ = [
@@ -14,6 +15,7 @@ __all__ = [
     "OrderStage",
     "PositionResult",
     "PositionStage",
+    "PositionStageService",
     "SignalResult",
     "SignalStage",
     "SnapshotIngress",

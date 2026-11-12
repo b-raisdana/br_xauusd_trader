@@ -8,6 +8,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 class StrategyV1Config(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
+    m5_timeframe_minutes: Literal[5] = 5
+    m15_timeframe_minutes: Literal[15] = 15
     trend_reference_candles: Literal[3] = 3
     minimum_closed_m15_candles: int = Field(default=3, ge=3)
     rsi_period: int = Field(default=14, gt=0)
@@ -24,10 +26,17 @@ class StrategyV1Config(BaseModel):
     breakout_buffer_usd: float = Field(default=1.0, ge=0.0)
     breakout_return_window_m5: int = Field(default=5, gt=0)
     confirmation_window_m5: int = Field(default=5, gt=0)
+    rsi_confirmation_candles: int = Field(default=3, gt=0)
+    reversal_exit_buffer_usd: float = Field(default=1.0, ge=0.0)
     high_importance_threshold: float = Field(default=0.7, gt=0.0, le=1.0)
     fallback_importance_threshold: float = Field(default=0.5, gt=0.0, le=1.0)
     entry_tolerance_pips: int = Field(default=10, gt=0)
     pip_size_usd: float = Field(default=0.01, gt=0.0)
+    opo_worst_commission_per_lot_per_side_usd: float = Field(default=6.0, ge=0.0)
+    opo_xauusd_average_spread_points: float = Field(default=20.0, ge=0.0)
+    opo_worst_negative_swap_points: float = Field(default=50.544, ge=0.0)
+    cost_stress_slippage_points_per_execution: float = Field(default=20.0, ge=0.0)
+    cost_stress_triple_swap_multiplier: int = Field(default=3, ge=1)
     london_session_start_hour: int = Field(default=8, ge=0, le=23)
     london_session_end_hour: int = Field(default=17, ge=1, le=24)
     new_york_session_start_hour: int = Field(default=8, ge=0, le=23)

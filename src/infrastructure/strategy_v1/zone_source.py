@@ -52,6 +52,7 @@ class CsvZoneSource:
         active["direction"] = 0
         if "note" not in active.columns:
             active["note"] = None
+        active["note"] = active["note"].astype("string[pyarrow]")
         active = active.rename(columns={"priority": "importance_class"})
         columns = ["date", "zone_id", "lower", "upper", "importance_class", "direction", "note"]
         return active[columns].sort_values(["date", "lower", "upper"]).set_index(["date", "zone_id"])

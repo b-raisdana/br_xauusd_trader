@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol
 
 import pandas as pd
 
@@ -11,6 +11,7 @@ from domain.schemas.xau_usd.zones import StrategyZoneRows
 from helper.importer import pt
 
 from .contracts import ArtifactReference
+from .risk_models import Mt5RiskSnapshot
 
 
 class ArtifactStore(Protocol):
@@ -38,3 +39,17 @@ class MarketDataSource(Protocol):
 class ZoneDataSource(Protocol):
     @pandera_validate
     def load_zones(self, path: Path) -> pt.DataFrame[StrategyZoneRows]: ...
+
+
+class RiskCalculationSource(Protocol):
+    def get_risk_snapshot(self, symbol: str) -> Mt5RiskSnapshot: ...
+
+    def profit_at_stop_per_lot(
+        self,
+        symbol: str,
+        direction: Literal["buy", "sell"],
+        entry: float,
+        stop: float,
+    ) -> float: ...
+
+    def margin_per_lot(self, symbol: str, direction: Literal["buy", "sell"], entry: float) -> float: ...

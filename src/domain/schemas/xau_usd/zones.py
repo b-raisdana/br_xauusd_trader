@@ -24,6 +24,11 @@ class StrategyZoneRows(pa.DataFrameModel):
         return (
             frame["lower"].gt(0.0).all()
             and frame["lower"].le(frame["upper"]).all()
-            and frame["lower"].is_monotonic_increasing
+            and frame["lower"]
+            .groupby(level="date", sort=False)
+            .apply(
+                lambda values: values.is_monotonic_increasing,
+            )
+            .all()
             and frame[["lower", "upper"]].isin([float("inf"), float("-inf")]).sum().sum() == 0
         )

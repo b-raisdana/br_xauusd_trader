@@ -130,3 +130,5 @@ repos:
     language: system
     entry: python -m br_pre_commit.src.check_no_object_annotations
     pass_filenames: true
+    stages:
+    - pre-commit

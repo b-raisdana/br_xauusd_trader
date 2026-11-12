@@ -124,6 +124,30 @@ files = "^src/.*\\.py$"
 unknown-hook-policy = "error"
 job-timeout-seconds = 900
 protected-branches-regex = "^(main|develop|uat)$"
+mutating-hooks = [
+    "trailing-whitespace",
+    "end-of-file-fixer",
+    "mixed-line-ending",
+    "ruff",
+    "ruff-format",
+    "sync-skill-files",
+    "incremental-ratchet",
+]
+read-only-hooks = [
+    "check-yaml",
+    "check-toml",
+    "check-added-large-files",
+    "check-merge-conflict",
+    "check-case-conflict",
+    "debug-statements",
+    "pytest-fast",
+    "pytest-integration-collect",
+    "integration-tests",
+    "check-pandera-decorator",
+    "no-commit-to-trunk",
+    "no-object-annotations",
+]
+pre_commit_stage = "pre-commit"
 
 [tool.br_pre_commit.ratchet]
 target = "src"
@@ -134,6 +158,11 @@ xenon-max-absolute = "B"
 # Directory excluded from ratchet/ruff/mypy/xenon scans. Unreachable-from-presentation
 # reference code kept for reference, not linted - see <repo>/<exclude-dir>/README.md.
 exclude-dir = "archive_not_used_trash"
+ratchet_data_folder_rel_path = "ratchet"
+baseline_glob = "baseline*.json"
+mypy_coded_error_re = ": error: .*\\[([\\w-]+)\\]\\s*$"
+mypy_uncoded_error_re = ": error: "
+exclude_dirs = ["archive_not_used_trash"]
 
 [tool.br_pre_commit.backup]
 # Regex (matched against each path part) for directories whose files are excluded
